@@ -13,6 +13,27 @@ K12 多智能体教学平台后端初始化为 Maven 多模块工程。当前拆
 | `k12-agent-service` | 8083 | 多智能体教学编排、对话上下文、工具调用和教学策略域。 |
 | `k12-assessment-service` | 8084 | 作业、测验、诊断报告、学习效果评价和错题归因域。 |
 
+## Microservice dependencies
+
+父工程 `pom.xml` 统一管理 Spring Boot、Spring Cloud、Spring Cloud Alibaba 版本：
+
+| Dependency BOM | Version |
+| --- | --- |
+| `spring-boot-dependencies` | `3.3.5` |
+| `spring-cloud-dependencies` | `2023.0.3` |
+| `spring-cloud-alibaba-dependencies` | `2023.0.3.4` |
+
+各业务服务已接入 Spring Cloud Alibaba Nacos Discovery / Config，默认通过环境变量关闭，避免本地未启动 Nacos 时影响服务启动。
+
+```bash
+# 启用 Nacos 注册发现和配置中心
+set NACOS_DISCOVERY_ENABLED=true
+set NACOS_CONFIG_ENABLED=true
+set NACOS_SERVER_ADDR=127.0.0.1:8848
+```
+
+服务间调用预留 Spring Cloud OpenFeign，负载均衡使用 Spring Cloud LoadBalancer。网关模块使用 Spring Cloud Gateway 作为后续统一入口基础。
+
 ## Common commands
 
 ```bash
