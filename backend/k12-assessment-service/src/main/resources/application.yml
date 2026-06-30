@@ -1,0 +1,12 @@
+﻿server:
+  port: 8084
+
+spring:
+  application:
+    name: k12-assessment-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
