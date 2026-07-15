@@ -11,7 +11,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/agents")
 public class AgentHealthController {
-
+//todo 通用接口
     @GetMapping("/health")
     public ApiResponse<ServiceDescriptor> health() {
         return ApiResponse.ok(new ServiceDescriptor(
