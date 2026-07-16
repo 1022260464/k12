@@ -12,6 +12,7 @@ import java.util.List;
 @RequestMapping("/api/v1/assessments")
 public class AssessmentHealthController {
 
+
     @GetMapping("/health")
     public ApiResponse<ServiceDescriptor> health() {
         return ApiResponse.ok(new ServiceDescriptor(
@@ -21,4 +22,5 @@ public class AssessmentHealthController {
                 List.of("homework", "quiz", "diagnosis", "learning-evaluation")
         ));
     }
+
 }

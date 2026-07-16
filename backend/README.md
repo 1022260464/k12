@@ -34,6 +34,34 @@ set NACOS_SERVER_ADDR=127.0.0.1:8848
 
 服务间调用预留 Spring Cloud OpenFeign，负载均衡使用 Spring Cloud LoadBalancer。网关模块使用 Spring Cloud Gateway 作为后续统一入口基础。
 
+## Security
+
+后端已统一接入 Spring Security。通用依赖放在父工程 `backend/pom.xml`，Servlet 服务的默认安全配置放在 `k12-common` 并通过 Spring Boot AutoConfiguration 自动生效；`k12-gateway-service` 使用 Spring Cloud Gateway，对应 WebFlux Security 配置保留在网关模块内。
+
+默认规则：
+
+- 放行健康检查与基础信息接口：`/actuator/health`、`/actuator/info`、各业务服务 `/api/v1/*/health`。
+- 其他接口默认需要 HTTP Basic 认证。
+- 默认开发账号为 `admin` / `admin123`，可通过配置覆盖。
+
+```yaml
+k12:
+  security:
+    user:
+      name: admin
+      password: admin123
+      roles:
+        - ADMIN
+    permit-paths:
+      - /actuator/health
+      - /actuator/info
+      - /api/v1/gateway/health
+      - /api/v1/iam/health
+      - /api/v1/learning/health
+      - /api/v1/agents/health
+      - /api/v1/assessments/health
+```
+
 ## Common commands
 
 ```bash
