@@ -55,6 +55,12 @@ mvn -pl k12-agent-service -am spring-boot:run
 | `k12-agent-service` | 8083 | 多智能体教学编排、对话上下文、工具调用和教学策略域。 |
 | `k12-assessment-service` | 8084 | 作业、测验、诊断报告、学习效果评价和错题归因域。 |
 
+## 后端安全配置
+
+后端统一接入 Spring Security。公共依赖放在 `backend/pom.xml`，Servlet 服务的通用安全配置放在 `k12-common` 并通过 Spring Boot AutoConfiguration 自动加载；网关服务是 WebFlux 栈，安全配置保留在 `k12-gateway-service`。
+
+默认放行 `/actuator/health`、`/actuator/info` 和各服务健康检查接口，其他接口默认使用 HTTP Basic 认证。开发默认账号为 `admin` / `admin123`，可通过 `k12.security.user.*` 覆盖。
+
 ## 健康检查接口
 
 ```text
