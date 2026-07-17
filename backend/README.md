@@ -1,4 +1,4 @@
-﻿# K12 Platform Backend
+# K12 Platform Backend
 
 K12 多智能体教学平台后端初始化为 Maven 多模块工程。当前拆分以业务边界为主，先保持轻量 Spring Boot 服务形态，便于后续接入注册中心、配置中心、网关路由、数据库和消息队列。
 
@@ -60,6 +60,36 @@ k12:
       - /api/v1/learning/health
       - /api/v1/agents/health
       - /api/v1/assessments/health
+```
+
+## IAM database
+
+IAM 权限库使用独立 MySQL 数据库 `k12_auth`，不要和 Nacos 的 `nacos_config` 混用。初始化脚本位于：
+
+```text
+backend/sql/mysql/k12_auth_init.sql
+```
+
+默认连接配置：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://${K12_AUTH_DB_HOST:127.0.0.1}:${K12_AUTH_DB_PORT:3306}/${K12_AUTH_DB_NAME:k12_auth}
+    username: ${K12_AUTH_DB_USERNAME:k12}
+    password: ${K12_AUTH_DB_PASSWORD:K12@123456}
+```
+
+执行脚本需要使用有建库和授权权限的 MySQL 账号，例如 root：
+
+```bash
+mysql -h 127.0.0.1 -P 3306 -u root -p < backend/sql/mysql/k12_auth_init.sql
+```
+
+`k12-iam-service` 已定义数据库版 `UserDetailsService`，登录时会读取 `sys_user.password_hash` 和用户绑定的 `sys_role.role_code`。可用受保护接口验证：
+
+```bash
+curl -u admin:admin123 http://localhost:8081/api/v1/iam/me
 ```
 
 ## Common commands

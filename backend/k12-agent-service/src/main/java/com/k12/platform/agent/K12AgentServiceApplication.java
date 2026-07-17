@@ -1,4 +1,4 @@
-﻿package com.k12.platform.agent;
+package com.k12.platform.agent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

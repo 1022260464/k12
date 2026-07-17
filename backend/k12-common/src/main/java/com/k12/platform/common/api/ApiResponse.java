@@ -1,4 +1,4 @@
-﻿package com.k12.platform.common.api;
+package com.k12.platform.common.api;
 
 import java.time.Instant;
 

@@ -1,4 +1,4 @@
-﻿package com.k12.platform.common.model;
+package com.k12.platform.common.model;
 
 import java.util.List;
 
