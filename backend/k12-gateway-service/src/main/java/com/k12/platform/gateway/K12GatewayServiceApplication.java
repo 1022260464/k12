@@ -1,4 +1,4 @@
-﻿package com.k12.platform.gateway;
+package com.k12.platform.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

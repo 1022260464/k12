@@ -1,4 +1,4 @@
-﻿package com.k12.platform.learning;
+package com.k12.platform.learning;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

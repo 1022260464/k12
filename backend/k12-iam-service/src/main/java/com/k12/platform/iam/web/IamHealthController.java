@@ -1,4 +1,4 @@
-﻿package com.k12.platform.iam.web;
+package com.k12.platform.iam.web;
 
 import com.k12.platform.common.api.ApiResponse;
 import com.k12.platform.common.model.ServiceDescriptor;

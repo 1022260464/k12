@@ -1,1 +1,3 @@
+# 告诉 Spring Boot 自动加载 k12-common 里的 Servlet 安全配置。
+# 业务服务依赖 k12-common 后，不需要再手动 import 这个配置类。
 com.k12.platform.common.security.K12ServletSecurityAutoConfiguration

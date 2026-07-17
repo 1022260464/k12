@@ -1,9 +1,14 @@
-﻿server:
+server:
   port: 8081
 
 spring:
   application:
     name: k12-iam-service
+  datasource:
+    url: jdbc:mysql://${K12_AUTH_DB_HOST:122.51.54.52}:${K12_AUTH_DB_PORT:3306}/${K12_AUTH_DB_NAME:k12_auth}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${K12_AUTH_DB_USERNAME:k12}
+    password: ${K12_AUTH_DB_PASSWORD:K12@123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   config:
     import: optional:nacos:${spring.application.name}.yml
   cloud:

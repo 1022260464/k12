@@ -1,4 +1,4 @@
-﻿package com.k12.platform.gateway.web;
+package com.k12.platform.gateway.web;
 
 import com.k12.platform.common.api.ApiResponse;
 import com.k12.platform.common.model.ServiceDescriptor;
