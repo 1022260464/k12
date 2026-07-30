@@ -1,0 +1,1244 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "K12 平台接口文档",
+    "description": "K12 多智能体教学平台接口草稿。当前 CRUD 接口为内存版，便于早期联调，后续再补充完整业务逻辑和数据库实现。",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "网关服务"
+    },
+    {
+      "url": "http://localhost:8081",
+      "description": "用户与权限服务"
+    },
+    {
+      "url": "http://localhost:8082",
+      "description": "课程资源服务"
+    },
+    {
+      "url": "http://localhost:8083",
+      "description": "AI 智能体服务"
+    },
+    {
+      "url": "http://localhost:8084",
+      "description": "作业与批改服务"
+    }
+  ],
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "01-用户与权限服务",
+      "description": "用户、角色、权限、当前登录用户相关接口"
+    },
+    {
+      "name": "02-课程资源服务",
+      "description": "课程、班级、知识点、学习任务相关接口"
+    },
+    {
+      "name": "03-知识库与RAG服务",
+      "description": "知识库、文档检索、RAG 相关接口，后续补充"
+    },
+    {
+      "name": "04-AI智能体服务",
+      "description": "教学智能体配置、编排、调用相关接口"
+    },
+    {
+      "name": "05-多模态生成服务",
+      "description": "图片、语音、视频、动画生成相关接口，后续补充"
+    },
+    {
+      "name": "06-题库与练习服务",
+      "description": "题库、练习、题目生成相关接口，后续补充"
+    },
+    {
+      "name": "07-作业与批改服务",
+      "description": "作业、提交、批改、测评相关接口"
+    },
+    {
+      "name": "08-学情分析服务",
+      "description": "学习画像、掌握度、诊断报告相关接口，后续补充"
+    },
+    {
+      "name": "09-编程实验服务",
+      "description": "代码运行、实验环境、测试用例相关接口，后续补充"
+    },
+    {
+      "name": "10-文件与资源服务",
+      "description": "文件上传、资源管理、对象存储相关接口，后续补充"
+    },
+    {
+      "name": "11-消息通知服务",
+      "description": "站内信、通知、待办相关接口，后续补充"
+    },
+    {
+      "name": "12-系统管理服务",
+      "description": "系统配置、日志、审计相关接口，后续补充"
+    },
+    {
+      "name": "99-公共接口",
+      "description": "状态检查、公共探活接口"
+    }
+  ],
+  "paths": {
+    "/api/v1/gateway/health": {
+      "get": {
+        "tags": [
+          "99-公共接口"
+        ],
+        "summary": "网关状态检查",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "网关服务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/iam/health": {
+      "get": {
+        "tags": [
+          "99-公共接口"
+        ],
+        "summary": "用户与权限服务状态检查",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "用户与权限服务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/iam/me": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "获取当前登录用户",
+        "responses": {
+          "200": {
+            "description": "当前登录用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "用户列表",
+        "responses": {
+          "200": {
+            "description": "用户列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "创建用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              },
+              "example": {
+                "username": "teacher01",
+                "nickname": "Teacher One",
+                "email": "teacher01@example.com",
+                "roleCode": "ROLE_TEACHER"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功的用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users/{id}": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "用户详情",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "更新",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UserRequest"
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "删除",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OkEmpty"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/learning/health": {
+      "get": {
+        "tags": [
+          "99-公共接口"
+        ],
+        "summary": "课程资源服务状态检查",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "课程资源服务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "课程列表",
+        "responses": {
+          "200": {
+            "description": "课程列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "创建课程",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CourseRequest"
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功的课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/{id}": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "课程详情",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "课程详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "更新",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CourseRequest"
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "删除",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OkEmpty"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/health": {
+      "get": {
+        "tags": [
+          "99-公共接口"
+        ],
+        "summary": "AI 智能体服务状态检查",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "AI 智能体服务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "智能体列表",
+        "responses": {
+          "200": {
+            "description": "智能体列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "创建智能体",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AgentRequest"
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功的智能体",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/{id}": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "智能体详情",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "智能体详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "更新",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AgentRequest"
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的智能体",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "删除",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OkEmpty"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/health": {
+      "get": {
+        "tags": [
+          "99-公共接口"
+        ],
+        "summary": "作业与批改服务状态检查",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "作业与批改服务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "作业列表",
+        "responses": {
+          "200": {
+            "description": "作业列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "创建作业",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/HomeworkRequest"
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功的作业",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "作业详情",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "作业详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "更新",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/HomeworkRequest"
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的作业",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "删除",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OkEmpty"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1
+        }
+      }
+    },
+    "requestBodies": {
+      "UserRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UserRequest"
+            }
+          }
+        }
+      },
+      "CourseRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CourseRequest"
+            },
+            "example": {
+              "title": "Python Basics",
+              "subject": "Programming",
+              "gradeLevel": "BEGINNER",
+              "description": "Introductory programming course"
+            }
+          }
+        }
+      },
+      "AgentRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AgentRequest"
+            },
+            "example": {
+              "name": "Code Tutor Agent",
+              "type": "CODE_TUTOR",
+              "description": "Guide students through programming exercises"
+            }
+          }
+        }
+      },
+      "HomeworkRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HomeworkRequest"
+            },
+            "example": {
+              "courseId": 1,
+              "title": "Loop Practice",
+              "description": "Complete basic loop exercises",
+              "status": "DRAFT"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "未认证或认证失败"
+      },
+      "NotFound": {
+        "description": "资源不存在",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
+          }
+        }
+      },
+      "OkEmpty": {
+        "description": "操作成功",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiResponseBase": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "timestamp"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EmptyApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "ServiceDescriptor": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "iam"
+          },
+          "name": {
+            "type": "string",
+            "example": "K12 IAM Service"
+          },
+          "responsibility": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ServiceDescriptorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ServiceDescriptor"
+              }
+            }
+          }
+        ]
+      },
+      "CurrentUser": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "authorities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "ROLE_ADMIN"
+            ]
+          }
+        }
+      },
+      "CurrentUserApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CurrentUser"
+              }
+            }
+          }
+        ]
+      },
+      "UserRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "nickname",
+          "roleCode"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "teacher01"
+          },
+          "nickname": {
+            "type": "string",
+            "example": "Teacher One"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "teacher01@example.com"
+          },
+          "roleCode": {
+            "type": "string",
+            "example": "ROLE_TEACHER"
+          }
+        }
+      },
+      "User": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "example": 1
+              },
+              "status": {
+                "type": "string",
+                "example": "ENABLED"
+              },
+              "updatedTime": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "UserApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        ]
+      },
+      "UserListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CourseRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "subject",
+          "gradeLevel"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Python Basics"
+          },
+          "subject": {
+            "type": "string",
+            "example": "Programming"
+          },
+          "gradeLevel": {
+            "type": "string",
+            "example": "BEGINNER"
+          },
+          "description": {
+            "type": "string",
+            "example": "Introductory programming course"
+          }
+        }
+      },
+      "Course": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CourseRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "example": 1
+              },
+              "updatedTime": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "CourseApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Course"
+              }
+            }
+          }
+        ]
+      },
+      "CourseListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Course"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "AgentRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Code Tutor Agent"
+          },
+          "type": {
+            "type": "string",
+            "example": "CODE_TUTOR"
+          },
+          "description": {
+            "type": "string",
+            "example": "Guide students through programming exercises"
+          }
+        }
+      },
+      "Agent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AgentRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "example": 1
+              },
+              "status": {
+                "type": "string",
+                "example": "ENABLED"
+              },
+              "updatedTime": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "AgentApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Agent"
+              }
+            }
+          }
+        ]
+      },
+      "AgentListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Agent"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkRequest": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "Loop Practice"
+          },
+          "description": {
+            "type": "string",
+            "example": "Complete basic loop exercises"
+          },
+          "status": {
+            "type": "string",
+            "example": "DRAFT"
+          }
+        }
+      },
+      "Homework": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/HomeworkRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "example": 1
+              },
+              "updatedTime": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Homework"
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Homework"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
