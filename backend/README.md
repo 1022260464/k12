@@ -99,6 +99,28 @@ mvn clean package
 mvn -pl k12-agent-service -am spring-boot:run
 ```
 
+## API document
+
+Apifox 可直接导入 OpenAPI 3.0 JSON：
+
+```text
+backend/openapi/k12-api-openapi.json
+```
+
+当前 CRUD 接口是早期联调用的内存版本，覆盖用户、课程、智能体、作业四类资源。服务重启后内存数据会重置，后续补业务逻辑和数据库 Repository 时再替换实现。
+
+当前 CRUD 代码按统一分层组织：
+
+```text
+web        Controller，只处理 HTTP 入参、状态码和响应包装
+service    业务编排层，后续业务规则写在这里
+mapper     数据访问接口，后续可替换成 MyBatis Mapper
+mapper/memory
+           当前内存版 Mapper 实现，仅用于早期联调
+model      领域对象
+dto        请求和响应 DTO
+```
+
 ## Health endpoints
 
 ```text
