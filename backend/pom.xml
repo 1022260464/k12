@@ -27,6 +27,8 @@
         <spring-boot.version>3.3.5</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.3.4</spring-cloud-alibaba.version>
+        <mybatis-spring-boot.version>3.0.5</mybatis-spring-boot.version>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
     </properties>
 
     <dependencyManagement>
@@ -51,6 +53,16 @@
                 <version>${spring-cloud-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>${mybatis-spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.k12.platform</groupId>

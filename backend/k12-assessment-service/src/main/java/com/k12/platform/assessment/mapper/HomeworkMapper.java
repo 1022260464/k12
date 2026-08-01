@@ -1,21 +1,9 @@
 package com.k12.platform.assessment.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.k12.platform.assessment.model.Homework;
+import org.apache.ibatis.annotations.Mapper;
 
-import java.util.List;
-import java.util.Optional;
-
-public interface HomeworkMapper {
-
-    List<Homework> findAll();
-
-    Optional<Homework> findById(Long id);
-
-    Homework insert(Homework homework);
-
-    Homework update(Homework homework);
-
-    boolean deleteById(Long id);
-
-    boolean existsById(Long id);
+@Mapper
+public interface HomeworkMapper extends BaseMapper<Homework> {
 }
