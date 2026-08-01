@@ -22,6 +22,8 @@ K12 多智能体教学平台后端初始化为 Maven 多模块工程。当前拆
 | `spring-boot-dependencies` | `3.3.5` |
 | `spring-cloud-dependencies` | `2023.0.3` |
 | `spring-cloud-alibaba-dependencies` | `2023.0.3.4` |
+| `mybatis-spring-boot-starter` | `3.0.5` |
+| `mybatis-plus-spring-boot3-starter` | `3.5.17` |
 
 各业务服务已接入 Spring Cloud Alibaba Nacos Discovery / Config，默认通过环境变量关闭，避免本地未启动 Nacos 时影响服务启动。
 
@@ -33,6 +35,40 @@ set NACOS_SERVER_ADDR=127.0.0.1:8848
 ```
 
 服务间调用预留 Spring Cloud OpenFeign，负载均衡使用 Spring Cloud LoadBalancer。网关模块使用 Spring Cloud Gateway 作为后续统一入口基础。
+
+## Data access
+
+数据库访问依赖统一在父工程 `backend/pom.xml` 管理版本。各业务服务只声明自己需要的依赖，不在子模块里写版本号。
+
+当前规则：
+
+- `k12-gateway-service` 是 WebFlux 网关，只做路由、鉴权入口和跨服务转发，不接 MyBatis/MySQL。
+- `k12-iam-service` 使用 `k12_auth` 权限库，已接入 JDBC、MySQL Driver、MyBatis-Plus。
+- `k12-learning-service`、`k12-agent-service`、`k12-assessment-service` 使用 `k12_business` 业务库，已接入 JDBC、MySQL Driver、MyBatis-Plus。
+- MyBatis-Plus Boot3 starter 已包含 MyBatis 核心能力；父工程同时管理 MyBatis 官方 starter 版本，后续如果某个模块只想用纯 MyBatis，可以直接声明 `mybatis-spring-boot-starter`。
+- 同一个服务里不要同时直接引入 MyBatis 官方 starter 和 MyBatis-Plus starter，避免重复自动配置。默认优先用 MyBatis-Plus。
+
+业务库初始化脚本位于：
+
+```text
+backend/sql/mysql/k12_business_init.sql
+```
+
+默认业务库连接配置：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}
+    username: ${K12_BUSINESS_DB_USERNAME:k12}
+    password: ${K12_BUSINESS_DB_PASSWORD:K12@123456}
+```
+
+执行脚本需要使用有建库和授权权限的 MySQL 账号，例如 root：
+
+```bash
+mysql -h 122.51.54.52 -P 3306 -u root -p < backend/sql/mysql/k12_business_init.sql
+```
 
 ## Security
 
@@ -107,16 +143,19 @@ Apifox 可直接导入 OpenAPI 3.0 JSON：
 backend/openapi/k12-api-openapi.json
 ```
 
-当前 CRUD 接口是早期联调用的内存版本，覆盖用户、课程、智能体、作业四类资源。服务重启后内存数据会重置，后续补业务逻辑和数据库 Repository 时再替换实现。
+当前 CRUD 接口覆盖用户、课程、智能体、作业四类资源。
+
+- 课程、智能体、作业已经使用 MyBatis-Plus `BaseMapper`，数据写入 `k12_business`。
+- 用户 CRUD 当前仍是早期联调用的内存版本；IAM 登录认证已经读取 `k12_auth.sys_user`、`sys_role`、`sys_user_role`。后续用户管理需要和 RBAC 多表权限模型一起补完整，不能简单按单表 CRUD 硬套。
 
 当前 CRUD 代码按统一分层组织：
 
 ```text
 web        Controller，只处理 HTTP 入参、状态码和响应包装
 service    业务编排层，后续业务规则写在这里
-mapper     数据访问接口，后续可替换成 MyBatis Mapper
+mapper     数据访问接口，业务模块优先使用 MyBatis-Plus BaseMapper
 mapper/memory
-           当前内存版 Mapper 实现，仅用于早期联调
+           仅保留早期联调实现，后续会被数据库 Mapper 替换
 model      领域对象
 dto        请求和响应 DTO
 ```

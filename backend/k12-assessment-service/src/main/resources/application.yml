@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: k12-assessment-service
+  datasource:
+    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${K12_BUSINESS_DB_USERNAME:k12}
+    password: ${K12_BUSINESS_DB_PASSWORD:K12@123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   config:
     import: optional:nacos:${spring.application.name}.yml
   cloud:
@@ -18,6 +23,14 @@ spring:
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         file-extension: yml
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.k12.platform.assessment.model
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
 
 management:
   endpoints:

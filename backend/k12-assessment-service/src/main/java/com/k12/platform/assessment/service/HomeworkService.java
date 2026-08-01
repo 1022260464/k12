@@ -1,12 +1,12 @@
 package com.k12.platform.assessment.service;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.k12.platform.assessment.dto.HomeworkRequest;
 import com.k12.platform.assessment.dto.HomeworkResponse;
 import com.k12.platform.assessment.mapper.HomeworkMapper;
 import com.k12.platform.assessment.model.Homework;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,55 +20,56 @@ public class HomeworkService {
     }
 
     public List<HomeworkResponse> listHomeworks() {
-        return homeworkMapper.findAll().stream()
+        return homeworkMapper.selectList(Wrappers.lambdaQuery(Homework.class)
+                        .orderByDesc(Homework::getUpdatedTime))
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public Optional<HomeworkResponse> getHomework(Long id) {
-        return homeworkMapper.findById(id).map(this::toResponse);
+        return Optional.ofNullable(homeworkMapper.selectById(id)).map(this::toResponse);
     }
 
     public HomeworkResponse createHomework(HomeworkRequest request) {
-        Homework homework = new Homework(
-                null,
-                request.courseId(),
-                request.title(),
-                request.description(),
-                request.status(),
-                Instant.now()
-        );
-        return toResponse(homeworkMapper.insert(homework));
+        Homework homework = new Homework();
+        homework.setCourseId(request.courseId());
+        homework.setTitle(request.title());
+        homework.setDescription(request.description());
+        homework.setStatus(request.status());
+        homework.setDeleted(0);
+
+        homeworkMapper.insert(homework);
+        return toResponse(homeworkMapper.selectById(homework.getId()));
     }
 
     public Optional<HomeworkResponse> updateHomework(Long id, HomeworkRequest request) {
-        if (!homeworkMapper.existsById(id)) {
+        Homework homework = homeworkMapper.selectById(id);
+        if (homework == null) {
             return Optional.empty();
         }
 
-        Homework homework = new Homework(
-                id,
-                request.courseId(),
-                request.title(),
-                request.description(),
-                request.status(),
-                Instant.now()
-        );
-        return Optional.of(toResponse(homeworkMapper.update(homework)));
+        homework.setCourseId(request.courseId());
+        homework.setTitle(request.title());
+        homework.setDescription(request.description());
+        homework.setStatus(request.status());
+        homeworkMapper.updateById(homework);
+
+        return Optional.of(toResponse(homeworkMapper.selectById(id)));
     }
 
     public boolean deleteHomework(Long id) {
-        return homeworkMapper.deleteById(id);
+        return homeworkMapper.deleteById(id) > 0;
     }
 
     private HomeworkResponse toResponse(Homework homework) {
         return new HomeworkResponse(
-                homework.id(),
-                homework.courseId(),
-                homework.title(),
-                homework.description(),
-                homework.status(),
-                homework.updatedTime()
+                homework.getId(),
+                homework.getCourseId(),
+                homework.getTitle(),
+                homework.getDescription(),
+                homework.getStatus(),
+                homework.getUpdatedTime()
         );
     }
 }
