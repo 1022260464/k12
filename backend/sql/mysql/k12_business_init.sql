@@ -1,6 +1,7 @@
 -- K12 business database initialization script.
--- Run this script with a MySQL account that can CREATE DATABASE, CREATE USER, and GRANT.
+-- Run this script with a MySQL account that can CREATE DATABASE and GRANT.
 -- Target MySQL version: 8.0+
+-- Create the k12 application account separately with a strong environment-specific password.
 
 SELECT COUNT(*) INTO @k12_business_db_exists
 FROM information_schema.SCHEMATA
@@ -19,17 +20,21 @@ SELECT COUNT(*) INTO @k12_user_exists
 FROM mysql.user
 WHERE User = 'k12' AND Host = '%';
 
-SET @k12_create_user_sql = IF(
-    @k12_user_exists = 0,
-    'CREATE USER ''k12''@''%'' IDENTIFIED BY ''K12@123456''',
+-- 如果结果为 0，请先按 README 创建 k12 应用账号；脚本仍会继续完成建库建表。
+SELECT IF(
+    @k12_user_exists > 0,
+    'k12 application user found; privileges will be granted',
+    'WARNING: k12 application user is missing; create it and rerun this script'
+) AS k12_account_check;
+
+SET @k12_grant_sql = IF(
+    @k12_user_exists > 0,
+    'GRANT SELECT, INSERT, UPDATE, DELETE ON k12_business.* TO ''k12''@''%''',
     'DO 0'
 );
-PREPARE k12_stmt FROM @k12_create_user_sql;
+PREPARE k12_stmt FROM @k12_grant_sql;
 EXECUTE k12_stmt;
 DEALLOCATE PREPARE k12_stmt;
-
-ALTER USER 'k12'@'%' IDENTIFIED BY 'K12@123456';
-GRANT ALL PRIVILEGES ON k12_business.* TO 'k12'@'%';
 FLUSH PRIVILEGES;
 
 USE k12_business;

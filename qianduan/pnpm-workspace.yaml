@@ -1,2 +1,6 @@
+packages:
+  - "user-app"
+  - "admin-app"
+
 allowBuilds:
   esbuild: true

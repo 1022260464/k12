@@ -38,7 +38,7 @@ public class HomeworkController {
         return homeworkService.getHomework(id)
                 .map(homework -> ResponseEntity.ok(ApiResponse.ok(homework)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.fail("Homework not found")));
+                        .body(ApiResponse.fail(404, "Homework not found")));
     }
 
     @PostMapping
@@ -55,14 +55,14 @@ public class HomeworkController {
         return homeworkService.updateHomework(id, request)
                 .map(homework -> ResponseEntity.ok(ApiResponse.ok(homework)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.fail("Homework not found")));
+                        .body(ApiResponse.fail(404, "Homework not found")));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteHomework(@PathVariable Long id) {
         if (!homeworkService.deleteHomework(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.fail("Homework not found"));
+                    .body(ApiResponse.fail(404, "Homework not found"));
         }
         return ResponseEntity.ok(ApiResponse.ok(null));
     }

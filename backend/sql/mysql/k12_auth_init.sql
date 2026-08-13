@@ -1,6 +1,7 @@
 -- K12 IAM authentication database initialization script.
--- Run this script with a MySQL account that can CREATE DATABASE, CREATE USER, and GRANT.
+-- Run this script with a MySQL account that can CREATE DATABASE and GRANT.
 -- Target MySQL version: 8.0+
+-- Create the k12 application account separately with a strong environment-specific password.
 
 SELECT COUNT(*) INTO @k12_auth_db_exists
 FROM information_schema.SCHEMATA
@@ -19,17 +20,21 @@ SELECT COUNT(*) INTO @k12_user_exists
 FROM mysql.user
 WHERE User = 'k12' AND Host = '%';
 
-SET @k12_create_user_sql = IF(
-    @k12_user_exists = 0,
-    'CREATE USER ''k12''@''%'' IDENTIFIED BY ''K12@123456''',
+-- 如果结果为 0，请先按 README 创建 k12 应用账号；脚本仍会继续完成建库建表。
+SELECT IF(
+    @k12_user_exists > 0,
+    'k12 application user found; privileges will be granted',
+    'WARNING: k12 application user is missing; create it and rerun this script'
+) AS k12_account_check;
+
+SET @k12_grant_sql = IF(
+    @k12_user_exists > 0,
+    'GRANT SELECT, INSERT, UPDATE, DELETE ON k12_auth.* TO ''k12''@''%''',
     'DO 0'
 );
-PREPARE k12_stmt FROM @k12_create_user_sql;
+PREPARE k12_stmt FROM @k12_grant_sql;
 EXECUTE k12_stmt;
 DEALLOCATE PREPARE k12_stmt;
-
-ALTER USER 'k12'@'%' IDENTIFIED BY 'K12@123456';
-GRANT ALL PRIVILEGES ON k12_auth.* TO 'k12'@'%';
 FLUSH PRIVILEGES;
 
 USE k12_auth;
@@ -169,69 +174,107 @@ SET role_name = 'Student',
     updated_time = CURRENT_TIMESTAMP(3)
 WHERE role_code = 'ROLE_STUDENT';
 
-INSERT INTO sys_permission (permission_name, permission_code, resource_type, description)
-SELECT 'Read users', 'user:read', 'api', 'Read users'
-WHERE NOT EXISTS (
-    SELECT 1 FROM sys_permission WHERE permission_code = 'user:read'
+/*
+ * 权限编码统一使用 resource:action。
+ * 通过临时表执行幂等同步，脚本重复运行不会产生重复记录。
+ */
+DROP TEMPORARY TABLE IF EXISTS k12_permission_seed;
+CREATE TEMPORARY TABLE k12_permission_seed (
+    permission_name VARCHAR(64) NOT NULL,
+    permission_code VARCHAR(128) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    PRIMARY KEY (permission_code)
 );
 
-INSERT INTO sys_permission (permission_name, permission_code, resource_type, description)
-SELECT 'Create users', 'user:create', 'api', 'Create users'
-WHERE NOT EXISTS (
-    SELECT 1 FROM sys_permission WHERE permission_code = 'user:create'
-);
+INSERT INTO k12_permission_seed (permission_name, permission_code, description) VALUES
+    ('查看用户', 'user:read', '查看用户列表和详情'),
+    ('创建用户', 'user:create', '创建平台用户'),
+    ('修改用户', 'user:update', '修改用户资料和角色'),
+    ('删除用户', 'user:delete', '逻辑删除用户'),
+    ('查看角色', 'role:read', '查看角色和权限关系'),
+    ('修改角色权限', 'role:update', '修改角色拥有的权限'),
+    ('查看课程', 'course:read', '查看课程列表和详情'),
+    ('创建课程', 'course:create', '创建课程'),
+    ('修改课程', 'course:update', '修改课程'),
+    ('删除课程', 'course:delete', '删除课程'),
+    ('查看智能体', 'agent:read', '查看智能体配置'),
+    ('创建智能体', 'agent:create', '创建智能体配置'),
+    ('修改智能体', 'agent:update', '修改智能体配置'),
+    ('删除智能体', 'agent:delete', '删除智能体配置'),
+    ('查看作业', 'homework:read', '查看作业列表和详情'),
+    ('创建作业', 'homework:create', '创建作业'),
+    ('修改作业', 'homework:update', '修改作业'),
+    ('删除作业', 'homework:delete', '删除作业');
 
 INSERT INTO sys_permission (permission_name, permission_code, resource_type, description)
-SELECT 'Read courses', 'course:read', 'api', 'Read courses'
+SELECT seed.permission_name, seed.permission_code, 'api', seed.description
+FROM k12_permission_seed seed
 WHERE NOT EXISTS (
-    SELECT 1 FROM sys_permission WHERE permission_code = 'course:read'
+    SELECT 1
+    FROM sys_permission permission
+    WHERE permission.permission_code = seed.permission_code
 );
 
-INSERT INTO sys_permission (permission_name, permission_code, resource_type, description)
-SELECT 'Update courses', 'course:update', 'api', 'Update courses'
-WHERE NOT EXISTS (
-    SELECT 1 FROM sys_permission WHERE permission_code = 'course:update'
-);
+UPDATE sys_permission permission
+JOIN k12_permission_seed seed ON seed.permission_code = permission.permission_code
+SET permission.permission_name = seed.permission_name,
+    permission.resource_type = 'api',
+    permission.description = seed.description,
+    permission.status = 1,
+    permission.updated_time = CURRENT_TIMESTAMP(3)
+/*
+ * JOIN 已经限定为临时表中的 18 个权限码；这里仍保留显式 WHERE，
+ * 防止数据库客户端把它识别为无条件整表 UPDATE。
+ */
+WHERE permission.permission_code = seed.permission_code;
 
-UPDATE sys_permission
-SET permission_name = 'Read users',
-    resource_type = 'api',
-    description = 'Read users',
-    updated_time = CURRENT_TIMESTAMP(3)
-WHERE permission_code = 'user:read';
-
-UPDATE sys_permission
-SET permission_name = 'Create users',
-    resource_type = 'api',
-    description = 'Create users',
-    updated_time = CURRENT_TIMESTAMP(3)
-WHERE permission_code = 'user:create';
-
-UPDATE sys_permission
-SET permission_name = 'Read courses',
-    resource_type = 'api',
-    description = 'Read courses',
-    updated_time = CURRENT_TIMESTAMP(3)
-WHERE permission_code = 'course:read';
-
-UPDATE sys_permission
-SET permission_name = 'Update courses',
-    resource_type = 'api',
-    description = 'Update courses',
-    updated_time = CURRENT_TIMESTAMP(3)
-WHERE permission_code = 'course:update';
-
+/* 管理员拥有全部已启用权限。 */
 INSERT INTO sys_role_permission (role_id, permission_id)
-SELECT r.id, p.id
-FROM sys_role r
-JOIN sys_permission p
-WHERE r.role_code = 'ROLE_ADMIN'
+SELECT role.id, permission.id
+FROM sys_role role
+JOIN sys_permission permission ON permission.status = 1
+WHERE role.role_code = 'ROLE_ADMIN'
   AND NOT EXISTS (
       SELECT 1
-      FROM sys_role_permission rp
-      WHERE rp.role_id = r.id
-        AND rp.permission_id = p.id
+      FROM sys_role_permission relation
+      WHERE relation.role_id = role.id
+        AND relation.permission_id = permission.id
   );
+
+/* 教师默认可以查看和维护课程、作业，并查看智能体。 */
+INSERT INTO sys_role_permission (role_id, permission_id)
+SELECT role.id, permission.id
+FROM sys_role role
+JOIN sys_permission permission
+  ON permission.permission_code IN (
+      'course:read', 'course:create', 'course:update', 'course:delete',
+      'agent:read',
+      'homework:read', 'homework:create', 'homework:update', 'homework:delete'
+  )
+WHERE role.role_code = 'ROLE_TEACHER'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sys_role_permission relation
+      WHERE relation.role_id = role.id
+        AND relation.permission_id = permission.id
+  );
+
+/* 学生默认只能读取课程、智能体和作业。 */
+INSERT INTO sys_role_permission (role_id, permission_id)
+SELECT role.id, permission.id
+FROM sys_role role
+JOIN sys_permission permission
+  ON permission.permission_code IN ('course:read', 'agent:read', 'homework:read')
+WHERE role.role_code = 'ROLE_STUDENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sys_role_permission relation
+      WHERE relation.role_id = role.id
+        AND relation.permission_id = permission.id
+  );
+
+-- 连接关闭时 MySQL 会自动释放临时表；IF EXISTS 避免客户端切换连接后清理报错。
+DROP TEMPORARY TABLE IF EXISTS k12_permission_seed;
 
 -- Seed admin user example:
 -- Do not store a plaintext password in sys_user.password_hash.

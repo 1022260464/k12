@@ -4,9 +4,25 @@ server:
 spring:
   application:
     name: k12-gateway-service
-  config:
-    import: optional:nacos:${spring.application.name}.yml
   cloud:
+    gateway:
+      routes:
+        - id: k12-iam-service
+          uri: ${K12_IAM_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/iam/**
+        - id: k12-learning-service
+          uri: ${K12_LEARNING_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/learning/**
+        - id: k12-agent-service
+          uri: ${K12_AGENT_SERVICE_URI:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/agents/**
+        - id: k12-assessment-service
+          uri: ${K12_ASSESSMENT_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/assessments/**
     nacos:
       server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
       discovery:
@@ -18,6 +34,15 @@ spring:
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         file-extension: yml
+  config:
+    import: optional:nacos:${spring.application.name}.yml
+
+k12:
+  security:
+    jwt:
+      issuer: ${K12_JWT_ISSUER:k12-platform}
+      secret: ${K12_JWT_SECRET:k12-platform-dev-secret-change-me-2026-very-long-key}
+      access-token-ttl: ${K12_JWT_ACCESS_TOKEN_TTL:30m}
 
 management:
   endpoints:

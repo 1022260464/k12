@@ -13,7 +13,9 @@ k12/
 │   ├── k12-learning-service/# 课程、班级、知识点、学习任务域
 │   ├── k12-agent-service/   # 多智能体编排、对话上下文、工具调用域
 │   └── k12-assessment-service/ # 作业、测评、诊断和学习评价域
-└── qianduan/                # 前端 Vite + React 应用
+└── qianduan/                # 前端 pnpm workspace
+    ├── user-app/            # 用户端 React + Vite（5173）
+    └── admin-app/           # 管理端 React + Vite（5174）
 ```
 
 ## 技术栈
@@ -28,11 +30,12 @@ k12/
 
 ```bash
 cd qianduan
-npm install
-npm run dev
+pnpm install
+pnpm dev:user
+pnpm dev:admin
 ```
 
-前端开发服务器默认通过 Vite 启动，脚本中绑定 `127.0.0.1`。
+两个前端通过 Vite 代理访问 `http://localhost:8080` Gateway，不直接访问微服务端口。
 
 ### 后端
 
@@ -57,9 +60,11 @@ mvn -pl k12-agent-service -am spring-boot:run
 
 ## 后端安全配置
 
-后端统一接入 Spring Security。公共依赖放在 `backend/pom.xml`，Servlet 服务的通用安全配置放在 `k12-common` 并通过 Spring Boot AutoConfiguration 自动加载；网关服务是 WebFlux 栈，安全配置保留在 `k12-gateway-service`。
+后端统一接入 Spring Security + JWT。公共依赖放在 `backend/pom.xml`，Servlet 服务的通用安全配置放在 `k12-common` 并通过 Spring Boot AutoConfiguration 自动加载；网关服务是 WebFlux 栈，安全配置保留在 `k12-gateway-service`。
 
-默认放行 `/actuator/health`、`/actuator/info` 和各服务健康检查接口，其他接口默认使用 HTTP Basic 认证。开发默认账号为 `admin` / `admin123`，可通过 `k12.security.user.*` 覆盖。
+IAM 校验数据库账号密码并签发 JWT，Gateway 与下游服务使用同一密钥验证令牌。默认放行健康检查、登录和学生注册接口；其他接口必须携带 `Authorization: Bearer <token>`。用户与角色管理接口仅允许 `ROLE_ADMIN` 访问。
+
+首次升级现有权限库时，执行 `backend/sql/mysql/k12_auth_permission_upgrade.sql`，然后重新登录获取包含新权限的 JWT。新增接口前参考 `backend/docs/security-development-guide.md`。
 
 ## 健康检查接口
 
@@ -125,7 +130,7 @@ git status
 ```
 
 - 确认没有误提交 `node_modules/`、`dist/`、`target/`、`.env`、IDE 工作区文件等本地产物。
-- 前端改动建议执行 `npm run build`。
+- 前端改动建议在 `qianduan` 执行 `pnpm build`。
 - 后端改动建议执行 `mvn clean test` 或至少对受影响模块执行 `mvn -pl <module> -am test`。
 - 如果当前机器未安装 Maven，应在提交说明或 PR 描述中注明后端编译未本地验证。
 

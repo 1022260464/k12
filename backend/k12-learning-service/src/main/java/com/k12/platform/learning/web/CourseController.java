@@ -38,7 +38,7 @@ public class CourseController {
         return courseService.getCourse(id)
                 .map(course -> ResponseEntity.ok(ApiResponse.ok(course)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.fail("Course not found")));
+                        .body(ApiResponse.fail(404, "Course not found")));
     }
 
     @PostMapping
@@ -55,14 +55,14 @@ public class CourseController {
         return courseService.updateCourse(id, request)
                 .map(course -> ResponseEntity.ok(ApiResponse.ok(course)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.fail("Course not found")));
+                        .body(ApiResponse.fail(404, "Course not found")));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCourse(@PathVariable Long id) {
         if (!courseService.deleteCourse(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.fail("Course not found"));
+                    .body(ApiResponse.fail(404, "Course not found"));
         }
         return ResponseEntity.ok(ApiResponse.ok(null));
     }

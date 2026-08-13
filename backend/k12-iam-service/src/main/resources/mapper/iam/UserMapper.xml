@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  IAM 用户 Mapper XML。
+
+  MyBatis-Plus BaseMapper 负责 sys_user 的单表 CRUD；
+  这里负责 RBAC 多表查询和用户角色关系维护。
+
+  namespace 必须和 Java Mapper 接口全限定名一致。
+  每个 select/insert/delete 的 id 必须和 UserMapper 里的方法名一致。
+-->
+<mapper namespace="com.k12.platform.iam.mapper.UserMapper">
+
+    <!-- 用户列表/详情接口展示模型，不包含 password_hash。 -->
+    <resultMap id="UserAccountResultMap" type="com.k12.platform.iam.model.UserAccount">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="nickname" property="nickname"/>
+        <result column="email" property="email"/>
+        <result column="roleCode" property="roleCode"/>
+        <result column="status" property="status"/>
+        <result column="updatedTime" property="updatedTime"/>
+    </resultMap>
+
+    <!-- 登录认证专用模型，只保留 Spring Security 校验需要的字段。 -->
+    <resultMap id="AuthUserResultMap" type="com.k12.platform.iam.model.AuthUser">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="passwordHash" property="passwordHash"/>
+        <result column="status" property="status"/>
+    </resultMap>
+
+    <!--
+      用户列表。
+
+      GROUP_CONCAT 用来把同一个用户的多个角色合并成一个字符串，
+      避免一个用户因为多个角色在列表里出现多行。
+    -->
+    <select id="findAllAccounts" resultMap="UserAccountResultMap">
+        SELECT
+            u.id,
+            u.username,
+            u.nickname,
+            u.email,
+            COALESCE(GROUP_CONCAT(DISTINCT r.role_code ORDER BY r.role_code SEPARATOR ','), '') AS roleCode,
+            CASE u.status
+                WHEN 1 THEN 'ENABLED'
+                WHEN 2 THEN 'LOCKED'
+                ELSE 'DISABLED'
+            END AS status,
+            u.updated_time AS updatedTime
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON ur.user_id = u.id
+        LEFT JOIN sys_role r ON r.id = ur.role_id AND r.status = 1
+        WHERE u.deleted = 0
+        GROUP BY u.id, u.username, u.nickname, u.email, u.status, u.updated_time
+        ORDER BY u.updated_time DESC
+    </select>
+
+    <!-- 用户详情。 -->
+    <select id="findAccountById" resultMap="UserAccountResultMap">
+        SELECT
+            u.id,
+            u.username,
+            u.nickname,
+            u.email,
+            COALESCE(GROUP_CONCAT(DISTINCT r.role_code ORDER BY r.role_code SEPARATOR ','), '') AS roleCode,
+            CASE u.status
+                WHEN 1 THEN 'ENABLED'
+                WHEN 2 THEN 'LOCKED'
+                ELSE 'DISABLED'
+            END AS status,
+            u.updated_time AS updatedTime
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON ur.user_id = u.id
+        LEFT JOIN sys_role r ON r.id = ur.role_id AND r.status = 1
+        WHERE u.id = #{id}
+          AND u.deleted = 0
+        GROUP BY u.id, u.username, u.nickname, u.email, u.status, u.updated_time
+    </select>
+
+    <!-- 登录认证：按用户名查密码哈希和账号状态。 -->
+    <select id="findAuthUserByUsername" resultMap="AuthUserResultMap">
+        SELECT
+            id,
+            username,
+            password_hash AS passwordHash,
+            status
+        FROM sys_user
+        WHERE username = #{username}
+          AND deleted = 0
+    </select>
+
+    <!-- 查询用户拥有的角色编码，例如 ROLE_ADMIN。 -->
+    <select id="findRoleCodesByUserId" resultType="java.lang.String">
+        SELECT r.role_code
+        FROM sys_user_role ur
+        JOIN sys_role r ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+    </select>
+
+    <!-- 查询用户拥有的权限编码，例如 course:update。 -->
+    <select id="findPermissionCodesByUserId" resultType="java.lang.String">
+        SELECT p.permission_code
+        FROM sys_user_role ur
+        JOIN sys_role r ON r.id = ur.role_id AND r.status = 1
+        JOIN sys_role_permission rp ON rp.role_id = ur.role_id
+        JOIN sys_permission p ON p.id = rp.permission_id
+        WHERE ur.user_id = #{userId}
+          AND p.status = 1
+    </select>
+
+    <!-- 清理用户角色关系，更新角色和删除用户时都会使用。 -->
+    <delete id="deleteUserRoles">
+        DELETE FROM sys_user_role
+        WHERE user_id = #{userId}
+    </delete>
+
+    <!--
+      根据角色编码绑定角色。
+
+      roleCode 是稳定业务编码，例如 ROLE_TEACHER；
+      数据库实际绑定的是 sys_role.id。
+    -->
+    <insert id="assignRoleByCode">
+        INSERT INTO sys_user_role (user_id, role_id)
+        SELECT #{userId}, r.id
+        FROM sys_role r
+        WHERE r.role_code = #{roleCode}
+          AND r.status = 1
+          AND NOT EXISTS (
+              SELECT 1
+              FROM sys_user_role ur
+              WHERE ur.user_id = #{userId}
+                AND ur.role_id = r.id
+          )
+    </insert>
+</mapper>

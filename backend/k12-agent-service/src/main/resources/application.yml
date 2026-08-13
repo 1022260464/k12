@@ -5,7 +5,7 @@ spring:
   application:
     name: k12-agent-service
   datasource:
-    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=${K12_DB_USE_SSL:false}&allowPublicKeyRetrieval=${K12_DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=Asia/Shanghai
     username: ${K12_BUSINESS_DB_USERNAME:k12}
     password: ${K12_BUSINESS_DB_PASSWORD:K12@123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -37,3 +37,9 @@ management:
     web:
       exposure:
         include: health,info
+
+k12:
+  security:
+    jwt:
+      issuer: ${K12_JWT_ISSUER:k12-platform}
+      secret: ${K12_JWT_SECRET:k12-platform-dev-secret-change-me-2026-very-long-key}
