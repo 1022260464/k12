@@ -35,9 +35,14 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        /*
+         * 此路径在 Gateway 和 Servlet 安全链中 permitAll，表示允许匿名调用；
+         * permitAll 不代表跳过账号密码校验，真正的凭据校验仍由 AuthenticationService 完成。
+         */
         try {
             return ResponseEntity.ok(ApiResponse.ok(authenticationService.login(request)));
         } catch (AuthenticationException exception) {
+            /* 对外统一模糊提示，避免泄露“用户名存在但被锁定”等账号枚举信息。 */
             log.info("JWT login failed, username={}, reason={}", request.username(), exception.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.fail(401, "用户名或密码错误，或账号不可用"));

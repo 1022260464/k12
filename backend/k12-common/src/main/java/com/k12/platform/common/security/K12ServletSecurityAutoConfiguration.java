@@ -40,6 +40,7 @@ import org.springframework.core.env.Environment;
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass({SecurityFilterChain.class, HttpSecurity.class})
+/* 开启 @PreAuthorize；没有这个注解，Service 上的权限表达式不会执行。 */
 @EnableMethodSecurity
 @EnableConfigurationProperties({K12SecurityProperties.class, K12JwtProperties.class})
 public class K12ServletSecurityAutoConfiguration {
@@ -47,12 +48,14 @@ public class K12ServletSecurityAutoConfiguration {
     private static final Logger log = LoggerFactory.getLogger(K12ServletSecurityAutoConfiguration.class);
 
     @Bean
+    /* 业务服务可以自定义 SecurityFilterChain；定义后本默认 Bean 自动让位，避免 Bean 冲突。 */
     @ConditionalOnMissingBean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             K12SecurityProperties properties,
             ObjectMapper objectMapper
     ) throws Exception {
+        /* 认证失败返回 401；该 lambda 是 AuthenticationEntryPoint 接口的实现。 */
         AuthenticationEntryPoint authenticationEntryPoint = (request, response, exception) -> {
             log.info(
                     "Authentication rejected, method={}, uri={}, reason={}",
@@ -148,7 +151,10 @@ public class K12ServletSecurityAutoConfiguration {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(properties.getPermitPaths().toArray(String[]::new)).permitAll()
                         .requestMatchers("/api/v1/iam/auth/login", "/api/v1/iam/auth/register").permitAll()
-                        /* URL 层先按 HTTP 方法做一次粗粒度权限校验。 */
+                        /*
+                         * URL 层先按路径和 HTTP 方法做第一轮权限校验；
+                         * Service 的 @PreAuthorize 再做第二轮，防止直连服务端口或其他入口绕过。
+                         */
                         .requestMatchers(HttpMethod.GET, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_READ)
                         .requestMatchers(HttpMethod.POST, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_CREATE)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_UPDATE)
@@ -175,6 +181,7 @@ public class K12ServletSecurityAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public JwtDecoder jwtDecoder(K12JwtProperties jwtProperties) {
+        /* Servlet 服务使用同步 JwtDecoder；Gateway 使用 ReactiveJwtDecoder。 */
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtProperties.secretKey()).build();
         OAuth2TokenValidator<Jwt> issuerValidator =
                 JwtValidators.createDefaultWithIssuer(jwtProperties.getIssuer());
@@ -201,8 +208,10 @@ public class K12ServletSecurityAutoConfiguration {
     }
 
     private Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter() {
+        /* 把 JWT 中 authorities 数组转换为 Authentication.getAuthorities()。 */
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthoritiesClaimName("authorities");
+        /* 不加默认 SCOPE_ 前缀，否则 course:read 会变成 SCOPE_course:read，注解无法匹配。 */
         authoritiesConverter.setAuthorityPrefix("");
 
         JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();

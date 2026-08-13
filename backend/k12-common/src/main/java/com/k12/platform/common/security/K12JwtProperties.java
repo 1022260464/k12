@@ -16,10 +16,16 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "k12.security.jwt")
 public class K12JwtProperties {
 
+    /*
+     * 仅供本地开发启动使用的默认密钥。
+     * 它已经出现在代码仓库中，因此不能当作生产密钥。
+     */
     public static final String DEFAULT_DEVELOPMENT_SECRET =
             "k12-platform-dev-secret-change-me-2026-very-long-key";
 
+    /* iss：令牌签发者。验签服务会拒绝其他系统签发的令牌。 */
     private String issuer = "k12-platform";
+    /* HS256 对称密钥：IAM 用它签名，Gateway 和业务服务用同一个密钥验签。 */
     private String secret = DEFAULT_DEVELOPMENT_SECRET;
     /* 短期访问令牌降低账号禁用或权限变更后旧令牌继续可用的时间窗口。 */
     private Duration accessTokenTtl = Duration.ofMinutes(30);
@@ -56,6 +62,10 @@ public class K12JwtProperties {
         if (keyBytes.length < 32) {
             throw new IllegalStateException("k12.security.jwt.secret must contain at least 32 bytes");
         }
+        /*
+         * SecretKeySpec 只是把配置字符串包装成 Java 密钥对象，不是在这里加密 JWT。
+         * 真正的签名由 NimbusJwtEncoder 完成，验签由 NimbusJwtDecoder 完成。
+         */
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 }

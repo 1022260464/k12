@@ -18,6 +18,7 @@ public final class K12SecurityContext {
     }
 
     public static Optional<Long> currentUserId() {
+        /* userId 在签发时以字符串写入 JWT，这里读取后转换成业务主键 Long。 */
         return currentJwt().map(jwt -> jwt.getClaimAsString("userId")).map(Long::valueOf);
     }
 
@@ -26,6 +27,7 @@ public final class K12SecurityContext {
     }
 
     public static Long requireUserId() {
+        /* 业务必须依赖当前用户 ID 时使用该方法；缺失时立即失败，不能悄悄使用 null。 */
         return currentUserId().orElseThrow(() -> new IllegalStateException("Authenticated userId is missing"));
     }
 
@@ -39,6 +41,10 @@ public final class K12SecurityContext {
     }
 
     private static Optional<Jwt> currentJwt() {
+        /*
+         * JwtAuthenticationFilter 验证 Bearer Token 成功后，会把 Authentication
+         * 放入当前请求线程的 SecurityContextHolder。principal 就是解析后的 Jwt。
+         */
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return Optional.empty();

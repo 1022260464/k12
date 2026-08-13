@@ -21,6 +21,7 @@ public final class GatewaySecurityErrorWriter {
             HttpStatus status,
             String message
     ) {
+        /* WebFlux 不使用 HttpServletResponse，而是向响应式 DataBuffer 写入字节。 */
         exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
         try {
