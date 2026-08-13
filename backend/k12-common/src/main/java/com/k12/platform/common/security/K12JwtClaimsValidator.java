@@ -29,6 +29,11 @@ public final class K12JwtClaimsValidator implements OAuth2TokenValidator<Jwt> {
 
     @Override
     public OAuth2TokenValidatorResult validate(Jwt jwt) {
+        /*
+         * Jwt 是 Spring Security 验签后解析出的令牌对象。
+         * subject 对应 JWT 标准字段 sub，本项目把它作为用户名。
+         * userId、authorities 是本项目自己增加的业务字段（自定义 claims）。
+         */
         Object userId = jwt.getClaims().get("userId");
         Object authorities = jwt.getClaims().get("authorities");
 
@@ -40,6 +45,7 @@ public final class K12JwtClaimsValidator implements OAuth2TokenValidator<Jwt> {
                 && values.stream().anyMatch(value -> value instanceof String text
                         && ROLE_PATTERN.matcher(text).matches());
 
+        /* 任一业务字段不符合契约，整个令牌都按 invalid_token 处理并返回 401。 */
         if (!validUserId || !validSubject || !validAuthorities) {
             return OAuth2TokenValidatorResult.failure(INVALID_TOKEN);
         }
@@ -58,6 +64,7 @@ public final class K12JwtClaimsValidator implements OAuth2TokenValidator<Jwt> {
         if (!(value instanceof String authority)) {
             return false;
         }
+        /* 只接受 ROLE_ADMIN 形式的角色，或 course:read 形式的功能权限。 */
         return ROLE_PATTERN.matcher(authority).matches()
                 || PERMISSION_PATTERN.matcher(authority).matches();
     }

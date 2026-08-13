@@ -21,6 +21,10 @@ public class RoleService {
         this.roleMapper = roleMapper;
     }
 
+    /*
+     * 表达式在方法执行前运行。字符串拼接使用的是编译期常量，最终效果等同于：
+     * hasAuthority('ROLE_ADMIN') or hasAuthority('role:read')。
+     */
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.ROLE_READ + "')")
     public List<RoleResponse> listRoles() {
         return roleMapper.findAllRoles().stream().map(this::toResponse).toList();

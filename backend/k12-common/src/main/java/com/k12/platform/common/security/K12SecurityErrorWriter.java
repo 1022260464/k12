@@ -22,6 +22,7 @@ public final class K12SecurityErrorWriter {
             int status,
             String message
     ) throws IOException {
+        /* Filter 发生在 Controller 之前，只能直接操作 HttpServletResponse 输出 JSON。 */
         response.setStatus(status);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("application/json;charset=UTF-8");

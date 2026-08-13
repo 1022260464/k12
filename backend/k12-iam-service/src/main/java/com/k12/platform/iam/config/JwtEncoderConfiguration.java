@@ -13,6 +13,10 @@ public class JwtEncoderConfiguration {
 
     @Bean
     public JwtEncoder jwtEncoder(K12JwtProperties jwtProperties) {
+        /*
+         * @Bean 的返回对象由 Spring 容器管理，之后会自动注入 JwtTokenService。
+         * ImmutableSecret 保存 HS256 对称密钥；只有 IAM 需要 Encoder，因为只有 IAM 发令牌。
+         */
         return new NimbusJwtEncoder(new ImmutableSecret<>(jwtProperties.secretKey()));
     }
 }

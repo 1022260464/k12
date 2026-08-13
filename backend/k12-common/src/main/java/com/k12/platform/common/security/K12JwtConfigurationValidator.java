@@ -22,6 +22,10 @@ public class K12JwtConfigurationValidator implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        /*
+         * ApplicationRunner 会在 Spring 容器创建完成后自动调用 run()。
+         * 在服务真正对外工作前尽早暴露配置错误，避免运行到第一次请求才失败。
+         */
         if (properties.getIssuer() == null || properties.getIssuer().isBlank()) {
             throw new IllegalStateException("k12.security.jwt.issuer must not be blank");
         }
@@ -31,6 +35,7 @@ public class K12JwtConfigurationValidator implements ApplicationRunner {
             throw new IllegalStateException("k12.security.jwt.access-token-ttl must be positive");
         }
         properties.secretKey();
+        /* activeProfiles 来自 spring.profiles.active，例如 prod。 */
         boolean production = Arrays.stream(environment.getActiveProfiles())
                 .anyMatch(profile -> "prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile));
         if (production && K12JwtProperties.DEFAULT_DEVELOPMENT_SECRET.equals(properties.getSecret())) {

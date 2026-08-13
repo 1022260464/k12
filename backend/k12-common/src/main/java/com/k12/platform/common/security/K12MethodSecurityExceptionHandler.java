@@ -30,6 +30,7 @@ public class K12MethodSecurityExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException exception) {
+        /* JWT 有效但 @PreAuthorize 表达式为 false，会进入这里并返回 403。 */
         log.info("Method security denied request, reason={}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.fail(403, "没有访问该资源的权限"));

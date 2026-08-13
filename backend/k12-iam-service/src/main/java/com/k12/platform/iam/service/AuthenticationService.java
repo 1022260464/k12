@@ -35,6 +35,10 @@ public class AuthenticationService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        /*
+         * 登录顺序：查数据库用户 -> BCrypt 比对 -> 检查状态和角色 -> 签发 JWT。
+         * 登录接口本身不依赖 Security 的表单登录，而是由本项目显式实现。
+         */
         UserAuthenticationService.AuthenticatedUser user;
         try {
             user = userAuthenticationService.loadByUsername(request.username());
@@ -43,6 +47,7 @@ public class AuthenticationService {
             throw new BadCredentialsException("Username or password is incorrect");
         }
         /* 先校验密码再检查状态，使各种登录失败都至少执行一次 BCrypt。 */
+        /* matches(明文, 数据库哈希)；绝不能把明文再 encode 后用字符串相等比较。 */
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
             throw new BadCredentialsException("Username or password is incorrect");
         }
@@ -55,6 +60,7 @@ public class AuthenticationService {
         if (user.authorities().stream().noneMatch(authority -> authority.startsWith("ROLE_"))) {
             throw new DisabledException("Account has no active role");
         }
+        /* 只有前面全部通过，才把数据库查出的真实权限写入 JWT。 */
         return jwtTokenService.createAccessToken(
                 user.id(),
                 user.username(),
