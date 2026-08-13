@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "K12 平台接口文档",
-    "description": "K12 多智能体教学平台接口草稿。当前 CRUD 接口为内存版，便于早期联调，后续再补充完整业务逻辑和数据库实现。",
+    "description": "K12 多智能体教学平台接口文档。用户、角色、课程、智能体和作业 CRUD 已接入数据库，统一通过 Gateway 和 JWT 鉴权。",
     "version": "0.1.0"
   },
   "servers": [
@@ -29,7 +29,7 @@
   ],
   "security": [
     {
-      "basicAuth": []
+      "bearerAuth": []
     }
   ],
   "tags": [
@@ -129,6 +129,58 @@
         }
       }
     },
+    "/api/v1/iam/auth/login": {
+      "post": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "用户名密码登录并获取 JWT",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LoginApiResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/iam/auth/register": {
+      "post": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "注册学生账号",
+        "description": "公开注册固定分配 ROLE_STUDENT，不能通过请求指定管理员角色。",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserApiResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/iam/me": {
       "get": {
         "tags": [
@@ -184,10 +236,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserRequest"
+                "$ref": "#/components/schemas/UserCreateRequest"
               },
               "example": {
                 "username": "teacher01",
+                "password": "Teacher@123",
                 "nickname": "Teacher One",
                 "email": "teacher01@example.com",
                 "roleCode": "ROLE_TEACHER"
@@ -250,7 +303,7 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/UserRequest"
+          "$ref": "#/components/requestBodies/UserUpdateRequest"
         },
         "responses": {
           "200": {
@@ -285,6 +338,50 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
+        }
+      }
+    },
+    "/api/v1/iam/roles": {
+      "get": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "角色与权限列表",
+        "responses": {
+          "200": {
+            "description": "角色与权限列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoleListApiResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/iam/roles/{id}/permissions": {
+      "put": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "更新角色权限",
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateRolePermissionsRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的角色",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoleApiResponse" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -705,9 +802,10 @@
   },
   "components": {
     "securitySchemes": {
-      "basicAuth": {
+      "bearerAuth": {
         "type": "http",
-        "scheme": "basic"
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     },
     "parameters": {
@@ -723,12 +821,12 @@
       }
     },
     "requestBodies": {
-      "UserRequest": {
+      "UserUpdateRequest": {
         "required": true,
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UserRequest"
+              "$ref": "#/components/schemas/UserUpdateRequest"
             }
           }
         }
@@ -785,6 +883,9 @@
       "Unauthorized": {
         "description": "未认证或认证失败"
       },
+      "Forbidden": {
+        "description": "已登录，但没有访问该资源的权限"
+      },
       "NotFound": {
         "description": "资源不存在",
         "content": {
@@ -810,14 +911,15 @@
       "ApiResponseBase": {
         "type": "object",
         "required": [
-          "success",
+          "code",
           "message",
           "timestamp"
         ],
         "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "example": 200
           },
           "message": {
             "type": "string",
@@ -884,6 +986,11 @@
       "CurrentUser": {
         "type": "object",
         "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
           "username": {
             "type": "string",
             "example": "admin"
@@ -914,7 +1021,42 @@
           }
         ]
       },
-      "UserRequest": {
+      "UserCreateRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "nickname",
+          "roleCode"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "teacher01"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "format": "password",
+            "example": "Teacher@123"
+          },
+          "nickname": {
+            "type": "string",
+            "example": "Teacher One"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "teacher01@example.com"
+          },
+          "roleCode": {
+            "type": "string",
+            "example": "ROLE_TEACHER"
+          }
+        }
+      },
+      "UserUpdateRequest": {
         "type": "object",
         "required": [
           "username",
@@ -944,7 +1086,7 @@
       "User": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/UserRequest"
+            "$ref": "#/components/schemas/UserUpdateRequest"
           },
           {
             "type": "object",
@@ -994,6 +1136,97 @@
                 "items": {
                   "$ref": "#/components/schemas/User"
                 }
+              }
+            }
+          }
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "example": "admin" },
+          "password": { "type": "string", "format": "password", "example": "admin123" }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string", "description": "JWT 访问令牌" },
+          "tokenType": { "type": "string", "example": "Bearer" },
+          "expiresIn": { "type": "integer", "format": "int64", "example": 1800 },
+          "username": { "type": "string", "example": "admin" },
+          "authorities": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["ROLE_ADMIN", "user:read", "user:create"]
+          }
+        }
+      },
+      "LoginApiResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "type": "object",
+            "properties": {
+              "data": { "$ref": "#/components/schemas/LoginResponse" }
+            }
+          }
+        ]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password", "nickname"],
+        "properties": {
+          "username": { "type": "string", "example": "student01" },
+          "password": { "type": "string", "format": "password", "minLength": 8, "maxLength": 72, "example": "Student@123" },
+          "nickname": { "type": "string", "example": "学生一" },
+          "email": { "type": "string", "format": "email", "example": "student01@example.com" }
+        }
+      },
+      "UpdateRolePermissionsRequest": {
+        "type": "object",
+        "required": ["permissionCodes"],
+        "properties": {
+          "permissionCodes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["course:read", "course:update"]
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64", "example": 2 },
+          "name": { "type": "string", "example": "Teacher" },
+          "code": { "type": "string", "example": "ROLE_TEACHER" },
+          "description": { "type": "string", "example": "Teacher user" },
+          "permissionCodes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["course:read", "course:update"]
+          }
+        }
+      },
+      "RoleApiResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "type": "object",
+            "properties": { "data": { "$ref": "#/components/schemas/Role" } }
+          }
+        ]
+      },
+      "RoleListApiResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Role" }
               }
             }
           }

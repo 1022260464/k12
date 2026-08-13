@@ -38,7 +38,7 @@ public class AgentController {
         return agentService.getAgent(id)
                 .map(agent -> ResponseEntity.ok(ApiResponse.ok(agent)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.fail("Agent not found")));
+                        .body(ApiResponse.fail(404, "Agent not found")));
     }
 
     @PostMapping
@@ -55,14 +55,14 @@ public class AgentController {
         return agentService.updateAgent(id, request)
                 .map(agent -> ResponseEntity.ok(ApiResponse.ok(agent)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.fail("Agent not found")));
+                        .body(ApiResponse.fail(404, "Agent not found")));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteAgent(@PathVariable Long id) {
         if (!agentService.deleteAgent(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.fail("Agent not found"));
+                    .body(ApiResponse.fail(404, "Agent not found"));
         }
         return ResponseEntity.ok(ApiResponse.ok(null));
     }

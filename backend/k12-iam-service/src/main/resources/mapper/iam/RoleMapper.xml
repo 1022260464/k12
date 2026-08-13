@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 角色与权限关系查询。 -->
+<mapper namespace="com.k12.platform.iam.mapper.RoleMapper">
+
+    <resultMap id="RoleAccountResultMap" type="com.k12.platform.iam.model.RoleAccount">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="description" property="description"/>
+        <result column="permissionCodes" property="permissionCodes"/>
+    </resultMap>
+
+    <sql id="RoleAccountColumns">
+        SELECT
+            r.id,
+            r.role_name AS name,
+            r.role_code AS code,
+            r.description,
+            COALESCE(
+                GROUP_CONCAT(DISTINCT p.permission_code ORDER BY p.permission_code SEPARATOR ','),
+                ''
+            ) AS permissionCodes
+        FROM sys_role r
+        LEFT JOIN sys_role_permission rp ON rp.role_id = r.id
+        LEFT JOIN sys_permission p ON p.id = rp.permission_id AND p.status = 1
+    </sql>
+
+    <select id="findAllRoles" resultMap="RoleAccountResultMap">
+        <include refid="RoleAccountColumns"/>
+        WHERE r.status = 1
+        GROUP BY r.id, r.role_name, r.role_code, r.description
+        ORDER BY r.id
+    </select>
+
+    <select id="findRoleById" resultMap="RoleAccountResultMap">
+        <include refid="RoleAccountColumns"/>
+        WHERE r.id = #{id}
+          AND r.status = 1
+        GROUP BY r.id, r.role_name, r.role_code, r.description
+    </select>
+
+    <delete id="deleteRolePermissions">
+        DELETE FROM sys_role_permission
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <insert id="assignPermissionByCode">
+        INSERT INTO sys_role_permission (role_id, permission_id)
+        SELECT #{roleId}, p.id
+        FROM sys_permission p
+        WHERE p.permission_code = #{permissionCode}
+          AND p.status = 1
+          AND NOT EXISTS (
+              SELECT 1
+              FROM sys_role_permission rp
+              WHERE rp.role_id = #{roleId}
+                AND rp.permission_id = p.id
+          )
+    </insert>
+</mapper>

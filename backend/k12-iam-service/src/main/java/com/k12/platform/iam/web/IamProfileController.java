@@ -1,6 +1,7 @@
 package com.k12.platform.iam.web;
 
 import com.k12.platform.common.api.ApiResponse;
+import com.k12.platform.common.security.K12SecurityContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +26,13 @@ public class IamProfileController {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return ApiResponse.ok(new CurrentUserResponse(authentication.getName(), authorities));
+        return ApiResponse.ok(new CurrentUserResponse(
+                K12SecurityContext.requireUserId(),
+                authentication.getName(),
+                authorities
+        ));
     }
 
-    public record CurrentUserResponse(String username, List<String> authorities) {
+    public record CurrentUserResponse(Long userId, String username, List<String> authorities) {
     }
 }

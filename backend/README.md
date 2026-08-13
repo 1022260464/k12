@@ -59,44 +59,80 @@ backend/sql/mysql/k12_business_init.sql
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}
+    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:127.0.0.1}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}
     username: ${K12_BUSINESS_DB_USERNAME:k12}
-    password: ${K12_BUSINESS_DB_PASSWORD:K12@123456}
+    password: ${K12_BUSINESS_DB_PASSWORD:}
 ```
 
 执行脚本需要使用有建库和授权权限的 MySQL 账号，例如 root：
 
 ```bash
-mysql -h 122.51.54.52 -P 3306 -u root -p < backend/sql/mysql/k12_business_init.sql
+mysql -h <数据库主机> -P 3306 -u root -p < backend/sql/mysql/k12_business_init.sql
 ```
+
+初始化脚本不会创建或重置应用账号密码。首次部署先在数据库管理软件中执行：
+
+```sql
+CREATE USER IF NOT EXISTS 'k12'@'%' IDENTIFIED BY '<强随机密码>';
+ALTER USER 'k12'@'%' IDENTIFIED BY '<强随机密码>';
+```
+
+然后执行初始化脚本完成数据库、表和授权。生产环境应将 `%` 改为应用服务器的内网地址。
 
 ## Security
 
-后端已统一接入 Spring Security。通用依赖放在父工程 `backend/pom.xml`，Servlet 服务的默认安全配置放在 `k12-common` 并通过 Spring Boot AutoConfiguration 自动生效；`k12-gateway-service` 使用 Spring Cloud Gateway，对应 WebFlux Security 配置保留在网关模块内。
+后端已统一接入 Spring Security + JWT。通用依赖放在父工程 `backend/pom.xml`，Servlet 服务的默认安全配置放在 `k12-common` 并通过 Spring Boot AutoConfiguration 自动生效；`k12-gateway-service` 使用 Spring Cloud Gateway，对应 WebFlux Security 配置保留在网关模块内。
 
 默认规则：
 
-- 放行健康检查与基础信息接口：`/actuator/health`、`/actuator/info`、各业务服务 `/api/v1/*/health`。
-- 其他接口默认需要 HTTP Basic 认证。
-- 默认开发账号为 `admin` / `admin123`，可通过配置覆盖。
+- 放行健康检查、`/api/v1/iam/auth/login` 和 `/api/v1/iam/auth/register`。
+- 其他接口默认需要 `Authorization: Bearer <token>`。
+- 用户和角色管理接口仅允许 `ROLE_ADMIN` 访问。
 
 ```yaml
 k12:
   security:
-    user:
-      name: admin
-      password: admin123
-      roles:
-        - ADMIN
-    permit-paths:
-      - /actuator/health
-      - /actuator/info
-      - /api/v1/gateway/health
-      - /api/v1/iam/health
-      - /api/v1/learning/health
-      - /api/v1/agents/health
-      - /api/v1/assessments/health
+    jwt:
+      issuer: ${K12_JWT_ISSUER:k12-platform}
+      secret: ${K12_JWT_SECRET:k12-platform-dev-secret-change-me-2026-very-long-key}
+      access-token-ttl: ${K12_JWT_ACCESS_TOKEN_TTL:30m}
 ```
+
+生产环境必须通过环境变量替换默认开发密钥，并保证 Gateway、IAM 和所有业务服务使用相同密钥。
+
+已有 `k12_auth` 数据库需要执行权限升级脚本：
+
+```text
+backend/sql/mysql/k12_auth_permission_upgrade.sql
+```
+
+它会幂等补齐用户、角色、课程、智能体和作业共 18 个功能权限，并写入管理员、教师、学生默认授权。执行后必须重新登录，新的权限才会写入 JWT。
+
+后续新增业务接口时，按以下安全规范同步 Gateway、Service 注解、权限数据和数据范围：
+
+```text
+backend/docs/security-development-guide.md
+```
+
+认证请求链路：
+
+```text
+React -> Gateway:8080 -> IAM:8081 登录并签发 JWT
+React -> Gateway 校验 JWT -> 业务服务再次校验 JWT -> Controller
+```
+
+主要接口：
+
+```text
+POST /api/v1/iam/auth/login
+POST /api/v1/iam/auth/register
+GET  /api/v1/iam/me
+GET/POST/PUT/DELETE /api/v1/iam/users/**
+GET  /api/v1/iam/roles
+PUT  /api/v1/iam/roles/{id}/permissions
+```
+
+Gateway 默认将 IAM、Learning、Agent、Assessment 分别路由到本机 `8081`、`8082`、`8083`、`8084`，可通过 `K12_*_SERVICE_URI` 覆盖。
 
 ## IAM database
 
@@ -113,8 +149,20 @@ spring:
   datasource:
     url: jdbc:mysql://${K12_AUTH_DB_HOST:127.0.0.1}:${K12_AUTH_DB_PORT:3306}/${K12_AUTH_DB_NAME:k12_auth}
     username: ${K12_AUTH_DB_USERNAME:k12}
-    password: ${K12_AUTH_DB_PASSWORD:K12@123456}
+    password: ${K12_AUTH_DB_PASSWORD:}
 ```
+
+仓库不保存数据库密码。PowerShell 启动服务前先设置环境变量：
+
+```powershell
+$env:K12_AUTH_DB_HOST = "<数据库主机>"
+$env:K12_AUTH_DB_PASSWORD = "<权限库密码>"
+$env:K12_BUSINESS_DB_HOST = "<数据库主机>"
+$env:K12_BUSINESS_DB_PASSWORD = "<业务库密码>"
+$env:K12_JWT_SECRET = "<至少 32 字节的随机密钥>"
+```
+
+公网连接 MySQL 时必须启用数据库 TLS，或者只允许应用通过服务器内网访问数据库。
 
 执行脚本需要使用有建库和授权权限的 MySQL 账号，例如 root：
 
@@ -122,10 +170,15 @@ spring:
 mysql -h 127.0.0.1 -P 3306 -u root -p < backend/sql/mysql/k12_auth_init.sql
 ```
 
-`k12-iam-service` 已定义数据库版 `UserDetailsService`，登录时会读取 `sys_user.password_hash` 和用户绑定的 `sys_role.role_code`。可用受保护接口验证：
+`k12-iam-service` 登录时会读取 `sys_user.password_hash`、用户角色和权限，成功后签发 JWT。可用受保护接口验证：
 
 ```bash
-curl -u admin:admin123 http://localhost:8081/api/v1/iam/me
+curl.exe -X POST http://localhost:8080/api/v1/iam/auth/login ^
+  -H "Content-Type: application/json" ^
+  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
+
+curl.exe http://localhost:8080/api/v1/iam/me ^
+  -H "Authorization: Bearer <登录响应中的 accessToken>"
 ```
 
 ## Common commands
@@ -143,10 +196,22 @@ Apifox 可直接导入 OpenAPI 3.0 JSON：
 backend/openapi/k12-api-openapi.json
 ```
 
+统一响应格式：
+
+```json
+{
+  "code": 200,
+  "message": "ok",
+  "data": {},
+  "timestamp": "2026-08-12T12:00:00Z"
+}
+```
+
 当前 CRUD 接口覆盖用户、课程、智能体、作业四类资源。
 
+- 用户 CRUD 已经使用 MyBatis-Plus `BaseMapper` 写入 `k12_auth.sys_user`，用户角色绑定写入 `sys_user_role`。
+- IAM 登录认证通过 `security -> service -> mapper -> database` 分层读取 `sys_user`、`sys_role`、`sys_permission`。
 - 课程、智能体、作业已经使用 MyBatis-Plus `BaseMapper`，数据写入 `k12_business`。
-- 用户 CRUD 当前仍是早期联调用的内存版本；IAM 登录认证已经读取 `k12_auth.sys_user`、`sys_role`、`sys_user_role`。后续用户管理需要和 RBAC 多表权限模型一起补完整，不能简单按单表 CRUD 硬套。
 
 当前 CRUD 代码按统一分层组织：
 
@@ -154,10 +219,29 @@ backend/openapi/k12-api-openapi.json
 web        Controller，只处理 HTTP 入参、状态码和响应包装
 service    业务编排层，后续业务规则写在这里
 mapper     数据访问接口，业务模块优先使用 MyBatis-Plus BaseMapper
-mapper/memory
-           仅保留早期联调实现，后续会被数据库 Mapper 替换
+           复杂查询使用 MyBatis 自定义 SQL，统一放在 Mapper 层
+security   只对接 Spring Security，不直接写 SQL
 model      领域对象
 dto        请求和响应 DTO
+```
+
+MyBatis XML 文件统一放在各服务的 `src/main/resources/mapper/` 下，例如：
+
+```text
+k12-iam-service/src/main/resources/mapper/iam/UserMapper.xml
+```
+
+XML 使用规则：
+
+- 单表 CRUD 优先用 MyBatis-Plus `BaseMapper`，不写 XML。
+- 多表关联、RBAC 查询、复杂动态 SQL 放到 XML。
+- XML 的 `namespace` 必须和 Java Mapper 接口全限定名一致。
+- XML 的 `id` 必须和 Java Mapper 方法名一致。
+
+Java 数据对象写法规范见：
+
+```text
+backend/docs/java-data-object-guide.md
 ```
 
 ## Health endpoints

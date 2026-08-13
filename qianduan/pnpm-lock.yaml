@@ -6,7 +6,27 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  admin-app:
+    dependencies:
+      '@vitejs/plugin-react':
+        specifier: 5.0.4
+        version: 5.0.4(vite@6.4.2)
+      lucide-react:
+        specifier: ^1.21.0
+        version: 1.21.0(react@19.2.0)
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: 19.2.0
+        version: 19.2.0(react@19.2.0)
+      vite:
+        specifier: 6.4.2
+        version: 6.4.2
+
+  user-app:
     dependencies:
       '@vitejs/plugin-react':
         specifier: 5.0.4
