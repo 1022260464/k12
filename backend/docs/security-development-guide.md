@@ -1,5 +1,11 @@
 # K12 接口安全开发规范
 
+> Spring Boot 启动、框架自带接口、JWT 完整流程和新增接口模板见
+> [Spring Boot 与 Spring Security JWT 整体流程笔记](spring-security-framework-flow-guide.md)。
+>
+> 完整 API 契约、分层、SQL、事务、异常、测试和 OpenAPI 规范见
+> [K12 后续 API 接口开发规范](api-development-guide.md)。
+
 本文用于后续新增 Controller、Service、Mapper 时直接检查，不需要重新设计认证框架。
 
 ## 1. 当前安全链路

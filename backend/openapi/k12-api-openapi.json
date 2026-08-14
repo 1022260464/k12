@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "K12 平台接口文档",
-    "description": "K12 多智能体教学平台接口文档。用户、角色、课程、智能体和作业 CRUD 已接入数据库，统一通过 Gateway 和 JWT 鉴权。",
-    "version": "0.1.0"
+    "description": "K12 多智能体教学平台第一期可调用接口。包含用户、角色权限、课程、智能体和作业 CRUD，统一通过 Gateway 和 JWT 鉴权。未实现的规划接口不进入本文件。",
+    "version": "0.1.1"
   },
   "servers": [
     {
@@ -93,6 +93,7 @@
           "99-公共接口"
         ],
         "summary": "网关状态检查",
+        "operationId": "getGatewayHealth",
         "security": [],
         "responses": {
           "200": {
@@ -114,6 +115,7 @@
           "99-公共接口"
         ],
         "summary": "用户与权限服务状态检查",
+        "operationId": "getIamHealth",
         "security": [],
         "responses": {
           "200": {
@@ -133,6 +135,7 @@
       "post": {
         "tags": ["01-用户与权限服务"],
         "summary": "用户名密码登录并获取 JWT",
+        "operationId": "login",
         "security": [],
         "requestBody": {
           "required": true,
@@ -151,6 +154,7 @@
               }
             }
           },
+          "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
@@ -159,6 +163,7 @@
       "post": {
         "tags": ["01-用户与权限服务"],
         "summary": "注册学生账号",
+        "operationId": "registerStudent",
         "description": "公开注册固定分配 ROLE_STUDENT，不能通过请求指定管理员角色。",
         "security": [],
         "requestBody": {
@@ -177,7 +182,9 @@
                 "schema": { "$ref": "#/components/schemas/UserApiResponse" }
               }
             }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         }
       }
     },
@@ -187,6 +194,7 @@
           "01-用户与权限服务"
         ],
         "summary": "获取当前登录用户",
+        "operationId": "getCurrentUser",
         "responses": {
           "200": {
             "description": "当前登录用户",
@@ -210,6 +218,8 @@
           "01-用户与权限服务"
         ],
         "summary": "用户列表",
+        "operationId": "listUsers",
+        "description": "需要 ROLE_ADMIN 或 user:read 权限。",
         "responses": {
           "200": {
             "description": "用户列表",
@@ -223,6 +233,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       },
@@ -231,6 +244,8 @@
           "01-用户与权限服务"
         ],
         "summary": "创建用户",
+        "operationId": "createUser",
+        "description": "需要 ROLE_ADMIN 或 user:create 权限；只有管理员可以分配 ROLE_ADMIN。",
         "requestBody": {
           "required": true,
           "content": {
@@ -261,7 +276,10 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         }
       }
     },
@@ -271,6 +289,8 @@
           "01-用户与权限服务"
         ],
         "summary": "用户详情",
+        "operationId": "getUser",
+        "description": "需要 ROLE_ADMIN 或 user:read 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -289,14 +309,18 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "put": {
         "tags": [
           "01-用户与权限服务"
         ],
-        "summary": "更新",
+        "summary": "更新用户",
+        "operationId": "updateUser",
+        "description": "需要 ROLE_ADMIN 或 user:update 权限。该接口不修改密码。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -318,14 +342,20 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         }
       },
       "delete": {
         "tags": [
           "01-用户与权限服务"
         ],
-        "summary": "删除",
+        "summary": "删除用户",
+        "operationId": "deleteUser",
+        "description": "需要 ROLE_ADMIN 或 user:delete 权限；不能删除当前登录账号。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -337,7 +367,10 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -345,6 +378,8 @@
       "get": {
         "tags": ["01-用户与权限服务"],
         "summary": "角色与权限列表",
+        "operationId": "listRoles",
+        "description": "需要 ROLE_ADMIN 或 role:read 权限。",
         "responses": {
           "200": {
             "description": "角色与权限列表",
@@ -363,6 +398,8 @@
       "put": {
         "tags": ["01-用户与权限服务"],
         "summary": "更新角色权限",
+        "operationId": "updateRolePermissions",
+        "description": "需要 ROLE_ADMIN 或 role:update 权限。ROLE_ADMIN 权限不可通过该接口移除。",
         "parameters": [{ "$ref": "#/components/parameters/Id" }],
         "requestBody": {
           "required": true,
@@ -381,7 +418,10 @@
               }
             }
           },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -391,6 +431,7 @@
           "99-公共接口"
         ],
         "summary": "课程资源服务状态检查",
+        "operationId": "getLearningHealth",
         "security": [],
         "responses": {
           "200": {
@@ -412,6 +453,8 @@
           "02-课程资源服务"
         ],
         "summary": "课程列表",
+        "operationId": "listCourses",
+        "description": "需要 ROLE_ADMIN 或 course:read 权限。",
         "responses": {
           "200": {
             "description": "课程列表",
@@ -422,7 +465,9 @@
                 }
               }
             }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "post": {
@@ -430,6 +475,8 @@
           "02-课程资源服务"
         ],
         "summary": "创建课程",
+        "operationId": "createCourse",
+        "description": "需要 ROLE_ADMIN 或 course:create 权限。",
         "requestBody": {
           "$ref": "#/components/requestBodies/CourseRequest"
         },
@@ -443,7 +490,10 @@
                 }
               }
             }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -453,6 +503,8 @@
           "02-课程资源服务"
         ],
         "summary": "课程详情",
+        "operationId": "getCourse",
+        "description": "需要 ROLE_ADMIN 或 course:read 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -471,14 +523,18 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "put": {
         "tags": [
           "02-课程资源服务"
         ],
-        "summary": "更新",
+        "summary": "更新课程",
+        "operationId": "updateCourse",
+        "description": "需要 ROLE_ADMIN 或 course:update 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -500,14 +556,19 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "delete": {
         "tags": [
           "02-课程资源服务"
         ],
-        "summary": "删除",
+        "summary": "删除课程",
+        "operationId": "deleteCourse",
+        "description": "需要 ROLE_ADMIN 或 course:delete 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -519,7 +580,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -529,6 +592,7 @@
           "99-公共接口"
         ],
         "summary": "AI 智能体服务状态检查",
+        "operationId": "getAgentHealth",
         "security": [],
         "responses": {
           "200": {
@@ -550,6 +614,8 @@
           "04-AI智能体服务"
         ],
         "summary": "智能体列表",
+        "operationId": "listAgents",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。",
         "responses": {
           "200": {
             "description": "智能体列表",
@@ -560,7 +626,9 @@
                 }
               }
             }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "post": {
@@ -568,6 +636,8 @@
           "04-AI智能体服务"
         ],
         "summary": "创建智能体",
+        "operationId": "createAgent",
+        "description": "需要 ROLE_ADMIN 或 agent:create 权限。",
         "requestBody": {
           "$ref": "#/components/requestBodies/AgentRequest"
         },
@@ -581,7 +651,10 @@
                 }
               }
             }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -591,6 +664,8 @@
           "04-AI智能体服务"
         ],
         "summary": "智能体详情",
+        "operationId": "getAgent",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -609,14 +684,18 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "put": {
         "tags": [
           "04-AI智能体服务"
         ],
-        "summary": "更新",
+        "summary": "更新智能体",
+        "operationId": "updateAgent",
+        "description": "需要 ROLE_ADMIN 或 agent:update 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -638,14 +717,19 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "delete": {
         "tags": [
           "04-AI智能体服务"
         ],
-        "summary": "删除",
+        "summary": "删除智能体",
+        "operationId": "deleteAgent",
+        "description": "需要 ROLE_ADMIN 或 agent:delete 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -657,7 +741,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -667,6 +753,7 @@
           "99-公共接口"
         ],
         "summary": "作业与批改服务状态检查",
+        "operationId": "getAssessmentHealth",
         "security": [],
         "responses": {
           "200": {
@@ -688,6 +775,8 @@
           "07-作业与批改服务"
         ],
         "summary": "作业列表",
+        "operationId": "listHomeworks",
+        "description": "需要 ROLE_ADMIN 或 homework:read 权限。",
         "responses": {
           "200": {
             "description": "作业列表",
@@ -698,7 +787,9 @@
                 }
               }
             }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "post": {
@@ -706,6 +797,8 @@
           "07-作业与批改服务"
         ],
         "summary": "创建作业",
+        "operationId": "createHomework",
+        "description": "需要 ROLE_ADMIN 或 homework:create 权限。",
         "requestBody": {
           "$ref": "#/components/requestBodies/HomeworkRequest"
         },
@@ -719,7 +812,10 @@
                 }
               }
             }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -729,6 +825,8 @@
           "07-作业与批改服务"
         ],
         "summary": "作业详情",
+        "operationId": "getHomework",
+        "description": "需要 ROLE_ADMIN 或 homework:read 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -747,14 +845,18 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "put": {
         "tags": [
           "07-作业与批改服务"
         ],
-        "summary": "更新",
+        "summary": "更新作业",
+        "operationId": "updateHomework",
+        "description": "需要 ROLE_ADMIN 或 homework:update 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -776,14 +878,19 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "delete": {
         "tags": [
           "07-作业与批改服务"
         ],
-        "summary": "删除",
+        "summary": "删除作业",
+        "operationId": "deleteHomework",
+        "description": "需要 ROLE_ADMIN 或 homework:delete 权限。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -795,7 +902,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     }
@@ -881,10 +990,48 @@
     },
     "responses": {
       "Unauthorized": {
-        "description": "未认证或认证失败"
+        "description": "未登录、JWT 无效或 JWT 已过期",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" },
+            "example": {
+              "code": 401,
+              "message": "未登录、登录已过期或令牌无效",
+              "data": null,
+              "timestamp": "2026-08-14T02:30:00Z"
+            }
+          }
+        }
       },
       "Forbidden": {
-        "description": "已登录，但没有访问该资源的权限"
+        "description": "已登录，但没有访问该资源的权限",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" },
+            "example": {
+              "code": 403,
+              "message": "没有访问该资源的权限",
+              "data": null,
+              "timestamp": "2026-08-14T02:30:00Z"
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "请求参数或业务输入不合法",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "唯一数据重复或资源状态冲突",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" }
+          }
+        }
       },
       "NotFound": {
         "description": "资源不存在",
