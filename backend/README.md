@@ -196,6 +196,14 @@ Apifox 可直接导入 OpenAPI 3.0 JSON：
 backend/openapi/k12-api-openapi.json
 ```
 
+后续新增或修改接口必须遵守：
+
+```text
+backend/docs/api-development-guide.md
+```
+
+该规范包含 URL、请求响应、Controller/Service/Mapper 分层、事务、权限、数据范围、SQL、异常、OpenAPI、测试和提交检查清单。
+
 统一响应格式：
 
 ```json
