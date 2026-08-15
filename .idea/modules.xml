@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/k12.iml" filepath="$PROJECT_DIR$/.idea/k12.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ai-services/k12-agent-runtime/k12-agent-runtime.iml" filepath="$PROJECT_DIR$/ai-services/k12-agent-runtime/k12-agent-runtime.iml" />
     </modules>
   </component>
 </project>

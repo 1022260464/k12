@@ -1,0 +1,31 @@
+name: k12-rabbitmq-local
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.2.8-management-alpine
+    container_name: k12-rabbitmq
+    hostname: k12-rabbitmq
+    restart: unless-stopped
+    ports:
+      # 仅绑定本机，避免开发账号和管理控制台暴露到局域网或公网。
+      - "127.0.0.1:${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-k12}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-1022260464}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_DEFAULT_VHOST:-k12}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    mem_limit: 768m
+    cpus: 1.0
+    stop_grace_period: 30s
+
+volumes:
+  rabbitmq-data:
+    name: k12-rabbitmq-data

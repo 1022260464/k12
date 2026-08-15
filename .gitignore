@@ -14,6 +14,7 @@ node_modules/
 # Build output
 dist/
 build/
+target/
 .next/
 .nuxt/
 out/
@@ -39,6 +40,16 @@ pnpm-debug.log*
 .parcel-cache/
 .eslintcache
 *.tsbuildinfo
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
 # IDE and OS files
 .idea/
