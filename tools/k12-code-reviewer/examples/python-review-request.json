@@ -1,0 +1,7 @@
+{
+  "requestId": "review-demo-001",
+  "language": "python",
+  "fileName": "student_answer.py",
+  "ruleset": "k12-default",
+  "sourceCode": "password = \"123456\"\nresult = eval(user_input)\n"
+}

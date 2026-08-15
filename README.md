@@ -13,6 +13,10 @@ k12/
 │   ├── k12-learning-service/# 课程、班级、知识点、学习任务域
 │   ├── k12-agent-service/   # 多智能体编排、对话上下文、工具调用域
 │   └── k12-assessment-service/ # 作业、测评、诊断和学习评价域
+├── ai-services/
+│   └── k12-agent-runtime/   # FastAPI智能体、异步Worker与沙箱扩展边界
+├── tools/
+│   └── k12-code-reviewer/   # Rust多语言静态代码审查CLI
 └── qianduan/                # 前端 pnpm workspace
     ├── user-app/            # 用户端 React + Vite（5173）
     └── admin-app/           # 管理端 React + Vite（5174）
@@ -46,6 +50,11 @@ mvn -pl k12-agent-service -am spring-boot:run
 ```
 
 > 当前机器需要先安装 Maven，或后续补充 Maven Wrapper 后使用 `./mvnw` / `mvnw.cmd`。
+
+### 本地 RabbitMQ
+
+智能体异步任务使用本地 RabbitMQ Docker 容器进行开发和演示。启动方式、默认端口和
+本地环境变量见 [`deploy/rabbitmq/README.md`](deploy/rabbitmq/README.md)。
 
 ## 后端服务划分
 

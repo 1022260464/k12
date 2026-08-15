@@ -1,0 +1,41 @@
+[project]
+name = "k12-agent-runtime"
+version = "0.1.0"
+description = "FastAPI runtime for K12 agents, tools, async jobs, and sandbox artifacts"
+readme = "README.md"
+authors = [
+    { name = "0x330", email = "1022260464@qq.com" }
+]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "aio-pika>=10.0.1",
+    "fastapi[standard]>=0.141.1",
+    "pydantic-settings>=2.15.0",
+]
+
+[project.scripts]
+k12-agent-runtime = "k12_agent_runtime.main:main"
+k12-agent-worker = "k12_agent_runtime.workers.rabbitmq:main"
+
+[build-system]
+requires = ["uv_build>=0.11.15,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.3",
+]
+
+[tool.fastapi]
+entrypoint = "k12_agent_runtime.interfaces.api.app:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

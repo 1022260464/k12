@@ -1,0 +1,20 @@
+[package]
+name = "k12-code-reviewer-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "JSON CLI for the K12 static code review engine"
+
+[[bin]]
+name = "k12-code-reviewer"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+k12-code-reviewer-core = { path = "../reviewer-core" }
+serde_json.workspace = true
+
+[lints]
+workspace = true
