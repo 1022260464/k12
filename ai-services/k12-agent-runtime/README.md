@@ -111,12 +111,15 @@ Base64直接塞进RabbitMQ消息或普通API响应。
 
 ## 代码沙箱安全边界
 
-当前沙箱接口已预留，但默认返回503，且不会执行用户代码。正式实现必须由独立Worker在
-短生命周期隔离容器中执行，并至少满足：禁用网络、只读根文件系统、临时工作目录、CPU和
-内存限制、执行超时、包白名单、输出大小限制、非root用户运行。禁止在FastAPI或RabbitMQ
-Worker主进程中调用 `exec`、`eval` 或 `subprocess` 直接执行前端代码。
+当前沙箱接口已预留，但默认返回503，且不会执行用户代码。正式实现采用腾讯云Agent
+Sandbox（AGSX），由基础设施适配器创建短生命周期实例，并至少满足：默认禁网、临时工作
+目录、CPU和内存限制、执行超时、固定依赖镜像以及输出大小限制。禁止在FastAPI或
+RabbitMQ Worker主进程中调用 `exec`、`eval` 或 `subprocess` 直接执行前端代码。
 
 详细设计见 [`docs/architecture.md`](docs/architecture.md)。
+
+腾讯云AGSX现行架构、Piston本地边界、Rust静态审查边界以及E2B等备选资源见
+[`docs/code-sandbox-platform-guide.md`](docs/code-sandbox-platform-guide.md)。
 
 ## 质量检查
 

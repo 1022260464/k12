@@ -1,0 +1,14 @@
+name: k12-piston
+
+services:
+  api:
+    image: ${PISTON_IMAGE:?PISTON_IMAGE must be configured in versions.env}
+    container_name: k12-piston-api
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "127.0.0.1:2000:2000"
+    volumes:
+      - ../piston-runtime/data/piston/packages:/piston/packages
+    tmpfs:
+      - /tmp:exec

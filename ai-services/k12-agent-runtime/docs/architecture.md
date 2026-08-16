@@ -57,8 +57,10 @@ FILE   CSV/PDF/Notebook等下载地址
 Frontend
   -> Java创建executionId
   -> RabbitMQ代码任务队列
-  -> Sandbox Worker
-  -> 临时隔离容器
+  -> Python Agent Worker
+  -> CodeSandbox领域端口
+  -> TencentAgentSandboxAdapter
+  -> 腾讯云Agent Sandbox临时实例
   -> 生成PNG/JSON/CSV
   -> MinIO
   -> RabbitMQ结果消息
@@ -66,9 +68,14 @@ Frontend
   -> Frontend展示artifact
 ```
 
-沙箱容器必须是一次性执行环境。默认无网络、非root、只读根文件系统，并设置CPU、内存、
-进程数、文件大小和执行时间限制。依赖安装采用预构建镜像或白名单，不允许用户任意访问
-PyPI。API进程只负责校验和投递，永远不直接执行代码。
+正式执行平台只采用腾讯云Agent Sandbox（AGSX），不并行接入多家云厂商。每次任务使用
+短生命周期沙箱实例，默认禁网，并设置CPU、内存、进程数、文件大小、输出大小和执行时间
+限制。依赖通过团队维护的固定Python镜像提供，不允许用户任意访问PyPI。API和Worker主
+进程只负责校验、调度和结果处理，永远不直接执行用户代码。
+
+本地Piston只用于开发验证和断网演示。本地Rust Code Reviewer负责静态代码审查，不属于
+云沙箱，也不执行用户代码。完整方案与备选平台资源见
+[`code-sandbox-platform-guide.md`](code-sandbox-platform-guide.md)。
 
 ## 6. 后续基础设施适配器
 
@@ -78,7 +85,7 @@ infrastructure/rag/          pgvector检索和重排
 infrastructure/tools/        课程、题库、搜索等工具
 infrastructure/storage/      MinIO产物存储
 infrastructure/persistence/  仅AI运行所需的存储适配器
-infrastructure/sandbox/      Docker或专用沙箱平台
+infrastructure/sandbox/      腾讯云AGSX适配器
 ```
 
 这些目录在真正出现实现时再创建，避免空目录和无效抽象。
