@@ -55,3 +55,6 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Third-party runtime source and installed Piston language packages
+/deploy/piston-runtime/

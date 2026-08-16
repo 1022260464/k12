@@ -145,7 +145,10 @@ ai-services/k12-agent-runtime/
 
 ## 与代码沙箱的关系
 
-当前基线规则只读取字符串，可以作为受限子进程运行。以下能力必须转到独立沙箱Worker：
+当前基线规则和后续固定分析器都属于本地静态审查能力。Reviewer只读取源码并返回诊断，
+不使用Piston、Judge0或云沙箱完成Java/Rust检查。
+
+以下能力不属于当前Reviewer范围：
 
 ```text
 执行Python/Java/Rust/JS代码
@@ -153,6 +156,9 @@ ai-services/k12-agent-runtime/
 加载用户项目中的插件、过程宏或注解处理器
 安装用户指定依赖
 ```
+
+如果未来确实需要执行用户代码，由独立的代码沙箱方案重新评审和承接，不能把执行能力
+加入Reviewer进程。当前云沙箱只服务Python Agent的数据分析、图表和文件生成。
 
 详细开发计划见 [`docs/development-roadmap.md`](docs/development-roadmap.md)。
 
