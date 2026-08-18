@@ -27,6 +27,50 @@ def test_demo_agent_returns_chart_artifact() -> None:
     assert body["data"]["artifacts"][0]["payload"]["mark"]["type"] == "bar"
 
 
+def test_study_plan_agent_returns_table_artifact() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.post(
+            "/internal/v1/agents/study-plan/invoke",
+            json={
+                "inputText": "初中数学一次函数",
+                "context": {
+                    "grade": "八年级",
+                    "durationMinutes": 60,
+                    "weakPoints": ["函数图像", "斜率"],
+                },
+            },
+        )
+
+    body = response.json()
+    data = body["data"]
+    plan = data["artifacts"][0]["payload"]
+
+    assert response.status_code == 200
+    assert data["agentCode"] == "study-plan"
+    assert data["status"] == "SUCCEEDED"
+    assert data["artifacts"][0]["kind"] == "TABLE"
+    assert sum(item["minutes"] for item in plan) == 60
+    assert data["metadata"]["implementation"] == "langgraph-example"
+    assert data["metadata"]["strategy"] == "targeted"
+    assert data["metadata"]["weakPoints"] == ["函数图像", "斜率"]
+
+
+def test_study_plan_agent_uses_general_branch_without_weak_points() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.post(
+            "/internal/v1/agents/study-plan/invoke",
+            json={
+                "inputText": "初中英语阅读",
+                "context": {"grade": "七年级", "durationMinutes": 40},
+            },
+        )
+
+    data = response.json()["data"]
+    assert response.status_code == 200
+    assert data["metadata"]["strategy"] == "general"
+    assert sum(item["minutes"] for item in data["artifacts"][0]["payload"]) == 40
+
+
 def test_unknown_agent_returns_standard_error() -> None:
     with TestClient(create_app(Settings(_env_file=None))) as client:
         response = client.post(

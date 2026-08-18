@@ -63,6 +63,65 @@ GET  /internal/v1/sandbox/capabilities
 POST /internal/v1/sandbox/executions
 ```
 
+## 示例Agent
+
+`study-plan` 是一个可直接调用的LangGraph学习计划示例，代码位于：
+
+```text
+src/k12_agent_runtime/infrastructure/agents/study_plan/
+├── state.py   # 定义LangGraph共享状态
+├── nodes.py   # 节点、条件路由和确定性示例逻辑
+├── graph.py   # 添加节点、连接边并编译图
+└── agent.py   # 适配K12 AgentExecutor和统一返回结果
+```
+
+执行图：
+
+```mermaid
+flowchart LR
+    START --> NORMALIZE["normalize_input"]
+    NORMALIZE -->|存在薄弱点| TARGETED["build_targeted_plan"]
+    NORMALIZE -->|没有薄弱点| GENERAL["build_general_plan"]
+    TARGETED --> RESPONSE["compose_response"]
+    GENERAL --> RESPONSE
+    RESPONSE --> END
+```
+
+该示例演示Agent输入、共享State、普通节点、条件边、图编译、异步执行、表格产物和元数据，
+当前不依赖外部大模型。后续接入模型时，优先替换计划生成节点，不修改Controller和领域
+协议。
+
+请求示例：
+
+```http
+POST /internal/v1/agents/study-plan/invoke
+Content-Type: application/json
+
+{
+  "inputText": "初中数学一次函数",
+  "context": {
+    "grade": "八年级",
+    "durationMinutes": 60,
+    "weakPoints": ["函数图像", "斜率"]
+  }
+}
+```
+
+新增Agent时，实现 `AgentExecutor` 协议并在 `bootstrap/container.py` 的注册器中登记即可。
+
+LangGraph复习顺序：
+
+```text
+State -> Node -> Edge -> Conditional Edge -> compile -> ainvoke
+```
+
+- `State`：节点共享的数据结构，示例使用 `TypedDict`。
+- `Node`：读取State并返回部分State更新的Python函数。
+- `Edge`：定义节点执行顺序。
+- `Conditional Edge`：根据State动态选择下一节点。
+- `compile()`：把构建器编译成可执行图。
+- `ainvoke()`：异步执行图，适合FastAPI和异步Worker。
+
 `.env` 配置了 `K12_AGENT_INTERNAL_API_KEY` 后，除健康检查外的内部接口必须携带：
 
 ```text
