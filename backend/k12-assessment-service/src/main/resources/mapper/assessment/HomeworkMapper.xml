@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.assessment.mapper.HomeworkMapper">
+    <sql id="columns">h.id, h.course_id, h.teacher_user_id, h.title, h.description, h.status, h.updated_time, h.deleted</sql>
+    <select id="lockById" resultType="com.k12.platform.assessment.model.Homework">
+        SELECT <include refid="columns"/> FROM assessment_homework h WHERE h.id = #{id} AND h.deleted = 0 FOR UPDATE
+    </select>
+    <select id="findVisible" resultType="com.k12.platform.assessment.model.Homework">
+        SELECT <include refid="columns"/> FROM assessment_homework h WHERE h.deleted = 0
+        <if test="!admin">
+            AND (h.teacher_user_id = #{userId} OR (h.status IN ('PUBLISHED','CLOSED') AND EXISTS (
+                SELECT 1 FROM assessment_homework_recipient r WHERE r.homework_id = h.id AND r.student_user_id = #{userId}
+            )))
+        </if>
+        ORDER BY h.updated_time DESC, h.id DESC LIMIT #{size} OFFSET #{offset}
+    </select>
+    <select id="isRecipient" resultType="int">
+        SELECT COUNT(*) FROM assessment_homework_recipient WHERE homework_id = #{id} AND student_user_id = #{userId}
+    </select>
+    <select id="findRecipients" resultType="long">
+        SELECT student_user_id FROM assessment_homework_recipient WHERE homework_id = #{id} ORDER BY student_user_id LIMIT 500
+    </select>
+    <delete id="deleteRecipients">
+        DELETE FROM assessment_homework_recipient WHERE homework_id = #{id}
+    </delete>
+    <insert id="insertRecipients">
+        INSERT INTO assessment_homework_recipient(homework_id, student_user_id) VALUES
+        <foreach collection="studentIds" item="studentId" separator=",">(#{id}, #{studentId})</foreach>
+    </insert>
+</mapper>

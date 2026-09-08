@@ -163,6 +163,8 @@ git push -u origin feature/backend-agent-orchestration
 
 ## 后续建议
 
+第 01 用户与权限、第 07 作业与批改的新增接口、SQL 升级顺序、Apifox 联调和隔离数据库测试，见 [01/07 升级与验收](backend/docs/api-01-07-upgrade-guide.md)。升级代码前先在目标环境执行文档中的两份增量 SQL，重新登录获取新增权限。
+
 1. 为后端补充 Maven Wrapper，降低本地环境依赖。
 2. 引入统一异常处理、请求追踪 ID、日志规范和基础鉴权。
 3. 明确数据库选型和各服务的数据归属，避免一开始就共享表结构。

@@ -14,6 +14,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(basePackages = "com.k12.platform.iam.web")
 public class IamExceptionHandler {
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusiness(org.springframework.web.server.ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(ApiResponse.fail(exception.getStatusCode().value(), exception.getReason()));
+    }
+
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiResponse<Void>> handleInvalidInput(Exception exception) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(400, "请求格式或参数类型错误"));
+    }
+
     private static final Logger log = LoggerFactory.getLogger(IamExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

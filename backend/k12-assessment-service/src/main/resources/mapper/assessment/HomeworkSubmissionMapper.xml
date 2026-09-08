@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.assessment.mapper.HomeworkSubmissionMapper">
+    <sql id="columns">s.id, s.homework_id, s.student_user_id, s.course_id, s.answer_content,
+        s.status, s.score, s.feedback, s.graded_by, s.version, s.submitted_time, s.graded_time, s.updated_time</sql>
+    <select id="findForStudent" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
+        SELECT <include refid="columns"/> FROM assessment_homework_submission s
+        JOIN assessment_homework h ON h.id = s.homework_id AND h.deleted = 0
+        WHERE s.homework_id = #{homeworkId} AND s.student_user_id = #{studentId}
+    </select>
+    <sql id="pageScope">
+        FROM assessment_homework_submission s
+        JOIN assessment_homework h ON h.id = s.homework_id AND h.deleted = 0
+        WHERE 1 = 1
+        <if test="homeworkId != null">AND s.homework_id = #{homeworkId}</if>
+        <if test="studentId != null">AND s.student_user_id = #{studentId}</if>
+    </sql>
+    <select id="findPage" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
+        SELECT <include refid="columns"/> <include refid="pageScope"/>
+        ORDER BY s.id DESC LIMIT #{size} OFFSET #{offset}
+    </select>
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) <include refid="pageScope"/>
+    </select>
+    <update id="gradeIfVersion">
+        UPDATE assessment_homework_submission
+        SET score = #{submission.score}, feedback = #{submission.feedback}, status = 'GRADED',
+            graded_by = #{submission.gradedBy}, graded_time = #{submission.gradedTime},
+            updated_time = #{submission.updatedTime}, version = version + 1
+        WHERE id = #{submission.id} AND homework_id = #{submission.homeworkId}
+          AND version = #{expectedVersion} AND status IN ('SUBMITTED', 'GRADED')
+    </update>
+</mapper>

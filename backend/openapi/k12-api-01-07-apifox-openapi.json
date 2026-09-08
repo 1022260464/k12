@@ -1,30 +1,22 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "K12 平台接口文档",
-    "description": "K12 多智能体教学平台第一期可调用接口。包含用户、角色权限、课程、智能体和作业 CRUD，统一通过 Gateway 和 JWT 鉴权。未实现的规划接口不进入本文件。",
-    "version": "0.1.1"
+    "title": "K12 平台 01 与 07 接口文档",
+    "description": "用于导入 Apifox 的 01-用户与权限服务、07-作业与批改服务接口契约。\n升级环境须先执行两份 01/07 增量 SQL。",
+    "version": "0.1.0"
   },
   "servers": [
     {
       "url": "http://localhost:8080",
-      "description": "网关服务"
+      "description": "Gateway 统一入口"
     },
     {
       "url": "http://localhost:8081",
-      "description": "用户与权限服务"
-    },
-    {
-      "url": "http://localhost:8082",
-      "description": "课程资源服务"
-    },
-    {
-      "url": "http://localhost:8083",
-      "description": "AI 智能体服务"
+      "description": "01-用户与权限服务"
     },
     {
       "url": "http://localhost:8084",
-      "description": "作业与批改服务"
+      "description": "07-作业与批改服务"
     }
   ],
   "security": [
@@ -35,109 +27,22 @@
   "tags": [
     {
       "name": "01-用户与权限服务",
-      "description": "用户、角色、权限、当前登录用户相关接口"
-    },
-    {
-      "name": "02-课程资源服务",
-      "description": "课程、班级、知识点、学习任务相关接口"
-    },
-    {
-      "name": "03-知识库与RAG服务",
-      "description": "知识库、文档检索、RAG 相关接口，后续补充"
-    },
-    {
-      "name": "04-AI智能体服务",
-      "description": "教学智能体配置、编排、调用相关接口"
-    },
-    {
-      "name": "05-多模态生成服务",
-      "description": "图片、语音、视频、动画生成相关接口，后续补充"
-    },
-    {
-      "name": "06-题库与练习服务",
-      "description": "题库、练习、题目生成相关接口，后续补充"
+      "description": "登录、注册、当前用户、用户 CRUD、角色与权限管理"
     },
     {
       "name": "07-作业与批改服务",
-      "description": "作业、提交、批改、测评相关接口"
-    },
-    {
-      "name": "08-学情分析服务",
-      "description": "学习画像、掌握度、诊断报告相关接口，后续补充"
-    },
-    {
-      "name": "09-编程实验服务",
-      "description": "代码运行、实验环境、测试用例相关接口，后续补充"
-    },
-    {
-      "name": "10-文件与资源服务",
-      "description": "文件上传、资源管理、对象存储相关接口，后续补充"
-    },
-    {
-      "name": "11-消息通知服务",
-      "description": "站内信、通知、待办相关接口，后续补充"
-    },
-    {
-      "name": "12-系统管理服务",
-      "description": "系统配置、日志、审计相关接口，后续补充"
-    },
-    {
-      "name": "99-公共接口",
-      "description": "状态检查、公共探活接口"
+      "description": "作业 CRUD、作业提交、作业批改"
     }
   ],
   "paths": {
-    "/api/v1/gateway/health": {
-      "get": {
-        "tags": [
-          "99-公共接口"
-        ],
-        "summary": "网关状态检查",
-        "operationId": "getGatewayHealth",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "网关服务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/iam/health": {
-      "get": {
-        "tags": [
-          "99-公共接口"
-        ],
-        "summary": "用户与权限服务状态检查",
-        "operationId": "getIamHealth",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "用户与权限服务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/iam/auth/login": {
       "post": {
         "tags": [
           "01-用户与权限服务"
         ],
-        "summary": "用户名密码登录并获取 JWT",
+        "summary": "用户登录",
         "operationId": "login",
+        "description": "用户名密码登录并获取 JWT。",
         "security": [],
         "requestBody": {
           "required": true,
@@ -145,6 +50,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "username": "admin",
+                "password": "admin123"
               }
             }
           }
@@ -176,7 +85,7 @@
         ],
         "summary": "注册学生账号",
         "operationId": "registerStudent",
-        "description": "公开注册固定分配 ROLE_STUDENT，不能通过请求指定管理员角色。",
+        "description": "公开注册学生账号，服务端固定分配 ROLE_STUDENT。",
         "security": [],
         "requestBody": {
           "required": true,
@@ -184,6 +93,12 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "username": "student01",
+                "password": "Student@123",
+                "nickname": "学生一",
+                "email": "student01@example.com"
               }
             }
           }
@@ -357,7 +272,20 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/UserUpdateRequest"
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateRequest"
+              },
+              "example": {
+                "username": "teacher01",
+                "nickname": "Teacher One",
+                "email": "teacher01@example.com",
+                "roleCode": "ROLE_TEACHER"
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -465,6 +393,13 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateRolePermissionsRequest"
+              },
+              "example": {
+                "permissionCodes": [
+                  "course:read",
+                  "homework:read",
+                  "homework:grade"
+                ]
               }
             }
           }
@@ -491,398 +426,6 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    },
-    "/api/v1/learning/health": {
-      "get": {
-        "tags": [
-          "99-公共接口"
-        ],
-        "summary": "课程资源服务状态检查",
-        "operationId": "getLearningHealth",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "课程资源服务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/learning/courses": {
-      "get": {
-        "tags": [
-          "02-课程资源服务"
-        ],
-        "summary": "课程列表",
-        "operationId": "listCourses",
-        "description": "需要 ROLE_ADMIN 或 course:read 权限。",
-        "responses": {
-          "200": {
-            "description": "课程列表",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CourseListApiResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "02-课程资源服务"
-        ],
-        "summary": "创建课程",
-        "operationId": "createCourse",
-        "description": "需要 ROLE_ADMIN 或 course:create 权限。",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/CourseRequest"
-        },
-        "responses": {
-          "201": {
-            "description": "创建成功的课程",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CourseApiResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      }
-    },
-    "/api/v1/learning/courses/{id}": {
-      "get": {
-        "tags": [
-          "02-课程资源服务"
-        ],
-        "summary": "课程详情",
-        "operationId": "getCourse",
-        "description": "需要 ROLE_ADMIN 或 course:read 权限。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "课程详情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CourseApiResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "02-课程资源服务"
-        ],
-        "summary": "更新课程",
-        "operationId": "updateCourse",
-        "description": "需要 ROLE_ADMIN 或 course:update 权限。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "requestBody": {
-          "$ref": "#/components/requestBodies/CourseRequest"
-        },
-        "responses": {
-          "200": {
-            "description": "更新后的课程",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CourseApiResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "02-课程资源服务"
-        ],
-        "summary": "删除课程",
-        "operationId": "deleteCourse",
-        "description": "需要 ROLE_ADMIN 或 course:delete 权限。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkEmpty"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    },
-    "/api/v1/agents/health": {
-      "get": {
-        "tags": [
-          "99-公共接口"
-        ],
-        "summary": "AI 智能体服务状态检查",
-        "operationId": "getAgentHealth",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "AI 智能体服务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/agents": {
-      "get": {
-        "tags": [
-          "04-AI智能体服务"
-        ],
-        "summary": "智能体列表",
-        "operationId": "listAgents",
-        "description": "需要 ROLE_ADMIN 或 agent:read 权限。",
-        "responses": {
-          "200": {
-            "description": "智能体列表",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentListApiResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "04-AI智能体服务"
-        ],
-        "summary": "创建智能体",
-        "operationId": "createAgent",
-        "description": "需要 ROLE_ADMIN 或 agent:create 权限。",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/AgentRequest"
-        },
-        "responses": {
-          "201": {
-            "description": "创建成功的智能体",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentApiResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      }
-    },
-    "/api/v1/agents/{id}": {
-      "get": {
-        "tags": [
-          "04-AI智能体服务"
-        ],
-        "summary": "智能体详情",
-        "operationId": "getAgent",
-        "description": "需要 ROLE_ADMIN 或 agent:read 权限。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "智能体详情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentApiResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "04-AI智能体服务"
-        ],
-        "summary": "更新智能体",
-        "operationId": "updateAgent",
-        "description": "需要 ROLE_ADMIN 或 agent:update 权限。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "requestBody": {
-          "$ref": "#/components/requestBodies/AgentRequest"
-        },
-        "responses": {
-          "200": {
-            "description": "更新后的智能体",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentApiResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "04-AI智能体服务"
-        ],
-        "summary": "删除智能体",
-        "operationId": "deleteAgent",
-        "description": "需要 ROLE_ADMIN 或 agent:delete 权限。",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkEmpty"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    },
-    "/api/v1/assessments/health": {
-      "get": {
-        "tags": [
-          "99-公共接口"
-        ],
-        "summary": "作业与批改服务状态检查",
-        "operationId": "getAssessmentHealth",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "作业与批改服务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceDescriptorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -1809,66 +1352,33 @@
         }
       }
     },
-    "requestBodies": {
-      "UserUpdateRequest": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/UserUpdateRequest"
-            }
-          }
-        }
-      },
-      "CourseRequest": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/CourseRequest"
-            },
-            "example": {
-              "title": "Python Basics",
-              "subject": "Programming",
-              "gradeLevel": "BEGINNER",
-              "description": "Introductory programming course"
-            }
-          }
-        }
-      },
-      "AgentRequest": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/AgentRequest"
-            },
-            "example": {
-              "name": "Code Tutor Agent",
-              "type": "CODE_TUTOR",
-              "description": "Guide students through programming exercises"
-            }
-          }
-        }
-      },
-      "HomeworkRequest": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/HomeworkRequest"
-            },
-            "example": {
-              "courseId": 1,
-              "title": "Loop Practice",
-              "description": "Complete basic loop exercises",
-              "status": "DRAFT"
-            }
-          }
-        }
-      }
-    },
     "responses": {
+      "OkEmpty": {
+        "description": "操作成功",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            },
+            "example": {
+              "code": 200,
+              "message": "ok",
+              "data": null,
+              "timestamp": "2026-08-28T06:30:00Z"
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "请求参数或业务输入不合法",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
+          }
+        }
+      },
       "Unauthorized": {
         "description": "未登录、JWT 无效或 JWT 已过期",
         "content": {
@@ -1880,7 +1390,7 @@
               "code": 401,
               "message": "未登录、登录已过期或令牌无效",
               "data": null,
-              "timestamp": "2026-08-14T02:30:00Z"
+              "timestamp": "2026-08-28T06:30:00Z"
             }
           }
         }
@@ -1896,27 +1406,7 @@
               "code": 403,
               "message": "没有访问该资源的权限",
               "data": null,
-              "timestamp": "2026-08-14T02:30:00Z"
-            }
-          }
-        }
-      },
-      "BadRequest": {
-        "description": "请求参数或业务输入不合法",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/EmptyApiResponse"
-            }
-          }
-        }
-      },
-      "Conflict": {
-        "description": "唯一数据重复或资源状态冲突",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/EmptyApiResponse"
+              "timestamp": "2026-08-28T06:30:00Z"
             }
           }
         }
@@ -1931,8 +1421,8 @@
           }
         }
       },
-      "OkEmpty": {
-        "description": "操作成功",
+      "Conflict": {
+        "description": "唯一数据重复、重复提交或资源状态冲突",
         "content": {
           "application/json": {
             "schema": {
@@ -1981,29 +1471,60 @@
           }
         ]
       },
-      "ServiceDescriptor": {
+      "LoginRequest": {
         "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
         "properties": {
-          "code": {
+          "username": {
             "type": "string",
-            "example": "iam"
+            "maxLength": 64,
+            "example": "admin"
           },
-          "name": {
+          "password": {
             "type": "string",
-            "example": "K12 IAM Service"
-          },
-          "responsibility": {
-            "type": "string"
-          },
-          "capabilities": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "format": "password",
+            "maxLength": 72,
+            "example": "admin123"
           }
         }
       },
-      "ServiceDescriptorResponse": {
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT 访问令牌"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1800
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "authorities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "ROLE_ADMIN",
+              "user:read",
+              "homework:read"
+            ]
+          }
+        }
+      },
+      "LoginApiResponse": {
         "allOf": [
           {
             "$ref": "#/components/schemas/ApiResponseBase"
@@ -2012,11 +1533,44 @@
             "type": "object",
             "properties": {
               "data": {
-                "$ref": "#/components/schemas/ServiceDescriptor"
+                "$ref": "#/components/schemas/LoginResponse"
               }
             }
           }
         ]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "nickname"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "example": "student01"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 72,
+            "example": "Student@123"
+          },
+          "nickname": {
+            "type": "string",
+            "maxLength": 64,
+            "example": "学生一"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 128,
+            "example": "student01@example.com"
+          }
+        }
       },
       "CurrentUser": {
         "type": "object",
@@ -2067,22 +1621,25 @@
         "properties": {
           "username": {
             "type": "string",
+            "maxLength": 64,
             "example": "teacher01"
           },
           "password": {
             "type": "string",
+            "format": "password",
             "minLength": 8,
             "maxLength": 72,
-            "format": "password",
             "example": "Teacher@123"
           },
           "nickname": {
             "type": "string",
+            "maxLength": 64,
             "example": "Teacher One"
           },
           "email": {
             "type": "string",
             "format": "email",
+            "maxLength": 128,
             "example": "teacher01@example.com"
           },
           "roleCode": {
@@ -2101,15 +1658,18 @@
         "properties": {
           "username": {
             "type": "string",
+            "maxLength": 64,
             "example": "teacher01"
           },
           "nickname": {
             "type": "string",
+            "maxLength": 64,
             "example": "Teacher One"
           },
           "email": {
             "type": "string",
             "format": "email",
+            "maxLength": 128,
             "example": "teacher01@example.com"
           },
           "roleCode": {
@@ -2176,102 +1736,6 @@
           }
         ]
       },
-      "LoginRequest": {
-        "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "admin"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "example": "admin123"
-          }
-        }
-      },
-      "LoginResponse": {
-        "type": "object",
-        "properties": {
-          "accessToken": {
-            "type": "string",
-            "description": "JWT 访问令牌"
-          },
-          "tokenType": {
-            "type": "string",
-            "example": "Bearer"
-          },
-          "expiresIn": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1800
-          },
-          "username": {
-            "type": "string",
-            "example": "admin"
-          },
-          "authorities": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "ROLE_ADMIN",
-              "user:read",
-              "user:create"
-            ]
-          }
-        }
-      },
-      "LoginApiResponse": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/LoginResponse"
-              }
-            }
-          }
-        ]
-      },
-      "RegisterRequest": {
-        "type": "object",
-        "required": [
-          "username",
-          "password",
-          "nickname"
-        ],
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "student01"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "minLength": 8,
-            "maxLength": 72,
-            "example": "Student@123"
-          },
-          "nickname": {
-            "type": "string",
-            "example": "学生一"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "student01@example.com"
-          }
-        }
-      },
       "UpdateRolePermissionsRequest": {
         "type": "object",
         "required": [
@@ -2285,7 +1749,8 @@
             },
             "example": [
               "course:read",
-              "course:update"
+              "homework:read",
+              "homework:grade"
             ]
           }
         }
@@ -2317,7 +1782,8 @@
             },
             "example": [
               "course:read",
-              "course:update"
+              "homework:read",
+              "homework:grade"
             ]
           }
         }
@@ -2349,165 +1815,6 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/Role"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "CourseRequest": {
-        "type": "object",
-        "required": [
-          "title",
-          "subject",
-          "gradeLevel"
-        ],
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "Python Basics"
-          },
-          "subject": {
-            "type": "string",
-            "example": "Programming"
-          },
-          "gradeLevel": {
-            "type": "string",
-            "example": "BEGINNER"
-          },
-          "description": {
-            "type": "string",
-            "example": "Introductory programming course"
-          }
-        }
-      },
-      "Course": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/CourseRequest"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer",
-                "format": "int64",
-                "example": 1
-              },
-              "updatedTime": {
-                "type": "string",
-                "format": "date-time"
-              }
-            }
-          }
-        ]
-      },
-      "CourseApiResponse": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/Course"
-              }
-            }
-          }
-        ]
-      },
-      "CourseListApiResponse": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "data": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Course"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "AgentRequest": {
-        "type": "object",
-        "required": [
-          "name",
-          "type"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Code Tutor Agent"
-          },
-          "type": {
-            "type": "string",
-            "example": "CODE_TUTOR"
-          },
-          "description": {
-            "type": "string",
-            "example": "Guide students through programming exercises"
-          }
-        }
-      },
-      "Agent": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/AgentRequest"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer",
-                "format": "int64",
-                "example": 1
-              },
-              "status": {
-                "type": "string",
-                "example": "ENABLED"
-              },
-              "updatedTime": {
-                "type": "string",
-                "format": "date-time"
-              }
-            }
-          }
-        ]
-      },
-      "AgentApiResponse": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "data": {
-                "$ref": "#/components/schemas/Agent"
-              }
-            }
-          }
-        ]
-      },
-      "AgentListApiResponse": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "data": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Agent"
                 }
               }
             }
