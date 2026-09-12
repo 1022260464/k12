@@ -54,6 +54,24 @@ set NACOS_SERVER_ADDR=127.0.0.1:8848
 backend/sql/mysql/k12_business_init.sql
 ```
 
+全新环境执行初始化脚本后会创建课程、智能体配置、Agent 运行记录、Agent
+产物和作业表。已经存在 `k12_business` 的环境不要依赖
+`CREATE TABLE IF NOT EXISTS` 更新旧表，应执行幂等升级脚本：
+
+```text
+backend/sql/mysql/k12_business_agent_upgrade.sql
+```
+
+该脚本会完成以下操作：
+
+- 为 `agent_config` 增加唯一 `code`、配置版本和非敏感 JSON 配置。
+- 创建 `agent_run`，记录输入、输出、状态、错误和执行耗时。
+- 创建 `agent_artifact`，记录图表、表格和 MinIO 文件地址。
+- 写入与 Python Runtime 对应的 `study-plan`、`demo-chart` 测试配置。
+
+`agent_run.user_id` 只是对 `k12_auth.sys_user.id` 的逻辑引用，不建立跨库外键。
+密钥、令牌和模型 API Key 不允许写入 `config_json`，应通过环境变量或配置中心管理。
+
 默认业务库连接配置：
 
 ```yaml
@@ -106,7 +124,19 @@ k12:
 backend/sql/mysql/k12_auth_permission_upgrade.sql
 ```
 
-它会幂等补齐用户、角色、课程、智能体和作业共 18 个功能权限，并写入管理员、教师、学生默认授权。执行后必须重新登录，新的权限才会写入 JWT。
+它会幂等补齐用户、角色、课程、智能体和作业共 19 个功能权限，包括独立的
+`agent:invoke` 调用权限，并写入管理员、教师、学生默认授权。执行后必须重新登录，
+新的权限才会写入 JWT。
+
+已有数据库的推荐升级顺序：
+
+```text
+1. 备份 k12_business 和 k12_auth
+2. 使用具备 ALTER/CREATE 权限的管理账号执行 backend/sql/mysql/k12_business_agent_upgrade.sql
+3. 使用管理账号执行 backend/sql/mysql/k12_auth_permission_upgrade.sql
+4. 重启 Agent Service 和 Gateway
+5. 重新登录，获取包含 agent:invoke 的 JWT
+```
 
 后续新增业务接口时，按以下安全规范同步 Gateway、Service 注解、权限数据和数据范围：
 

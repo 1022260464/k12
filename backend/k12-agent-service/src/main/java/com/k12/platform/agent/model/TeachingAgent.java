@@ -16,6 +16,7 @@ public class TeachingAgent {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+    private String code;
     private String name;
     private String type;
     private String description;

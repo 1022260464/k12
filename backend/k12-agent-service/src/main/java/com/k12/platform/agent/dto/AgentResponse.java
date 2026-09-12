@@ -4,6 +4,7 @@ import java.time.Instant;
 
 public record AgentResponse(
         Long id,
+        String code,
         String name,
         String type,
         String description,

@@ -1462,10 +1462,16 @@
       "AgentRequest": {
         "type": "object",
         "required": [
+          "code",
           "name",
           "type"
         ],
         "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,63}$",
+            "example": "code-tutor"
+          },
           "name": {
             "type": "string",
             "example": "Code Tutor Agent"

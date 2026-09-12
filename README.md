@@ -75,6 +75,10 @@ IAM 校验数据库账号密码并签发 JWT，Gateway 与下游服务使用同�
 
 首次升级现有权限库时，执行 `backend/sql/mysql/k12_auth_permission_upgrade.sql`，然后重新登录获取包含新权限的 JWT。新增接口前参考 `backend/docs/security-development-guide.md`。
 
+已有业务库接入 Python Agent Runtime 前，执行
+`backend/sql/mysql/k12_business_agent_upgrade.sql`，为 `agent_config` 增加稳定运行时编码，
+并创建 `agent_run`、`agent_artifact`。详细执行顺序见 `backend/README.md`。
+
 ## 健康检查接口
 
 ```text

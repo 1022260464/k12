@@ -39,6 +39,7 @@ public class AgentService {
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_CREATE + "')")
     public AgentResponse createAgent(AgentRequest request) {
         TeachingAgent agent = new TeachingAgent();
+        agent.setCode(request.code());
         agent.setName(request.name());
         agent.setType(request.type());
         agent.setDescription(request.description());
@@ -56,6 +57,7 @@ public class AgentService {
             return Optional.empty();
         }
 
+        agent.setCode(request.code());
         agent.setName(request.name());
         agent.setType(request.type());
         agent.setDescription(request.description());
@@ -72,6 +74,7 @@ public class AgentService {
     private AgentResponse toResponse(TeachingAgent agent) {
         return new AgentResponse(
                 agent.getId(),
+                agent.getCode(),
                 agent.getName(),
                 agent.getType(),
                 agent.getDescription(),

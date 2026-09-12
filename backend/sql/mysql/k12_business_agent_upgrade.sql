@@ -1,65 +1,9 @@
--- K12 business database initialization script.
--- Run this script with a MySQL account that can CREATE DATABASE and GRANT.
--- Target MySQL version: 8.0+
--- Create the k12 application account separately with a strong environment-specific password.
-
-SELECT COUNT(*) INTO @k12_business_db_exists
-FROM information_schema.SCHEMATA
-WHERE SCHEMA_NAME = 'k12_business';
-
-SET @k12_create_business_db_sql = IF(
-    @k12_business_db_exists = 0,
-    'CREATE DATABASE k12_business DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci',
-    'DO 0'
-);
-PREPARE k12_stmt FROM @k12_create_business_db_sql;
-EXECUTE k12_stmt;
-DEALLOCATE PREPARE k12_stmt;
-
-SELECT COUNT(*) INTO @k12_user_exists
-FROM mysql.user
-WHERE User = 'k12' AND Host = '%';
-
--- 如果结果为 0，请先按 README 创建 k12 应用账号；脚本仍会继续完成建库建表。
-SELECT IF(
-    @k12_user_exists > 0,
-    'k12 application user found; privileges will be granted',
-    'WARNING: k12 application user is missing; create it and rerun this script'
-) AS k12_account_check;
-
-SET @k12_grant_sql = IF(
-    @k12_user_exists > 0,
-    'GRANT SELECT, INSERT, UPDATE, DELETE ON k12_business.* TO ''k12''@''%''',
-    'DO 0'
-);
-PREPARE k12_stmt FROM @k12_grant_sql;
-EXECUTE k12_stmt;
-DEALLOCATE PREPARE k12_stmt;
-FLUSH PRIVILEGES;
+-- Upgrade an existing k12_business database for Agent runtime integration.
+-- Target: MySQL 8.0+. This script is idempotent and can be run repeatedly.
 
 USE k12_business;
 
-SET @k12_previous_sql_notes = @@sql_notes;
-SET SESSION sql_notes = 0;
-
-CREATE TABLE IF NOT EXISTS learning_course (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Course primary key',
-    title VARCHAR(128) NOT NULL COMMENT 'Course title',
-    subject VARCHAR(64) NOT NULL COMMENT 'Course subject',
-    grade_level VARCHAR(32) DEFAULT NULL COMMENT 'Grade level',
-    description VARCHAR(1000) DEFAULT NULL COMMENT 'Course description',
-    status TINYINT NOT NULL DEFAULT 1 COMMENT '1 enabled, 0 disabled',
-    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Create time',
-    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'Update time',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'Logical delete flag: 0 normal, 1 deleted',
-    PRIMARY KEY (id),
-    KEY idx_learning_course_subject (subject),
-    KEY idx_learning_course_status (status)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Learning courses';
-
+/* Also supports a database where agent_config has not been created yet. */
 CREATE TABLE IF NOT EXISTS agent_config (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Agent primary key',
     code VARCHAR(64) NOT NULL COMMENT 'Stable runtime agent code, such as study-plan',
@@ -80,6 +24,78 @@ CREATE TABLE IF NOT EXISTS agent_config (
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Teaching agent configurations';
+
+/*
+ * MySQL 8.0 does not consistently support ADD COLUMN IF NOT EXISTS across all
+ * minor versions. information_schema checks keep this script portable.
+ */
+SELECT COUNT(*) INTO @k12_agent_code_exists
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'agent_config'
+  AND COLUMN_NAME = 'code';
+
+SET @k12_sql = IF(
+    @k12_agent_code_exists = 0,
+    'ALTER TABLE agent_config ADD COLUMN code VARCHAR(64) NULL COMMENT ''Stable runtime agent code, such as study-plan'' AFTER id',
+    'DO 0'
+);
+PREPARE k12_stmt FROM @k12_sql;
+EXECUTE k12_stmt;
+DEALLOCATE PREPARE k12_stmt;
+
+SELECT COUNT(*) INTO @k12_agent_version_exists
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'agent_config'
+  AND COLUMN_NAME = 'version';
+
+SET @k12_sql = IF(
+    @k12_agent_version_exists = 0,
+    'ALTER TABLE agent_config ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 COMMENT ''Agent configuration version'' AFTER description',
+    'DO 0'
+);
+PREPARE k12_stmt FROM @k12_sql;
+EXECUTE k12_stmt;
+DEALLOCATE PREPARE k12_stmt;
+
+SELECT COUNT(*) INTO @k12_agent_config_json_exists
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'agent_config'
+  AND COLUMN_NAME = 'config_json';
+
+SET @k12_sql = IF(
+    @k12_agent_config_json_exists = 0,
+    'ALTER TABLE agent_config ADD COLUMN config_json JSON NULL COMMENT ''Non-secret runtime configuration'' AFTER version',
+    'DO 0'
+);
+PREPARE k12_stmt FROM @k12_sql;
+EXECUTE k12_stmt;
+DEALLOCATE PREPARE k12_stmt;
+
+/* Existing rows receive deterministic unique codes before code becomes NOT NULL. */
+UPDATE agent_config
+SET code = CONCAT('legacy-agent-', id)
+WHERE code IS NULL OR TRIM(code) = '';
+
+ALTER TABLE agent_config
+    MODIFY COLUMN code VARCHAR(64) NOT NULL COMMENT 'Stable runtime agent code, such as study-plan';
+
+SELECT COUNT(*) INTO @k12_agent_code_index_exists
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'agent_config'
+  AND INDEX_NAME = 'uk_agent_config_code';
+
+SET @k12_sql = IF(
+    @k12_agent_code_index_exists = 0,
+    'ALTER TABLE agent_config ADD UNIQUE KEY uk_agent_config_code (code)',
+    'DO 0'
+);
+PREPARE k12_stmt FROM @k12_sql;
+EXECUTE k12_stmt;
+DEALLOCATE PREPARE k12_stmt;
 
 CREATE TABLE IF NOT EXISTS agent_run (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Agent run primary key',
@@ -135,24 +151,6 @@ CREATE TABLE IF NOT EXISTS agent_artifact (
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Agent generated artifacts';
 
-CREATE TABLE IF NOT EXISTS assessment_homework (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Homework primary key',
-    course_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Course ID',
-    title VARCHAR(128) NOT NULL COMMENT 'Homework title',
-    description VARCHAR(1000) DEFAULT NULL COMMENT 'Homework description',
-    status VARCHAR(32) NOT NULL DEFAULT 'DRAFT' COMMENT 'Homework status',
-    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Create time',
-    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'Update time',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'Logical delete flag: 0 normal, 1 deleted',
-    PRIMARY KEY (id),
-    KEY idx_assessment_homework_course_id (course_id),
-    KEY idx_assessment_homework_status (status)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Assessment homework';
-
-/* Runtime codes must match Python AgentExecutor.code values. */
 INSERT INTO agent_config (code, name, type, description, status)
 SELECT 'study-plan', 'Study Plan Agent', 'TEACHING', 'Generate a structured study plan', 'ENABLED'
 WHERE NOT EXISTS (
@@ -165,4 +163,10 @@ WHERE NOT EXISTS (
     SELECT 1 FROM agent_config WHERE code = 'demo-chart'
 );
 
-SET SESSION sql_notes = @k12_previous_sql_notes;
+/* Verification output. */
+SELECT id, code, name, type, status FROM agent_config ORDER BY id;
+SELECT TABLE_NAME
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN ('agent_config', 'agent_run', 'agent_artifact')
+ORDER BY TABLE_NAME;

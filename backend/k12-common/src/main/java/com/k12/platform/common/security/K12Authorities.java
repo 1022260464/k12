@@ -27,6 +27,7 @@ public final class K12Authorities {
     public static final String AGENT_CREATE = "agent:create";
     public static final String AGENT_UPDATE = "agent:update";
     public static final String AGENT_DELETE = "agent:delete";
+    public static final String AGENT_INVOKE = "agent:invoke";
 
     public static final String HOMEWORK_READ = "homework:read";
     public static final String HOMEWORK_CREATE = "homework:create";
