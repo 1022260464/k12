@@ -79,4 +79,7 @@ public interface UserMapper extends BaseMapper<SysUser> {
      * NOT EXISTS 用来避免重复插入同一个用户角色关系。
      */
     int assignRoleByCode(@Param("userId") Long userId, @Param("roleCode") String roleCode);
+
+    /* 批量返回处于启用状态且拥有 ROLE_STUDENT 的用户 ID。 */
+    List<Long> findActiveStudentIds(@Param("userIds") List<Long> userIds);
 }

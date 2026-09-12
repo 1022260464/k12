@@ -65,6 +65,26 @@ CREATE TABLE IF NOT EXISTS sys_user (
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'System users';
 
+CREATE TABLE IF NOT EXISTS sys_learning_profile (
+    user_id BIGINT UNSIGNED NOT NULL COMMENT 'Related sys_user.id',
+    school_stage VARCHAR(32) NOT NULL COMMENT 'PRIMARY_LOWER, PRIMARY_UPPER, JUNIOR_HIGH or SENIOR_HIGH',
+    grade TINYINT UNSIGNED NOT NULL COMMENT 'Grade number from 1 to 12',
+    textbook VARCHAR(128) DEFAULT NULL COMMENT 'Preferred textbook edition',
+    interests_json JSON NOT NULL COMMENT 'Student interest tags',
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Create time',
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'Update time',
+    PRIMARY KEY (user_id),
+    KEY idx_sys_learning_profile_stage_grade (school_stage, grade),
+    CONSTRAINT fk_sys_learning_profile_user
+        FOREIGN KEY (user_id) REFERENCES sys_user (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT chk_sys_learning_profile_grade CHECK (grade BETWEEN 1 AND 12)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Student learning profile';
+
 CREATE TABLE IF NOT EXISTS sys_role (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Role primary key',
     role_name VARCHAR(64) NOT NULL COMMENT 'Role display name',
@@ -203,7 +223,11 @@ INSERT INTO sys_permission (
     ('查看作业', 'homework:read', 'api', '查看作业列表和详情', 1),
     ('创建作业', 'homework:create', 'api', '创建作业', 1),
     ('修改作业', 'homework:update', 'api', '修改作业', 1),
-    ('删除作业', 'homework:delete', 'api', '删除作业', 1) AS seed
+    ('删除作业', 'homework:delete', 'api', '删除作业', 1),
+    ('提交作业', 'homework:submit', 'api', '学生提交已分配作业', 1),
+    ('批改作业', 'homework:grade', 'api', '教师查看并批改学生作业', 1),
+    ('查看学习档案', 'learning-profile:read', 'api', '查看当前用户学习档案', 1),
+    ('修改学习档案', 'learning-profile:update', 'api', '修改当前用户学习档案', 1) AS seed
 ON DUPLICATE KEY UPDATE
     permission_name = seed.permission_name,
     resource_type = seed.resource_type,
@@ -232,7 +256,7 @@ JOIN sys_permission permission
   ON permission.permission_code IN (
       'course:read', 'course:create', 'course:update', 'course:delete',
       'agent:read', 'agent:invoke',
-      'homework:read', 'homework:create', 'homework:update', 'homework:delete'
+      'homework:read', 'homework:create', 'homework:update', 'homework:delete', 'homework:grade'
   )
 WHERE role.role_code = 'ROLE_TEACHER'
   AND NOT EXISTS (
@@ -247,7 +271,11 @@ INSERT INTO sys_role_permission (role_id, permission_id)
 SELECT role.id, permission.id
 FROM sys_role role
 JOIN sys_permission permission
-  ON permission.permission_code IN ('course:read', 'agent:read', 'agent:invoke', 'homework:read')
+  ON permission.permission_code IN (
+      'course:read', 'agent:read', 'agent:invoke',
+      'homework:read', 'homework:submit',
+      'learning-profile:read', 'learning-profile:update'
+  )
 WHERE role.role_code = 'ROLE_STUDENT'
   AND NOT EXISTS (
       SELECT 1

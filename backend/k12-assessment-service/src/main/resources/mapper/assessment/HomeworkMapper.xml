@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.k12.platform.assessment.mapper.HomeworkMapper">
+    <resultMap id="HomeworkResultMap" type="com.k12.platform.assessment.model.Homework">
+        <id column="id" property="id"/>
+        <result column="course_id" property="courseId"/>
+        <result column="teacher_user_id" property="teacherUserId"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 状态切换前锁定作业行，防止发布、关闭和提交并发交错。 -->
+    <select id="selectForUpdate" resultMap="HomeworkResultMap">
+        SELECT id, course_id, teacher_user_id, title, description, status, updated_time, deleted
+        FROM assessment_homework
+        WHERE id = #{id} AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <sql id="VisibleScope">
+        h.deleted = 0
+        AND (
+            #{admin} = TRUE
+            OR h.teacher_user_id = #{currentUserId}
+            OR (
+                h.status IN ('PUBLISHED', 'CLOSED')
+                AND EXISTS (
+                    SELECT 1
+                    FROM assessment_homework_recipient recipient
+                    WHERE recipient.homework_id = h.id
+                      AND recipient.student_user_id = #{currentUserId}
+                )
+            )
+        )
+    </sql>
+
+    <select id="findVisibleById" resultMap="HomeworkResultMap">
+        SELECT h.id, h.course_id, h.teacher_user_id, h.title, h.description,
+               h.status, h.updated_time, h.deleted
+        FROM assessment_homework h
+        WHERE h.id = #{id} AND <include refid="VisibleScope"/>
+    </select>
+
+    <select id="findVisiblePage" resultMap="HomeworkResultMap">
+        SELECT h.id, h.course_id, h.teacher_user_id, h.title, h.description,
+               h.status, h.updated_time, h.deleted
+        FROM assessment_homework h
+        WHERE <include refid="VisibleScope"/>
+        ORDER BY h.updated_time DESC, h.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countVisible" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM assessment_homework h
+        WHERE <include refid="VisibleScope"/>
+    </select>
+
+    <select id="findRecipientIds" resultType="java.lang.Long">
+        SELECT student_user_id
+        FROM assessment_homework_recipient
+        WHERE homework_id = #{homeworkId}
+        ORDER BY student_user_id
+    </select>
+
+    <delete id="deleteRecipients">
+        DELETE FROM assessment_homework_recipient WHERE homework_id = #{homeworkId}
+    </delete>
+
+    <insert id="insertRecipients">
+        INSERT INTO assessment_homework_recipient (homework_id, student_user_id)
+        VALUES
+        <foreach collection="studentUserIds" item="studentUserId" separator=",">
+            (#{homeworkId}, #{studentUserId})
+        </foreach>
+    </insert>
+
+    <select id="countRecipients" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM assessment_homework_recipient WHERE homework_id = #{homeworkId}
+    </select>
+
+    <select id="isRecipient" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM assessment_homework_recipient
+            WHERE homework_id = #{homeworkId} AND student_user_id = #{studentUserId}
+        )
+    </select>
+
+    <select id="countSubmissions" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM assessment_homework_submission WHERE homework_id = #{homeworkId}
+    </select>
+</mapper>

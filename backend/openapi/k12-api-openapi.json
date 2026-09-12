@@ -374,6 +374,48 @@
         }
       }
     },
+    "/api/v1/iam/users/me/learning-profile": {
+      "get": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "获取我的学习档案",
+        "operationId": "getCurrentLearningProfile",
+        "description": "需要 learning-profile:read，用户 ID 只从 JWT 获取。",
+        "responses": {
+          "200": {"description": "学习档案", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LearningProfileApiResponse"}}}},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        }
+      },
+      "put": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "创建或更新我的学习档案",
+        "operationId": "saveCurrentLearningProfile",
+        "description": "需要 learning-profile:update；学段与年级必须匹配。",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LearningProfileRequest"}}}},
+        "responses": {
+          "200": {"description": "保存后的学习档案", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LearningProfileApiResponse"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/iam/users/students/validate": {
+      "post": {
+        "tags": ["01-用户与权限服务"],
+        "summary": "批量校验启用的学生账号",
+        "operationId": "validateStudentAccounts",
+        "description": "Assessment 服务设置作业接收人时使用，需要 homework:update。",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/StudentValidationRequest"}}}},
+        "responses": {
+          "200": {"description": "有效与无效账号 ID", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/StudentValidationApiResponse"}}}},
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
     "/api/v1/iam/roles": {
       "get": {
         "tags": ["01-用户与权限服务"],
@@ -776,7 +818,11 @@
         ],
         "summary": "作业列表",
         "operationId": "listHomeworks",
-        "description": "需要 ROLE_ADMIN 或 homework:read 权限。",
+        "description": "需要 homework:read。教师查看自己创建的作业，学生查看分配给自己的已发布/已关闭作业，管理员查看全部。",
+        "parameters": [
+          {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 1}},
+          {"name": "size", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20}}
+        ],
         "responses": {
           "200": {
             "description": "作业列表",
@@ -798,7 +844,7 @@
         ],
         "summary": "创建作业",
         "operationId": "createHomework",
-        "description": "需要 ROLE_ADMIN 或 homework:create 权限。",
+        "description": "需要 homework:create；新作业只能创建为 DRAFT，教师 ID 从 JWT 获取。",
         "requestBody": {
           "$ref": "#/components/requestBodies/HomeworkRequest"
         },
@@ -856,7 +902,7 @@
         ],
         "summary": "更新作业",
         "operationId": "updateHomework",
-        "description": "需要 ROLE_ADMIN 或 homework:update 权限。",
+        "description": "需要 homework:update；仅创建教师或管理员可修改，且作业必须为 DRAFT。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -890,7 +936,7 @@
         ],
         "summary": "删除作业",
         "operationId": "deleteHomework",
-        "description": "需要 ROLE_ADMIN 或 homework:delete 权限。",
+        "description": "需要 homework:delete；仅草稿可删除，已有提交记录时返回 409。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -907,6 +953,45 @@
           "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
+    },
+    "/api/v1/assessments/homeworks/{id}/recipients": {
+      "get": {
+        "tags": ["07-作业与批改服务"], "summary": "查询作业接收人", "operationId": "getHomeworkRecipients",
+        "description": "需要 homework:update，仅创建教师或管理员可查看。",
+        "parameters": [{"$ref": "#/components/parameters/Id"}],
+        "responses": {"200": {"description": "学生 ID 列表", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkRecipientsApiResponse"}}}}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}}
+      },
+      "put": {
+        "tags": ["07-作业与批改服务"], "summary": "设置作业接收人", "operationId": "setHomeworkRecipients",
+        "description": "仅草稿可设置；IAM 会校验每个 ID 都是启用的学生账号。",
+        "parameters": [{"$ref": "#/components/parameters/Id"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkRecipientsRequest"}}}},
+        "responses": {"200": {"description": "保存后的学生 ID 列表", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkRecipientsApiResponse"}}}}, "400": {"$ref": "#/components/responses/BadRequest"}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"$ref": "#/components/responses/Conflict"}}
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/publish": {
+      "post": {"tags": ["07-作业与批改服务"], "summary": "发布作业", "operationId": "publishHomework", "description": "DRAFT 转为 PUBLISHED，发布前必须设置接收人。", "parameters": [{"$ref": "#/components/parameters/Id"}], "responses": {"200": {"description": "已发布作业", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkApiResponse"}}}}, "400": {"$ref": "#/components/responses/BadRequest"}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"$ref": "#/components/responses/Conflict"}}}
+    },
+    "/api/v1/assessments/homeworks/{id}/close": {
+      "post": {"tags": ["07-作业与批改服务"], "summary": "关闭作业", "operationId": "closeHomework", "description": "PUBLISHED 转为 CLOSED，关闭后不再接受提交。", "parameters": [{"$ref": "#/components/parameters/Id"}], "responses": {"200": {"description": "已关闭作业", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkApiResponse"}}}}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"$ref": "#/components/responses/Conflict"}}}
+    },
+    "/api/v1/assessments/homeworks/{id}/submit": {
+      "post": {"tags": ["07-作业与批改服务"], "summary": "提交作业", "operationId": "submitHomework", "description": "需要 homework:submit；学生必须在接收人名单中，且每份作业只能提交一次。", "parameters": [{"$ref": "#/components/parameters/Id"}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkSubmitRequest"}}}}, "responses": {"201": {"description": "提交成功", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkSubmissionApiResponse"}}}}, "400": {"$ref": "#/components/responses/BadRequest"}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"$ref": "#/components/responses/Conflict"}}}
+    },
+    "/api/v1/assessments/homeworks/{id}/grade": {
+      "post": {"tags": ["07-作业与批改服务"], "summary": "批改作业", "operationId": "gradeHomework", "description": "需要 homework:grade；expectedVersion 用于防止并发覆盖，每次批改保留历史。", "parameters": [{"$ref": "#/components/parameters/Id"}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkGradeRequest"}}}}, "responses": {"200": {"description": "批改结果", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkSubmissionApiResponse"}}}}, "400": {"$ref": "#/components/responses/BadRequest"}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"$ref": "#/components/responses/Conflict"}}}
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/me": {
+      "get": {"tags": ["07-作业与批改服务"], "summary": "查询我的提交", "operationId": "getMyHomeworkSubmission", "parameters": [{"$ref": "#/components/parameters/Id"}], "responses": {"200": {"description": "当前学生提交", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkSubmissionApiResponse"}}}}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions": {
+      "get": {"tags": ["07-作业与批改服务"], "summary": "分页查询作业提交", "operationId": "listHomeworkSubmissions", "description": "需要 homework:grade，仅创建教师或管理员可查看。", "parameters": [{"$ref": "#/components/parameters/Id"}, {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 1}}, {"name": "size", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20}}], "responses": {"200": {"description": "提交分页", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SubmissionPageApiResponse"}}}}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    },
+    "/api/v1/assessments/homeworks/learning-results/me": {
+      "get": {"tags": ["07-作业与批改服务"], "summary": "查询我的学习结果", "operationId": "getMyLearningResults", "description": "仅返回 JWT 当前用户自己的提交、成绩和反馈。", "parameters": [{"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 1}}, {"name": "size", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20}}], "responses": {"200": {"description": "学习结果分页", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SubmissionPageApiResponse"}}}}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}}}
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/{studentId}/grade-history": {
+      "get": {"tags": ["07-作业与批改服务"], "summary": "查询批改历史", "operationId": "getHomeworkGradeHistory", "description": "需要 homework:grade，仅创建教师或管理员可查看。", "parameters": [{"$ref": "#/components/parameters/Id"}, {"name": "studentId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}], "responses": {"200": {"description": "批改历史", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HomeworkGradeHistoryListApiResponse"}}}}, "401": {"$ref": "#/components/responses/Unauthorized"}, "403": {"$ref": "#/components/responses/Forbidden"}, "404": {"$ref": "#/components/responses/NotFound"}}}
     }
   },
   "components": {
@@ -1389,6 +1474,7 @@
         "properties": {
           "title": {
             "type": "string",
+            "maxLength": 128,
             "example": "Python Basics"
           },
           "subject": {
@@ -1401,6 +1487,7 @@
           },
           "description": {
             "type": "string",
+            "maxLength": 1000,
             "example": "Introductory programming course"
           }
         }
@@ -1544,6 +1631,40 @@
           }
         ]
       },
+      "LearningProfileRequest": {
+        "type": "object",
+        "required": ["schoolStage", "grade"],
+        "properties": {
+          "schoolStage": {"type": "string", "enum": ["PRIMARY_LOWER", "PRIMARY_UPPER", "JUNIOR_HIGH", "SENIOR_HIGH"]},
+          "grade": {"type": "integer", "minimum": 1, "maximum": 12, "example": 7},
+          "textbook": {"type": "string", "maxLength": 128, "example": "人教版"},
+          "interests": {"type": "array", "maxItems": 10, "items": {"type": "string", "maxLength": 40}, "example": ["编程", "机器人"]}
+        }
+      },
+      "LearningProfile": {
+        "allOf": [
+          {"$ref": "#/components/schemas/LearningProfileRequest"},
+          {"type": "object", "properties": {"userId": {"type": "integer", "format": "int64"}, "updatedTime": {"type": "string", "format": "date-time"}}}
+        ]
+      },
+      "LearningProfileApiResponse": {
+        "allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/LearningProfile"}}}]
+      },
+      "StudentValidationRequest": {
+        "type": "object",
+        "required": ["userIds"],
+        "properties": {"userIds": {"type": "array", "minItems": 1, "maxItems": 500, "items": {"type": "integer", "format": "int64", "minimum": 1}}}
+      },
+      "StudentValidationResult": {
+        "type": "object",
+        "properties": {
+          "validStudentIds": {"type": "array", "items": {"type": "integer", "format": "int64"}},
+          "invalidUserIds": {"type": "array", "items": {"type": "integer", "format": "int64"}}
+        }
+      },
+      "StudentValidationApiResponse": {
+        "allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/StudentValidationResult"}}}]
+      },
       "HomeworkRequest": {
         "type": "object",
         "required": [
@@ -1567,6 +1688,7 @@
           },
           "status": {
             "type": "string",
+            "enum": ["DRAFT"],
             "example": "DRAFT"
           }
         }
@@ -1587,6 +1709,11 @@
               "updatedTime": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "teacherUserId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "从 JWT 获取的作业创建教师 ID"
               }
             }
           }
@@ -1624,6 +1751,62 @@
             }
           }
         ]
+      },
+      "HomeworkRecipientsRequest": {
+        "type": "object",
+        "required": ["studentUserIds"],
+        "properties": {"studentUserIds": {"type": "array", "minItems": 1, "maxItems": 500, "items": {"type": "integer", "format": "int64", "minimum": 1}}}
+      },
+      "HomeworkRecipientsApiResponse": {
+        "allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"type": "array", "items": {"type": "integer", "format": "int64"}}}}]
+      },
+      "HomeworkSubmitRequest": {
+        "type": "object", "required": ["answerContent"],
+        "properties": {"answerContent": {"type": "string", "minLength": 1, "maxLength": 5000}}
+      },
+      "HomeworkGradeRequest": {
+        "type": "object", "required": ["studentUserId", "score", "expectedVersion"],
+        "properties": {
+          "studentUserId": {"type": "integer", "format": "int64", "minimum": 1},
+          "score": {"type": "number", "minimum": 0, "maximum": 100, "multipleOf": 0.01},
+          "feedback": {"type": "string", "maxLength": 2000},
+          "expectedVersion": {"type": "integer", "minimum": 0}
+        }
+      },
+      "HomeworkSubmission": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "homeworkId": {"type": "integer", "format": "int64"},
+          "studentUserId": {"type": "integer", "format": "int64"},
+          "courseId": {"type": "integer", "format": "int64"},
+          "answerContent": {"type": "string"},
+          "status": {"type": "string", "enum": ["SUBMITTED", "GRADED"]},
+          "score": {"type": "number", "nullable": true},
+          "feedback": {"type": "string", "nullable": true},
+          "gradedBy": {"type": "integer", "format": "int64", "nullable": true},
+          "version": {"type": "integer", "minimum": 0},
+          "submittedTime": {"type": "string", "format": "date-time"},
+          "gradedTime": {"type": "string", "format": "date-time", "nullable": true},
+          "updatedTime": {"type": "string", "format": "date-time"}
+        }
+      },
+      "HomeworkSubmissionApiResponse": {
+        "allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/HomeworkSubmission"}}}]
+      },
+      "SubmissionPage": {
+        "type": "object",
+        "properties": {"items": {"type": "array", "items": {"$ref": "#/components/schemas/HomeworkSubmission"}}, "page": {"type": "integer"}, "size": {"type": "integer"}, "total": {"type": "integer", "format": "int64"}}
+      },
+      "SubmissionPageApiResponse": {
+        "allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/SubmissionPage"}}}]
+      },
+      "HomeworkGradeHistory": {
+        "type": "object",
+        "properties": {"id": {"type": "integer", "format": "int64"}, "submissionId": {"type": "integer", "format": "int64"}, "version": {"type": "integer"}, "score": {"type": "number"}, "feedback": {"type": "string", "nullable": true}, "gradedBy": {"type": "integer", "format": "int64"}, "gradedTime": {"type": "string", "format": "date-time"}}
+      },
+      "HomeworkGradeHistoryListApiResponse": {
+        "allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/HomeworkGradeHistory"}}}}]
       }
     }
   }

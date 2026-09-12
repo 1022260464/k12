@@ -55,11 +55,12 @@ backend/sql/mysql/k12_business_init.sql
 ```
 
 全新环境执行初始化脚本后会创建课程、智能体配置、Agent 运行记录、Agent
-产物和作业表。已经存在 `k12_business` 的环境不要依赖
+产物、作业、作业接收人、提交记录和批改历史表。已经存在 `k12_business` 的环境不要依赖
 `CREATE TABLE IF NOT EXISTS` 更新旧表，应执行幂等升级脚本：
 
 ```text
 backend/sql/mysql/k12_business_agent_upgrade.sql
+backend/sql/mysql/k12_business_homework_workflow_upgrade.sql
 ```
 
 该脚本会完成以下操作：
@@ -124,8 +125,8 @@ k12:
 backend/sql/mysql/k12_auth_permission_upgrade.sql
 ```
 
-它会幂等补齐用户、角色、课程、智能体和作业共 19 个功能权限，包括独立的
-`agent:invoke` 调用权限，并写入管理员、教师、学生默认授权。执行后必须重新登录，
+它会幂等补齐用户、角色、课程、智能体和作业功能权限，包括独立的
+`agent:invoke`、`homework:submit`、`homework:grade` 和学习档案权限，并写入管理员、教师、学生默认授权。执行后必须重新登录，
 新的权限才会写入 JWT。
 
 已有数据库的推荐升级顺序：
@@ -133,9 +134,11 @@ backend/sql/mysql/k12_auth_permission_upgrade.sql
 ```text
 1. 备份 k12_business 和 k12_auth
 2. 使用具备 ALTER/CREATE 权限的管理账号执行 backend/sql/mysql/k12_business_agent_upgrade.sql
-3. 使用管理账号执行 backend/sql/mysql/k12_auth_permission_upgrade.sql
-4. 重启 Agent Service 和 Gateway
-5. 重新登录，获取包含 agent:invoke 的 JWT
+3. 使用管理账号执行 backend/sql/mysql/k12_business_homework_workflow_upgrade.sql
+4. 使用管理账号执行 backend/sql/mysql/k12_auth_permission_upgrade.sql
+5. 使用管理账号执行 backend/sql/mysql/k12_auth_learning_profile_upgrade.sql
+6. 重启 IAM、Assessment、Agent Service 和 Gateway
+7. 重新登录，获取包含新权限的 JWT
 ```
 
 后续新增业务接口时，按以下安全规范同步 Gateway、Service 注解、权限数据和数据范围：
@@ -157,6 +160,7 @@ React -> Gateway 校验 JWT -> 业务服务再次校验 JWT -> Controller
 POST /api/v1/iam/auth/login
 POST /api/v1/iam/auth/register
 GET  /api/v1/iam/me
+GET/PUT /api/v1/iam/users/me/learning-profile
 GET/POST/PUT/DELETE /api/v1/iam/users/**
 GET  /api/v1/iam/roles
 PUT  /api/v1/iam/roles/{id}/permissions
@@ -246,6 +250,12 @@ backend/docs/api-development-guide.md
 ```
 
 当前 CRUD 接口覆盖用户、课程、智能体、作业四类资源。
+
+作业模块已增加完整基础流程：教师创建草稿、设置学生接收人、发布、关闭，
+学生提交，教师分页查看与批改，并保留基于版本号的批改历史。Assessment 设置
+接收人时会通过 OpenFeign 调 IAM 校验账号确实是启用状态的学生，不跨库读取
+`k12_auth`。本地默认 IAM 地址为 `http://localhost:8081`，可通过
+`K12_IAM_SERVICE_URL` 覆盖。
 
 - 用户 CRUD 已经使用 MyBatis-Plus `BaseMapper` 写入 `k12_auth.sys_user`，用户角色绑定写入 `sys_user_role`。
 - IAM 登录认证通过 `security -> service -> mapper -> database` 分层读取 `sys_user`、`sys_role`、`sys_permission`。

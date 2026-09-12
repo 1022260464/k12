@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS agent_artifact (
 CREATE TABLE IF NOT EXISTS assessment_homework (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Homework primary key',
     course_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Course ID',
+    teacher_user_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Logical reference to k12_auth.sys_user.id',
     title VARCHAR(128) NOT NULL COMMENT 'Homework title',
     description VARCHAR(1000) DEFAULT NULL COMMENT 'Homework description',
     status VARCHAR(32) NOT NULL DEFAULT 'DRAFT' COMMENT 'Homework status',
@@ -146,11 +147,76 @@ CREATE TABLE IF NOT EXISTS assessment_homework (
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'Logical delete flag: 0 normal, 1 deleted',
     PRIMARY KEY (id),
     KEY idx_assessment_homework_course_id (course_id),
+    KEY idx_assessment_homework_teacher_user_id (teacher_user_id),
     KEY idx_assessment_homework_status (status)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Assessment homework';
+
+CREATE TABLE IF NOT EXISTS assessment_homework_recipient (
+    homework_id BIGINT UNSIGNED NOT NULL COMMENT 'Homework ID',
+    student_user_id BIGINT UNSIGNED NOT NULL COMMENT 'Logical reference to k12_auth.sys_user.id',
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Create time',
+    PRIMARY KEY (homework_id, student_user_id),
+    KEY idx_homework_recipient_student (student_user_id, homework_id),
+    CONSTRAINT fk_homework_recipient_homework
+        FOREIGN KEY (homework_id) REFERENCES assessment_homework (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Homework recipients';
+
+CREATE TABLE IF NOT EXISTS assessment_homework_submission (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Submission primary key',
+    homework_id BIGINT UNSIGNED NOT NULL COMMENT 'Homework ID',
+    student_user_id BIGINT UNSIGNED NOT NULL COMMENT 'Logical reference to k12_auth.sys_user.id',
+    course_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Course snapshot ID',
+    answer_content TEXT NOT NULL COMMENT 'Student answer content',
+    status VARCHAR(32) NOT NULL DEFAULT 'SUBMITTED' COMMENT 'SUBMITTED or GRADED',
+    score DECIMAL(5,2) DEFAULT NULL COMMENT 'Score from 0 to 100',
+    feedback VARCHAR(2000) DEFAULT NULL COMMENT 'Teacher feedback',
+    graded_by BIGINT UNSIGNED DEFAULT NULL COMMENT 'Logical reference to grader user ID',
+    version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
+    submitted_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Submit time',
+    graded_time DATETIME(3) DEFAULT NULL COMMENT 'Latest grade time',
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'Update time',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_homework_submission_student (homework_id, student_user_id),
+    KEY idx_homework_submission_student_time (student_user_id, submitted_time),
+    KEY idx_homework_submission_status (status),
+    CONSTRAINT fk_homework_submission_homework
+        FOREIGN KEY (homework_id) REFERENCES assessment_homework (id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    CONSTRAINT chk_homework_submission_score CHECK (score IS NULL OR (score BETWEEN 0 AND 100))
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Homework submissions';
+
+CREATE TABLE IF NOT EXISTS assessment_homework_grade_history (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Grade history primary key',
+    submission_id BIGINT UNSIGNED NOT NULL COMMENT 'Submission ID',
+    version INT UNSIGNED NOT NULL COMMENT 'Submission version after grading',
+    score DECIMAL(5,2) NOT NULL COMMENT 'Score snapshot',
+    feedback VARCHAR(2000) DEFAULT NULL COMMENT 'Feedback snapshot',
+    graded_by BIGINT UNSIGNED NOT NULL COMMENT 'Logical reference to grader user ID',
+    graded_time DATETIME(3) NOT NULL COMMENT 'Grade time snapshot',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_grade_history_submission_version (submission_id, version),
+    KEY idx_grade_history_graded_by (graded_by, graded_time),
+    CONSTRAINT fk_grade_history_submission
+        FOREIGN KEY (submission_id) REFERENCES assessment_homework_submission (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT chk_grade_history_score CHECK (score BETWEEN 0 AND 100)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Homework grade history';
 
 /* Runtime codes must match Python AgentExecutor.code values. */
 INSERT INTO agent_config (code, name, type, description, status)

@@ -39,6 +39,9 @@ management:
         include: health,info
 
 k12:
+  clients:
+    # 本地直连 IAM；团队环境可改成网关/服务内网地址。
+    iam-url: ${K12_IAM_SERVICE_URL:http://localhost:8081}
   security:
     jwt:
       issuer: ${K12_JWT_ISSUER:k12-platform}

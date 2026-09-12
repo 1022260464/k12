@@ -17,6 +17,8 @@ public class Homework {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long courseId;
+    /* 逻辑关联 k12_auth.sys_user.id，不建立跨数据库外键。 */
+    private Long teacherUserId;
     private String title;
     private String description;
     private String status;

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.k12.platform.assessment.mapper.HomeworkSubmissionMapper">
+    <select id="findByHomeworkAndStudent" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
+        SELECT * FROM assessment_homework_submission
+        WHERE homework_id = #{homeworkId} AND student_user_id = #{studentUserId}
+    </select>
+
+    <select id="findByHomeworkPage" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
+        SELECT * FROM assessment_homework_submission
+        WHERE homework_id = #{homeworkId}
+        ORDER BY submitted_time DESC, id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByHomework" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM assessment_homework_submission WHERE homework_id = #{homeworkId}
+    </select>
+
+    <select id="findByStudentPage" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
+        SELECT * FROM assessment_homework_submission
+        WHERE student_user_id = #{studentUserId}
+        ORDER BY submitted_time DESC, id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByStudent" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM assessment_homework_submission WHERE student_user_id = #{studentUserId}
+    </select>
+
+    <!-- version 必须仍等于前端读取时的值；否则返回 0 行并提示重新加载。 -->
+    <update id="gradeOptimistically">
+        UPDATE assessment_homework_submission
+        SET status = 'GRADED',
+            score = #{score},
+            feedback = #{feedback},
+            graded_by = #{gradedBy},
+            version = version + 1,
+            graded_time = CURRENT_TIMESTAMP(3),
+            updated_time = CURRENT_TIMESTAMP(3)
+        WHERE id = #{id}
+          AND version = #{expectedVersion}
+    </update>
+</mapper>
