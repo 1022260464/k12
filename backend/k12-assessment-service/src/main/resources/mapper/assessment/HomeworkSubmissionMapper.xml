@@ -9,6 +9,10 @@
         WHERE homework_id = #{homeworkId} AND student_user_id = #{studentUserId}
     </select>
 
+    <select id="selectForUpdate" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
+        SELECT * FROM assessment_homework_submission WHERE id = #{id} FOR UPDATE
+    </select>
+
     <select id="findByHomeworkPage" resultType="com.k12.platform.assessment.model.HomeworkSubmission">
         SELECT * FROM assessment_homework_submission
         WHERE homework_id = #{homeworkId}

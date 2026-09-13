@@ -8,6 +8,7 @@ public record CourseResponse(
         String subject,
         String gradeLevel,
         String description,
-        Instant updatedTime
+        Instant updatedTime,
+        Long teacherId
 ) {
 }

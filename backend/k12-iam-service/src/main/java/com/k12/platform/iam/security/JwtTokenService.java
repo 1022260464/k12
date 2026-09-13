@@ -32,6 +32,7 @@ public class JwtTokenService {
     public LoginResponse createAccessToken(
             Long userId,
             String username,
+            long authVersion,
             List<String> authorities
     ) {
         /* iat/exp 使用 Instant，JWT 中最终保存为 Unix 时间。 */
@@ -57,6 +58,8 @@ public class JwtTokenService {
                 .expiresAt(expiresAt)
                 .subject(username)
                 .claim("userId", userId.toString())
+                /* 修改密码、状态或角色时数据库版本递增，旧 JWT 随即失效。 */
+                .claim("authVersion", authVersion)
                 .claim("authorities", normalizedAuthorities)
                 .build();
         /* Header 声明 HS256；encode 会用服务端密钥计算签名，防止客户端篡改载荷。 */

@@ -16,6 +16,8 @@ public interface HomeworkSubmissionMapper extends BaseMapper<HomeworkSubmission>
             @Param("studentUserId") Long studentUserId
     );
 
+    HomeworkSubmission selectForUpdate(@Param("id") Long id);
+
     List<HomeworkSubmission> findByHomeworkPage(
             @Param("homeworkId") Long homeworkId,
             @Param("offset") int offset,

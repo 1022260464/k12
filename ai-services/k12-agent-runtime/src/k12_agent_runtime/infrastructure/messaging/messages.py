@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -40,16 +41,37 @@ class AgentRunResultMessage(MessageModel):
     agent_code: str
     status: str
     output_text: str
+    started_time: datetime | None = None
     artifacts: list[ArtifactMessage] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
-    def from_domain(cls, result: AgentRunResult) -> "AgentRunResultMessage":
+    def started(
+        cls,
+        task: AgentRunTaskMessage,
+        started_time: datetime,
+    ) -> "AgentRunResultMessage":
+        """Build the event emitted as soon as a worker starts executing a task."""
+        return cls(
+            run_id=task.run_id,
+            agent_code=task.agent_code,
+            status="RUNNING",
+            output_text="",
+            started_time=started_time,
+        )
+
+    @classmethod
+    def from_domain(
+        cls,
+        result: AgentRunResult,
+        started_time: datetime,
+    ) -> "AgentRunResultMessage":
         return cls(
             run_id=result.run_id,
             agent_code=result.agent_code,
             status=result.status.value,
             output_text=result.output_text,
+            started_time=started_time,
             artifacts=[
                 ArtifactMessage(
                     artifact_id=item.artifact_id,
@@ -69,10 +91,12 @@ class AgentRunResultMessage(MessageModel):
         cls,
         task: AgentRunTaskMessage,
         message: str,
+        started_time: datetime,
     ) -> "AgentRunResultMessage":
         return cls(
             run_id=task.run_id,
             agent_code=task.agent_code,
             status="FAILED",
             output_text=message,
+            started_time=started_time,
         )

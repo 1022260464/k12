@@ -22,6 +22,9 @@
         <result column="email" property="email"/>
         <result column="roleCode" property="roleCode"/>
         <result column="status" property="status"/>
+        <result column="failedLoginCount" property="failedLoginCount"/>
+        <result column="lockedUntil" property="lockedUntil"/>
+        <result column="authVersion" property="authVersion"/>
         <result column="updatedTime" property="updatedTime"/>
     </resultMap>
 
@@ -88,10 +91,32 @@
             id,
             username,
             password_hash AS passwordHash,
-            status
+            status,
+            failed_login_count AS failedLoginCount,
+            locked_until AS lockedUntil,
+            auth_version AS authVersion
         FROM sys_user
         WHERE username = #{username}
           AND deleted = 0
+    </select>
+
+    <select id="findSecurityUserForUpdate" resultType="com.k12.platform.iam.model.SysUser">
+        SELECT id, username, password_hash, nickname, email, status,
+               failed_login_count, locked_until, auth_version, last_login_time,
+               updated_time, deleted
+        FROM sys_user
+        WHERE id = #{id} AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <select id="isTokenStateValid" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM sys_user
+            WHERE id = #{userId}
+              AND deleted = 0
+              AND status = 1
+              AND auth_version = #{authVersion}
+        )
     </select>
 
     <!-- 查询用户拥有的角色编码，例如 ROLE_ADMIN。 -->

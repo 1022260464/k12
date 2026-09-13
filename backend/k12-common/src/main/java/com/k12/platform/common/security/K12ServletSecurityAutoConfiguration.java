@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,7 +26,10 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
 import org.springframework.core.env.Environment;
@@ -42,7 +46,7 @@ import org.springframework.core.env.Environment;
 @ConditionalOnClass({SecurityFilterChain.class, HttpSecurity.class})
 /* 开启 @PreAuthorize；没有这个注解，Service 上的权限表达式不会执行。 */
 @EnableMethodSecurity
-@EnableConfigurationProperties({K12SecurityProperties.class, K12JwtProperties.class})
+@EnableConfigurationProperties({K12SecurityProperties.class, K12JwtProperties.class, K12TokenStateProperties.class})
 public class K12ServletSecurityAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(K12ServletSecurityAutoConfiguration.class);
@@ -53,8 +57,12 @@ public class K12ServletSecurityAutoConfiguration {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             K12SecurityProperties properties,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            K12TokenStateValidationFilter tokenStateValidationFilter
     ) throws Exception {
+        // 与网关和 CourseStudyService 保持一致，不能只检查 course:read 而遗漏学生角色。
+        var studyAccess = new WebExpressionAuthorizationManager(
+                "hasAuthority('ROLE_ADMIN') or (hasAuthority('ROLE_STUDENT') and hasAuthority('course:read'))");
         /* 认证失败返回 401；该 lambda 是 AuthenticationEntryPoint 接口的实现。 */
         AuthenticationEntryPoint authenticationEntryPoint = (request, response, exception) -> {
             log.info(
@@ -137,6 +145,8 @@ public class K12ServletSecurityAutoConfiguration {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
+                /* JWT 验签完成后，再检查账号是否被禁用以及认证版本是否仍然有效。 */
+                .addFilterAfter(tokenStateValidationFilter, BearerTokenAuthenticationFilter.class)
                 /*
                  * 配置接口访问规则。
                  *
@@ -158,6 +168,9 @@ public class K12ServletSecurityAutoConfiguration {
                         /* “我的学习档案”是用户自己的数据，必须放在通用用户管理规则之前。 */
                         .requestMatchers(HttpMethod.GET, "/api/v1/iam/users/me/learning-profile").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.LEARNING_PROFILE_READ)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/iam/users/me/learning-profile").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.LEARNING_PROFILE_UPDATE)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/iam/users/me/password").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/iam/users/*/password", "/api/v1/iam/users/*/status").hasAuthority(K12Authorities.ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/iam/audits/**").hasAuthority(K12Authorities.ROLE_ADMIN)
                         /* Assessment 仅可校验学生身份，不能读取完整用户资料。 */
                         .requestMatchers(HttpMethod.POST, "/api/v1/iam/users/students/validate").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_READ)
@@ -166,6 +179,12 @@ public class K12ServletSecurityAutoConfiguration {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_DELETE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/iam/roles/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.ROLE_READ)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/iam/roles/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.ROLE_UPDATE)
+                        // 报名/退课/进度属于学习行为，必须置于课程管理通配规则之前。
+                        .requestMatchers(HttpMethod.GET, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/progress").access(studyAccess)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/chapters/*/progress").access(studyAccess)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/enrollment").access(studyAccess)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
                         .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_CREATE)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
@@ -179,6 +198,10 @@ public class K12ServletSecurityAutoConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/submit").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_SUBMIT)
                         .requestMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/grade").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/me/detail").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_READ)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/*/detail").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/assessments/homeworks/*/submissions/*/answers/*/grade").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/assessments/homeworks/*/questions/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/*/grade-history").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/recipients").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .requestMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/publish", "/api/v1/assessments/homeworks/*/close").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
@@ -189,6 +212,22 @@ public class K12ServletSecurityAutoConfiguration {
                         .anyRequest().authenticated()
                 )
                 .build();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public K12TokenStateValidationFilter k12TokenStateValidationFilter(
+            ObjectProvider<K12TokenStateValidator> validatorProvider,
+            ObjectMapper objectMapper
+    ) {
+        return new K12TokenStateValidationFilter(validatorProvider, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(K12TokenStateValidator.class)
+    @ConditionalOnProperty(prefix = "k12.security.token-state", name = "remote-enabled", havingValue = "true")
+    public K12TokenStateValidator remoteTokenStateValidator(K12TokenStateProperties properties) {
+        return new K12RemoteTokenStateValidator(properties);
     }
 
     @Bean

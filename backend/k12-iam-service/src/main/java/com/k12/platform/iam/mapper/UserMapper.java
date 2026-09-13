@@ -46,6 +46,12 @@ public interface UserMapper extends BaseMapper<SysUser> {
      */
     AuthUser findAuthUserByUsername(@Param("username") String username);
 
+    /** 加行锁读取安全字段，防止并发登录丢失失败次数。 */
+    SysUser findSecurityUserForUpdate(@Param("id") Long id);
+
+    /** 令牌中的 authVersion 必须和数据库一致，且账号仍处于启用状态。 */
+    boolean isTokenStateValid(@Param("userId") Long userId, @Param("authVersion") Long authVersion);
+
     /*
      * 查询用户拥有的角色编码。
      *

@@ -51,6 +51,9 @@ CREATE TABLE IF NOT EXISTS sys_user (
     phone VARCHAR(32) DEFAULT NULL COMMENT 'Phone number',
     avatar_url VARCHAR(512) DEFAULT NULL COMMENT 'Avatar URL',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '1 enabled, 0 disabled, 2 locked',
+    failed_login_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Consecutive failed login count',
+    locked_until DATETIME(3) DEFAULT NULL COMMENT 'Temporary login lock expiration',
+    auth_version BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Increment to revoke existing JWTs',
     last_login_time DATETIME(3) DEFAULT NULL COMMENT 'Last login time',
     created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Create time',
     updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'Update time',
@@ -64,6 +67,35 @@ CREATE TABLE IF NOT EXISTS sys_user (
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'System users';
+
+CREATE TABLE IF NOT EXISTS sys_login_audit (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED DEFAULT NULL,
+    username VARCHAR(64) NOT NULL,
+    success TINYINT NOT NULL,
+    failure_reason VARCHAR(64) DEFAULT NULL,
+    client_ip VARCHAR(64) DEFAULT NULL,
+    user_agent VARCHAR(512) DEFAULT NULL,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_sys_login_audit_user_time (user_id, created_time),
+    KEY idx_sys_login_audit_username_time (username, created_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Login success and failure audit';
+
+CREATE TABLE IF NOT EXISTS sys_operation_audit (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    operator_user_id BIGINT UNSIGNED DEFAULT NULL,
+    action VARCHAR(64) NOT NULL,
+    target_type VARCHAR(64) NOT NULL,
+    target_id VARCHAR(128) DEFAULT NULL,
+    detail VARCHAR(512) DEFAULT NULL,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_sys_operation_audit_operator_time (operator_user_id, created_time),
+    KEY idx_sys_operation_audit_target (target_type, target_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Administrator operation audit';
 
 CREATE TABLE IF NOT EXISTS sys_learning_profile (
     user_id BIGINT UNSIGNED NOT NULL COMMENT 'Related sys_user.id',

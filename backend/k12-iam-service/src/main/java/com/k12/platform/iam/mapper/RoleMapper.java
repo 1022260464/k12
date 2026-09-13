@@ -14,10 +14,15 @@ public interface RoleMapper {
 
     RoleAccount findRoleById(@Param("id") Long id);
 
+    RoleAccount findRoleByIdForUpdate(@Param("id") Long id);
+
     int deleteRolePermissions(@Param("roleId") Long roleId);
 
     int assignPermissionByCode(
             @Param("roleId") Long roleId,
             @Param("permissionCode") String permissionCode
     );
+
+    /** 角色权限变化后，使拥有该角色的用户旧 JWT 失效。 */
+    int bumpAuthVersionForRoleUsers(@Param("roleId") Long roleId);
 }

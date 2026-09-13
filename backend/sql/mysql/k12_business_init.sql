@@ -44,6 +44,7 @@ SET SESSION sql_notes = 0;
 
 CREATE TABLE IF NOT EXISTS learning_course (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Course primary key',
+    teacher_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Creator user ID',
     title VARCHAR(128) NOT NULL COMMENT 'Course title',
     subject VARCHAR(64) NOT NULL COMMENT 'Course subject',
     grade_level VARCHAR(32) DEFAULT NULL COMMENT 'Grade level',
@@ -54,11 +55,52 @@ CREATE TABLE IF NOT EXISTS learning_course (
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'Logical delete flag: 0 normal, 1 deleted',
     PRIMARY KEY (id),
     KEY idx_learning_course_subject (subject),
+    KEY idx_course_teacher (teacher_id, deleted, updated_time),
     KEY idx_learning_course_status (status)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Learning courses';
+
+CREATE TABLE IF NOT EXISTS learning_course_chapter (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    course_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(128) NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_chapter_course_order (course_id, deleted, sort_order, id),
+    CONSTRAINT fk_chapter_course FOREIGN KEY (course_id) REFERENCES learning_course(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS learning_course_enrollment (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    course_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    enrolled_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_enrollment_course_user (course_id, user_id),
+    KEY idx_enrollment_user_status (user_id, status),
+    CONSTRAINT fk_enrollment_course FOREIGN KEY (course_id) REFERENCES learning_course(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS learning_chapter_progress (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    enrollment_id BIGINT UNSIGNED NOT NULL,
+    chapter_id BIGINT UNSIGNED NOT NULL,
+    progress_percent TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_progress_enrollment_chapter (enrollment_id, chapter_id),
+    CONSTRAINT chk_progress_percent CHECK (progress_percent <= 100),
+    CONSTRAINT fk_progress_enrollment FOREIGN KEY (enrollment_id) REFERENCES learning_course_enrollment(id),
+    CONSTRAINT fk_progress_chapter FOREIGN KEY (chapter_id) REFERENCES learning_course_chapter(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS agent_config (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Agent primary key',
@@ -217,6 +259,70 @@ CREATE TABLE IF NOT EXISTS assessment_homework_grade_history (
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Homework grade history';
+
+CREATE TABLE IF NOT EXISTS assessment_homework_question (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Question primary key',
+    homework_id BIGINT UNSIGNED NOT NULL COMMENT 'Homework ID',
+    question_type VARCHAR(32) NOT NULL COMMENT 'Question type',
+    stem TEXT NOT NULL COMMENT 'Question stem',
+    score DECIMAL(5,2) NOT NULL COMMENT 'Maximum score',
+    sort_order INT NOT NULL DEFAULT 0,
+    correct_answers_json JSON NOT NULL COMMENT 'Normalized objective answers',
+    reference_answer TEXT DEFAULT NULL COMMENT 'Subjective reference answer',
+    analysis TEXT DEFAULT NULL COMMENT 'Teacher analysis',
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    deleted TINYINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_assessment_question_homework (homework_id, deleted, sort_order),
+    CONSTRAINT fk_assessment_question_homework FOREIGN KEY (homework_id)
+        REFERENCES assessment_homework (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT chk_assessment_question_score CHECK (score > 0 AND score <= 100)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Homework questions';
+
+CREATE TABLE IF NOT EXISTS assessment_question_option (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Option primary key',
+    question_id BIGINT UNSIGNED NOT NULL COMMENT 'Question ID',
+    option_key VARCHAR(8) NOT NULL COMMENT 'A, B, C or custom key',
+    content VARCHAR(1000) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_assessment_option_key (question_id, option_key),
+    KEY idx_assessment_option_sort (question_id, deleted, sort_order),
+    CONSTRAINT fk_assessment_option_question FOREIGN KEY (question_id)
+        REFERENCES assessment_homework_question (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Question options';
+
+CREATE TABLE IF NOT EXISTS assessment_submission_answer (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Answer primary key',
+    submission_id BIGINT UNSIGNED NOT NULL COMMENT 'Submission ID',
+    question_id BIGINT UNSIGNED NOT NULL COMMENT 'Question ID',
+    answer_json JSON NOT NULL COMMENT 'Normalized selected answers',
+    answer_text TEXT DEFAULT NULL COMMENT 'Subjective answer',
+    auto_score DECIMAL(5,2) DEFAULT NULL,
+    manual_score DECIMAL(5,2) DEFAULT NULL,
+    final_score DECIMAL(5,2) DEFAULT NULL,
+    grading_status VARCHAR(32) NOT NULL,
+    feedback VARCHAR(2000) DEFAULT NULL,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_submission_answer_question (submission_id, question_id),
+    KEY idx_submission_answer_status (grading_status),
+    CONSTRAINT fk_submission_answer_submission FOREIGN KEY (submission_id)
+        REFERENCES assessment_homework_submission (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_submission_answer_question FOREIGN KEY (question_id)
+        REFERENCES assessment_homework_question (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT chk_submission_answer_scores CHECK (
+        (auto_score IS NULL OR auto_score >= 0) AND
+        (manual_score IS NULL OR manual_score >= 0) AND
+        (final_score IS NULL OR final_score >= 0)
+    )
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Structured answers and grading state';
 
 /* Runtime codes must match Python AgentExecutor.code values. */
 INSERT INTO agent_config (code, name, type, description, status)

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.agent.mapper.AgentRunMapper">
+
+    <resultMap id="AgentRunResultMap" type="com.k12.platform.agent.model.AgentRun">
+        <id property="id" column="id"/>
+        <result property="runId" column="run_id"/>
+        <result property="agentCode" column="agent_code"/>
+        <result property="userId" column="user_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="executionMode" column="execution_mode"/>
+        <result property="inputText" column="input_text"/>
+        <result property="inputContext" column="input_context"/>
+        <result property="status" column="status"/>
+        <result property="outputText" column="output_text"/>
+        <result property="outputMetadata" column="output_metadata"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="durationMs" column="duration_ms"/>
+        <result property="startedTime" column="started_time"/>
+        <result property="finishedTime" column="finished_time"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+    </resultMap>
+
+    <!-- 非管理员只能读取自己的运行记录，避免通过 runId 枚举其他用户的输入和输出。 -->
+    <select id="findVisiblePage" resultMap="AgentRunResultMap">
+        SELECT id, run_id, agent_code, user_id, session_id, execution_mode,
+               input_text, input_context, status, output_text, output_metadata,
+               error_code, error_message, duration_ms, started_time, finished_time,
+               created_time, updated_time
+        FROM agent_run
+        <where>
+            <if test="!admin">
+                user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY created_time DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findVisibleByRunId" resultMap="AgentRunResultMap">
+        SELECT id, run_id, agent_code, user_id, session_id, execution_mode,
+               input_text, input_context, status, output_text, output_metadata,
+               error_code, error_message, duration_ms, started_time, finished_time,
+               created_time, updated_time
+        FROM agent_run
+        WHERE run_id = #{runId}
+        <if test="!admin">
+            AND user_id = #{userId}
+        </if>
+        LIMIT 1
+    </select>
+
+    <!-- 异步结果可能重复投递，行锁用于保证状态更新和产物写入的幂等性。 -->
+    <select id="selectForUpdateByRunId" resultMap="AgentRunResultMap">
+        SELECT id, run_id, agent_code, user_id, session_id, execution_mode,
+               input_text, input_context, status, output_text, output_metadata,
+               error_code, error_message, duration_ms, started_time, finished_time,
+               created_time, updated_time
+        FROM agent_run
+        WHERE run_id = #{runId}
+        LIMIT 1
+        FOR UPDATE
+    </select>
+    <!-- 有界扫描，实际更新在 Service 取得行锁后执行。现有 status/created_time 索引可用。 -->
+    <select id="findExpiredRunIds" resultType="java.lang.String">
+        SELECT run_id FROM agent_run
+        WHERE execution_mode = 'ASYNC'
+          AND ((status = 'PENDING' AND created_time &lt;= #{pendingBefore})
+            OR (status = 'RUNNING' AND COALESCE(started_time, created_time) &lt;= #{runningBefore}))
+        ORDER BY created_time, id
+        LIMIT #{limit}
+    </select>
+</mapper>

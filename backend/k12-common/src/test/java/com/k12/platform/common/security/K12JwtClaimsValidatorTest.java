@@ -41,6 +41,15 @@ class K12JwtClaimsValidatorTest {
         assertTrue(validator.validate(jwt).hasErrors());
     }
 
+    @Test
+    void rejectsMissingAuthVersion() {
+        Instant issuedAt = Instant.now();
+        Jwt jwt = Jwt.withTokenValue("test-token").header("alg", "HS256")
+                .issuedAt(issuedAt).expiresAt(issuedAt.plusSeconds(300)).subject("admin")
+                .claim("userId", "1").claim("authorities", List.of("ROLE_ADMIN")).build();
+        assertTrue(validator.validate(jwt).hasErrors());
+    }
+
     private Jwt jwt(String userId, String subject, List<String> authorities) {
         Instant issuedAt = Instant.now();
         Jwt.Builder builder = Jwt.withTokenValue("test-token")
@@ -48,6 +57,7 @@ class K12JwtClaimsValidatorTest {
                 .issuedAt(issuedAt)
                 .expiresAt(issuedAt.plusSeconds(300))
                 .subject(subject)
+                .claim("authVersion", 1L)
                 .claim("authorities", authorities);
         if (userId != null) {
             builder.claim("userId", userId);

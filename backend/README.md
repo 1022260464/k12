@@ -1,5 +1,8 @@
 # K12 Platform Backend
 
+Java 业务完善进度与下一阶段范围见 [Java 业务完善清单](docs/java-business-roadmap.md)。
+Agent 的取消、重试、超时与消息确认说明见 [Agent 联调文档](docs/agent-java-integration-guide.md)。
+
 K12 多智能体教学平台后端初始化为 Maven 多模块工程。当前拆分以业务边界为主，先保持轻量 Spring Boot 服务形态，便于后续接入注册中心、配置中心、网关路由、数据库和消息队列。
 
 ## Modules
@@ -206,6 +209,10 @@ mysql -h 127.0.0.1 -P 3306 -u root -p < backend/sql/mysql/k12_auth_init.sql
 
 `k12-iam-service` 登录时会读取 `sys_user.password_hash`、用户角色和权限，成功后签发 JWT。可用受保护接口验证：
 
+下方 `admin / admin123` 是登录示例，不是后端内置账号。仅当此前创建 admin 时使用该密码才有效；
+初始化 SQL 和课程升级脚本都不会自动创建或重置 admin。
+教师、学生联调账号的创建请求见 [课程联调账号准备](docs/course-development-guide.md#准备登录账号)。
+
 ```bash
 curl.exe -X POST http://localhost:8080/api/v1/iam/auth/login ^
   -H "Content-Type: application/json" ^
@@ -219,7 +226,23 @@ curl.exe http://localhost:8080/api/v1/iam/me ^
 
 ```bash
 mvn clean package
+mvn test
+mvn -pl k12-iam-service,k12-assessment-service -am test
 mvn -pl k12-agent-service -am spring-boot:run
+node scripts/test-course-integration.mjs
+node scripts/test-security-assessment-integration.mjs
+```
+
+两个 Node.js 脚本会通过 Gateway 发起真实 HTTP 请求，默认地址为
+`http://127.0.0.1:8080`。使用其他端口时可先设置
+`K12_TEST_BASE_URL`；管理员账号和密码可通过
+`K12_TEST_ADMIN_USERNAME`、`K12_TEST_ADMIN_PASSWORD` 覆盖。脚本不会把密码或
+JWT 写入报告，报告生成在 `target/integration-reports/`。
+
+JUnit 5、Mockito、测试覆盖范围及中文运行说明见：
+
+```text
+backend/docs/unit-testing-guide.md
 ```
 
 ## API document
@@ -251,11 +274,47 @@ backend/docs/api-development-guide.md
 
 当前 CRUD 接口覆盖用户、课程、智能体、作业四类资源。
 
+课程模块已补充教师归属、分页检索、章节管理、学生报名/退课与学习进度，
+并增加 Service 数据权限、事务及数据库集成测试。
+已有数据库需先执行 [课程升级脚本](sql/mysql/k12_business_learning_upgrade.sql)，再重启 Learning。
+分层说明、权限矩阵和 Apifox 操作步骤见 [课程业务开发与联调说明](docs/course-development-guide.md)。
+各模块剩余工作见 [Java 业务完善进度](docs/java-business-roadmap.md)。
+
+Agent Java 服务已经提供同步和异步运行闭环：校验 `agent:invoke`、从 JWT 获取用户 ID；
+短任务调用 FastAPI，长任务通过 RabbitMQ 交给 Python Worker；结果统一写入 `agent_run`、
+`agent_artifact`。接口如下：
+
+```text
+POST /api/v1/agents/{agentCode}/runs
+GET  /api/v1/agents/runs?page=1&size=20
+GET  /api/v1/agents/runs/{runId}
+GET  /api/v1/agents/runs/{runId}/artifacts
+```
+
+Java 与 Python Runtime 的职责、配置、启动顺序和 Apifox 联调说明见：
+
+```text
+backend/docs/agent-java-integration-guide.md
+```
+
 作业模块已增加完整基础流程：教师创建草稿、设置学生接收人、发布、关闭，
 学生提交，教师分页查看与批改，并保留基于版本号的批改历史。Assessment 设置
 接收人时会通过 OpenFeign 调 IAM 校验账号确实是启用状态的学生，不跨库读取
 `k12_auth`。本地默认 IAM 地址为 `http://localhost:8081`，可通过
 `K12_IAM_SERVICE_URL` 覆盖。
+
+IAM 账号安全与结构化作业题目/答题/逐题批改已补齐。已有数据库先执行：
+
+```text
+backend/sql/mysql/k12_auth_security_upgrade.sql
+backend/sql/mysql/k12_business_assessment_question_upgrade.sql
+```
+
+接口、JWT 失效流程、数据库检查和 AI 批改协议见：
+
+```text
+backend/docs/iam-assessment-development-guide.md
+```
 
 - 用户 CRUD 已经使用 MyBatis-Plus `BaseMapper` 写入 `k12_auth.sys_user`，用户角色绑定写入 `sys_user_role`。
 - IAM 登录认证通过 `security -> service -> mapper -> database` 分层读取 `sys_user`、`sys_role`、`sys_permission`。

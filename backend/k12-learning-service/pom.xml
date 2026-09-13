@@ -13,6 +13,12 @@
     <name>K12 Learning Service</name>
 
     <dependencies>
+        <!-- 仅供自动化测试使用，验证真实 Mapper SQL 和事务，不连接团队 MySQL。 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.k12.platform</groupId>
             <artifactId>k12-common</artifactId>

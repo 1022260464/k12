@@ -43,17 +43,20 @@ public class HomeworkService {
     private final HomeworkSubmissionMapper submissionMapper;
     private final HomeworkGradeHistoryMapper gradeHistoryMapper;
     private final IamStudentClient iamStudentClient;
+    private final SubmissionAnswerService submissionAnswerService;
 
     public HomeworkService(
             HomeworkMapper homeworkMapper,
             HomeworkSubmissionMapper submissionMapper,
             HomeworkGradeHistoryMapper gradeHistoryMapper,
-            IamStudentClient iamStudentClient
+            IamStudentClient iamStudentClient,
+            SubmissionAnswerService submissionAnswerService
     ) {
         this.homeworkMapper = homeworkMapper;
         this.submissionMapper = submissionMapper;
         this.gradeHistoryMapper = gradeHistoryMapper;
         this.iamStudentClient = iamStudentClient;
+        this.submissionAnswerService = submissionAnswerService;
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.HOMEWORK_READ + "')")
@@ -174,15 +177,21 @@ public class HomeworkService {
         if (submissionMapper.findByHomeworkAndStudent(homeworkId, studentUserId) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该作业已经提交，不能重复提交");
         }
+        boolean hasText = request.answerContent() != null && !request.answerContent().isBlank();
+        boolean hasStructuredAnswers = request.answers() != null && !request.answers().isEmpty();
+        if (!hasText && !hasStructuredAnswers) {
+            throw new IllegalArgumentException("answerContent 和 answers 至少填写一项");
+        }
 
         HomeworkSubmission submission = new HomeworkSubmission();
         submission.setHomeworkId(homeworkId);
         submission.setStudentUserId(studentUserId);
         submission.setCourseId(homework.getCourseId());
-        submission.setAnswerContent(request.answerContent().trim());
+        submission.setAnswerContent(hasText ? request.answerContent().trim() : "[STRUCTURED_ANSWERS]");
         submission.setStatus("SUBMITTED");
         submission.setVersion(0);
         submissionMapper.insert(submission);
+        submissionAnswerService.saveSubmittedAnswers(submission, request.answers());
         return toSubmissionResponse(submissionMapper.selectById(submission.getId()));
     }
 

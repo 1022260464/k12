@@ -32,7 +32,7 @@ public class RoleController {
 
     @PutMapping("/{id}/permissions")
     public ApiResponse<RoleResponse> updatePermissions(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody UpdateRolePermissionsRequest request
     ) {
         return ApiResponse.ok(roleService.updatePermissions(id, request.permissionCodes()));

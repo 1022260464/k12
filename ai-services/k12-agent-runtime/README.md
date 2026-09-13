@@ -153,6 +153,10 @@ Dead-letter exchange: k12.agent.dlx
 Dead-letter queue: k12.agent.run.dead
 ```
 
+请求队列和结果队列都绑定同一个死信交换机。Java 与 Python 对同名队列的 durable、
+dead-letter-exchange 等声明必须完全一致，否则 RabbitMQ 会拒绝启动并报告
+`PRECONDITION_FAILED inequivalent arg`。
+
 ## 图表与文件产物
 
 Agent输出使用统一 `artifacts` 数组。当前 `demo-chart` 返回 Vega-Lite JSON：

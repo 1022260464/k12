@@ -9,6 +9,12 @@ spring:
     username: ${K12_BUSINESS_DB_USERNAME:k12}
     password: ${K12_BUSINESS_DB_PASSWORD:K12@123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # 公网 MySQL 连接可能先被网络设备回收，定期保活并缩短连接寿命。
+      keepalive-time: ${K12_DB_KEEPALIVE_MS:60000}
+      max-lifetime: ${K12_DB_MAX_LIFETIME_MS:300000}
+      validation-timeout: ${K12_DB_VALIDATION_TIMEOUT_MS:2000}
+      connection-timeout: ${K12_DB_CONNECTION_TIMEOUT_MS:10000}
   config:
     import: optional:nacos:${spring.application.name}.yml
   cloud:
@@ -43,6 +49,9 @@ k12:
     # 本地直连 IAM；团队环境可改成网关/服务内网地址。
     iam-url: ${K12_IAM_SERVICE_URL:http://localhost:8081}
   security:
+    token-state:
+      remote-enabled: ${K12_TOKEN_STATE_VALIDATION_ENABLED:true}
+      endpoint: ${K12_IAM_TOKEN_STATE_URL:http://127.0.0.1:8081/api/v1/iam/auth/token-state}
     jwt:
       issuer: ${K12_JWT_ISSUER:k12-platform}
       secret: ${K12_JWT_SECRET:k12-platform-dev-secret-change-me-2026-very-long-key}

@@ -3,6 +3,8 @@ package com.k12.platform.iam.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
 /*
  * 登录认证查询结果。
  *
@@ -16,4 +18,7 @@ public class AuthUser {
     private String username;
     private String passwordHash;
     private int status;
+    private int failedLoginCount;
+    private Instant lockedUntil;
+    private long authVersion;
 }

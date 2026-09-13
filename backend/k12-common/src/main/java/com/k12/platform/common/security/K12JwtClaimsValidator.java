@@ -23,7 +23,7 @@ public final class K12JwtClaimsValidator implements OAuth2TokenValidator<Jwt> {
 
     private static final OAuth2Error INVALID_TOKEN = new OAuth2Error(
             "invalid_token",
-            "JWT must contain valid userId, subject and authorities claims",
+            "JWT must contain valid userId, authVersion, subject and authorities claims",
             null
     );
 
@@ -36,9 +36,11 @@ public final class K12JwtClaimsValidator implements OAuth2TokenValidator<Jwt> {
          */
         Object userId = jwt.getClaims().get("userId");
         Object authorities = jwt.getClaims().get("authorities");
+        Object authVersion = jwt.getClaims().get("authVersion");
 
         boolean validUserId = userId instanceof String value && isPositiveLong(value);
         boolean validSubject = jwt.getSubject() != null && !jwt.getSubject().isBlank();
+        boolean validAuthVersion = authVersion instanceof Number number && number.longValue() > 0;
         boolean validAuthorities = authorities instanceof Collection<?> values
                 && !values.isEmpty()
                 && values.stream().allMatch(this::isValidAuthority)
@@ -46,7 +48,7 @@ public final class K12JwtClaimsValidator implements OAuth2TokenValidator<Jwt> {
                         && ROLE_PATTERN.matcher(text).matches());
 
         /* 任一业务字段不符合契约，整个令牌都按 invalid_token 处理并返回 401。 */
-        if (!validUserId || !validSubject || !validAuthorities) {
+        if (!validUserId || !validAuthVersion || !validSubject || !validAuthorities) {
             return OAuth2TokenValidatorResult.failure(INVALID_TOKEN);
         }
         return OAuth2TokenValidatorResult.success();

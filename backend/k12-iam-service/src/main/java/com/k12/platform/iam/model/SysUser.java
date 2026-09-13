@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,6 +33,11 @@ public class SysUser {
     private String nickname;
     private String email;
     private Integer status;
+    private Integer failedLoginCount;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Instant lockedUntil;
+    private Long authVersion;
+    private Instant lastLoginTime;
     private Instant updatedTime;
 
     /*

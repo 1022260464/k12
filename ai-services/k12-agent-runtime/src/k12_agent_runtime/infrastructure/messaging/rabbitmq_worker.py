@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import UTC, datetime
 
 import aio_pika
 from aio_pika import DeliveryMode, ExchangeType, Message
@@ -53,6 +54,11 @@ class RabbitMqAgentWorker:
             result_queue = await channel.declare_queue(
                 self._settings.rabbitmq_result_queue,
                 durable=True,
+                arguments={
+                    # Java 消费端拒绝的非法结果也进入统一死信队列。
+                    # 同名队列的参数必须与 Java Agent 服务完全一致。
+                    "x-dead-letter-exchange": dead_letter_exchange.name,
+                },
             )
             dead_letter_queue = await channel.declare_queue(
                 self._settings.rabbitmq_dead_letter_queue,
@@ -82,6 +88,13 @@ class RabbitMqAgentWorker:
             # Validation errors are intentionally raised so malformed messages
             # are rejected and routed to the dead-letter queue.
             task = AgentRunTaskMessage.model_validate_json(message.body)
+            started_time = datetime.now(UTC)
+
+            # 先通知 Java 任务已经真正被 Worker 取走，便于数据库及时记录
+            # RUNNING 状态和 started_time，而不是把排队时间算作执行时间。
+            await self._publish_result(
+                AgentRunResultMessage.started(task, started_time)
+            )
             try:
                 result = await self._run_agent.execute(
                     RunAgentCommand(
@@ -92,12 +105,16 @@ class RabbitMqAgentWorker:
                         context=task.context,
                     )
                 )
-                result_message = AgentRunResultMessage.from_domain(result)
+                result_message = AgentRunResultMessage.from_domain(
+                    result,
+                    started_time,
+                )
             except Exception as error:  # noqa: BLE001
                 logger.exception("Agent task failed run_id=%s", task.run_id)
                 result_message = AgentRunResultMessage.failed(
                     task,
                     f"{type(error).__name__}: {error}",
+                    started_time,
                 )
 
             await self._publish_result(result_message)

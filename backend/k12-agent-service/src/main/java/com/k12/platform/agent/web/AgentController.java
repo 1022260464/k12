@@ -5,6 +5,7 @@ import com.k12.platform.agent.dto.AgentResponse;
 import com.k12.platform.agent.service.AgentService;
 import com.k12.platform.common.api.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,9 +16,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/agents")
 public class AgentController {
@@ -34,7 +37,7 @@ public class AgentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<AgentResponse>> getAgent(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<AgentResponse>> getAgent(@PathVariable("id") @Positive Long id) {
         return agentService.getAgent(id)
                 .map(agent -> ResponseEntity.ok(ApiResponse.ok(agent)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -49,7 +52,7 @@ public class AgentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AgentResponse>> updateAgent(
-            @PathVariable Long id,
+            @PathVariable("id") @Positive Long id,
             @Valid @RequestBody AgentRequest request
     ) {
         return agentService.updateAgent(id, request)
@@ -59,7 +62,7 @@ public class AgentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteAgent(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteAgent(@PathVariable("id") @Positive Long id) {
         if (!agentService.deleteAgent(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.fail(404, "Agent not found"));
