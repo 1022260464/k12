@@ -13,3 +13,5 @@ When implementing from a selected generated mock, treat that image as the source
 - Keep React components headless where practical: state and accessibility semantics belong in components, while visual decisions stay in the shared stylesheet.
 - Avoid dark full-page sections in both the user app and admin app. A dark color is acceptable only for a clear command button or terminal/status strip.
 - The user-app home page is a working learning dashboard, not a marketing page. Prioritize courses, current tasks, homework, AI assistance, and progress; keep architecture and role introductions out of the primary user flow.
+- The floating AI assistant must feel like a lightweight headless popover: white and neutral surfaces, a soft shadow, rounded chat bubbles and icon controls. Do not use a large square blue panel or keep the chat permanently fixed in the page layout.
+- Every clickable product action must call a real backend API. When the backend or page workflow does not exist yet, show an explicit planned empty state or disable the control; never simulate a successful operation.

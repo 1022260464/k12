@@ -6,7 +6,8 @@ from fastapi import FastAPI
 from k12_agent_runtime.bootstrap.container import build_container
 from k12_agent_runtime.core.config import Settings, get_settings
 from k12_agent_runtime.core.logging import configure_logging
-from k12_agent_runtime.interfaces.api.routes import agents, health, sandbox
+from k12_agent_runtime.interfaces.api.errors import register_exception_handlers
+from k12_agent_runtime.interfaces.api.routes import agents, health, rag, sandbox
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -24,9 +25,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Internal runtime for K12 agents, tools, and sandbox jobs.",
         lifespan=lifespan,
     )
+    register_exception_handlers(application)
     application.include_router(health.router, prefix="/internal/v1")
     application.include_router(agents.router, prefix="/internal/v1")
     application.include_router(sandbox.router, prefix="/internal/v1")
+    application.include_router(rag.router, prefix="/internal/v1")
     return application
 
 

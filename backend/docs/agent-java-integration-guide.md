@@ -105,13 +105,13 @@ Authorization: Bearer <JWT>
 Content-Type: application/json
 
 {
-  "inputText": "帮我制定八年级数学一次函数复习计划",
+  "inputText": "帮我制定八年级人工智能通识课的排序算法复习计划",
   "sessionId": "session-demo-001",
   "executionMode": "SYNC",
   "context": {
     "grade": "八年级",
     "durationMinutes": 40,
-    "weakPoints": ["函数图像"]
+    "weakPoints": ["相邻比较", "交换过程"]
   }
 }
 ```
@@ -157,13 +157,13 @@ GET /api/v1/agents/runs/{runId}/artifacts
 
 ```json
 {
-  "inputText": "生成一份八年级数学学习计划",
+  "inputText": "生成一份八年级人工智能通识课学习计划",
   "sessionId": "async-demo-001",
   "executionMode": "ASYNC",
   "context": {
     "grade": "八年级",
     "durationMinutes": 40,
-    "weakPoints": ["一次函数"]
+    "weakPoints": ["排序算法"]
   }
 }
 ```

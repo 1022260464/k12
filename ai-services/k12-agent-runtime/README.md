@@ -35,6 +35,19 @@ uv sync --dev
 
 本地 `.env` 不提交Git。配置项统一使用 `K12_AGENT_` 前缀。
 
+千问配置只写入本地 `.env`，不要提交真实密钥：
+
+```dotenv
+K12_AGENT_LLM_PROVIDER=dashscope
+K12_AGENT_LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+K12_AGENT_LLM_API_KEY=
+K12_AGENT_LLM_MODEL=qwen-plus
+```
+
+教学 Agent 通过领域层 `ChatModel` 接口调用模型，基础设施层负责适配千问的 OpenAI 兼容
+接口。模型只生成受结构约束的教学文本，动画步骤仍由本地代码生成。模型未配置、超时、
+网络失败或输出格式错误时自动回退到确定性讲解，因此本地演示不会被外部模型故障阻断。
+
 ## 启动FastAPI
 
 ```powershell
@@ -61,7 +74,42 @@ GET  /internal/v1/agents
 POST /internal/v1/agents/{agentCode}/invoke
 GET  /internal/v1/sandbox/capabilities
 POST /internal/v1/sandbox/executions
+GET  /internal/v1/rag/capabilities
+POST /internal/v1/rag/embeddings
+POST /internal/v1/rag/rerank
 ```
+
+## 本地BGE检索模型
+
+项目使用两个职责不同的模型：
+
+```text
+BAAI/bge-m3                 文本 -> 1024维稠密向量，用于pgvector召回
+BAAI/bge-reranker-v2-m3     查询+候选片段 -> 相关性分数，用于Top-K精排
+```
+
+Windows和Linux上的PyTorch固定从官方CUDA 12.8索引安装。模型采用延迟加载：FastAPI启动
+时不下载模型，也不占用显存；第一次调用对应接口时才从Hugging Face下载并加载。8GB显存的
+本地配置：
+
+```dotenv
+K12_AGENT_RAG_ENABLED=true
+K12_AGENT_EMBEDDING_DEVICE=cuda
+K12_AGENT_EMBEDDING_USE_FP16=true
+K12_AGENT_EMBEDDING_BATCH_SIZE=8
+K12_AGENT_RERANKER_DEVICE=cuda
+K12_AGENT_RERANKER_USE_FP16=true
+K12_AGENT_RERANKER_BATCH_SIZE=4
+```
+
+验证CUDA：
+
+```powershell
+uv run python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
+```
+
+Embedding和Reranker只是RAG模型层。下一阶段还需要实现文档切分、pgvector写入、带学段和
+教材条件的召回、引用组装以及检索评测，不能直接把完整文档全部发送给生成模型。
 
 ## 示例Agent
 
@@ -91,18 +139,24 @@ flowchart LR
 当前不依赖外部大模型。后续接入模型时，优先替换计划生成节点，不修改Controller和领域
 协议。
 
+`study-plan` 只用于展示 LangGraph 基础结构。赛题主流程使用 `teaching-assistant`，当前第一版
+支持按学段讲解冒泡排序，并返回安全的动画步骤 JSON。
+
 请求示例：
 
 ```http
-POST /internal/v1/agents/study-plan/invoke
+POST /internal/v1/agents/teaching-assistant/invoke
 Content-Type: application/json
 
 {
-  "inputText": "初中数学一次函数",
+  "inputText": "为什么冒泡排序要比较旁边的数字？",
   "context": {
-    "grade": "八年级",
-    "durationMinutes": 60,
-    "weakPoints": ["函数图像", "斜率"]
+    "stage": "小学高年级",
+    "grade": "六年级",
+    "textbook": "AI 通识课程示例教材",
+    "chapter": "算法如何整理信息",
+    "topic": "冒泡排序",
+    "knownWeakPoints": ["相邻比较"]
   }
 }
 ```
@@ -180,6 +234,10 @@ Sandbox（AGSX），由基础设施适配器创建短生命周期实例，并至
 RabbitMQ Worker主进程中调用 `exec`、`eval` 或 `subprocess` 直接执行前端代码。
 
 详细设计见 [`docs/architecture.md`](docs/architecture.md)。
+
+分批开发范围、每批验收标准以及你可以参与填写的教学样例见
+[`docs/agent-collaboration-roadmap.md`](docs/agent-collaboration-roadmap.md)。新增 Agent 前先按该文档
+完成“产品样例 -> State -> Node -> Graph -> Adapter -> 注册 -> 测试”的顺序。
 
 腾讯云AGSX现行架构、Piston本地边界、Rust静态审查边界以及E2B等备选资源见
 [`docs/code-sandbox-platform-guide.md`](docs/code-sandbox-platform-guide.md)。

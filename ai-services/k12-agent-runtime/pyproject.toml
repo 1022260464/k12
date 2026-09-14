@@ -11,8 +11,12 @@ dependencies = [
     "aio-pika>=10.0.1",
     "e2b-code-interpreter>=2.9.1",
     "fastapi[standard]>=0.141.1",
+    "httpx>=0.28.1",
     "langgraph>=1.2.11",
     "pydantic-settings>=2.15.0",
+    "sentence-transformers>=5.1.0,<6.0.0",
+    "torch>=2.11.0,<2.12.0",
+    "transformers>=4.44.2,<6.0.0",
 ]
 
 [project.scripts]
@@ -41,3 +45,13 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

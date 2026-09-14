@@ -71,6 +71,30 @@ def test_study_plan_agent_uses_general_branch_without_weak_points() -> None:
     assert sum(item["minutes"] for item in data["artifacts"][0]["payload"]) == 40
 
 
+def test_teaching_assistant_is_registered_and_adapts_to_stage() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        agents = client.get("/internal/v1/agents")
+        response = client.post(
+            "/internal/v1/agents/teaching-assistant/invoke",
+            json={
+                "inputText": "为什么冒泡排序要比较旁边的数字？",
+                "context": {
+                    "stage": "小学高年级",
+                    "grade": "六年级",
+                    "topic": "冒泡排序",
+                },
+            },
+        )
+
+    agent_codes = {item["code"] for item in agents.json()["data"]}
+    data = response.json()["data"]
+    assert "teaching-assistant" in agent_codes
+    assert response.status_code == 200
+    assert data["metadata"]["stage"] == "小学高年级"
+    assert data["artifacts"][0]["kind"] == "ANIMATION"
+    assert data["artifacts"][0]["payload"]["schemaVersion"] == "1.0"
+
+
 def test_unknown_agent_returns_standard_error() -> None:
     with TestClient(create_app(Settings(_env_file=None))) as client:
         response = client.post(
@@ -82,6 +106,18 @@ def test_unknown_agent_returns_standard_error() -> None:
     assert response.json()["code"] == 404
 
 
+def test_blank_agent_input_returns_standard_validation_error() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.post(
+            "/internal/v1/agents/study-plan/invoke",
+            json={"inputText": "   "},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == 422
+    assert response.json()["data"] is None
+
+
 def test_sandbox_is_disabled_by_default() -> None:
     with TestClient(create_app(Settings(_env_file=None))) as client:
         response = client.post(
@@ -91,6 +127,21 @@ def test_sandbox_is_disabled_by_default() -> None:
 
     assert response.status_code == 503
     assert response.json()["code"] == 503
+
+
+def test_rag_capabilities_and_inference_are_disabled_by_default() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        capabilities = client.get("/internal/v1/rag/capabilities")
+        embedding = client.post(
+            "/internal/v1/rag/embeddings",
+            json={"texts": ["什么是人工智能"]},
+        )
+
+    assert capabilities.status_code == 200
+    assert capabilities.json()["data"]["enabled"] is False
+    assert capabilities.json()["data"]["embeddingModel"] == "BAAI/bge-m3"
+    assert embedding.status_code == 503
+    assert embedding.json()["code"] == 503
 
 
 def test_internal_api_key_is_enforced_when_configured() -> None:

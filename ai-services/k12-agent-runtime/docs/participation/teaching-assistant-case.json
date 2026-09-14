@@ -1,0 +1,30 @@
+{
+  "caseId": "ai-bubble-sort-stage-adaptation-001",
+  "stage": "小学高年级",
+  "grade": "六年级",
+  "textbook": "AI 通识课程示例教材",
+  "chapter": "算法如何整理信息",
+  "topic": "冒泡排序",
+  "studentQuestion": "为什么冒泡排序要一次次比较旁边的数字？",
+  "knownWeakPoints": [
+    "不理解相邻比较",
+    "容易混淆交换前后的顺序"
+  ],
+  "preferredInteraction": [
+    "简短对话",
+    "可单步播放的排序动画",
+    "排序闯关题"
+  ],
+  "expectedSections": [
+    "使用适合小学高年级学生的语言解释",
+    "使用生活化比喻但不牺牲概念准确性",
+    "返回可供前端渲染的排序步骤",
+    "最后给出一道理解检查题和下一步建议"
+  ],
+  "forbiddenBehaviors": [
+    "只给出代码而不解释过程",
+    "虚构教材页码或知识来源",
+    "生成无法由白名单组件渲染的 HTML 或 JavaScript",
+    "直接替学生完成需要提交的任务"
+  ]
+}

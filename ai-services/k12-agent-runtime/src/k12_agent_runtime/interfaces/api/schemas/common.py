@@ -22,3 +22,7 @@ class ApiResponse[T](ApiModel):
     @classmethod
     def ok(cls, data: T) -> "ApiResponse[T]":
         return cls(code=200, message="ok", data=data)
+
+    @classmethod
+    def fail(cls, code: int, message: str) -> "ApiResponse[T]":
+        return cls(code=code, message=message, data=None)

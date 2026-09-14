@@ -175,10 +175,10 @@ Token 输入框仅填令牌内容；若手写请求头，则填写 `Authorizatio
 
 ```json
 {
-  "title": "一次函数基础",
-  "subject": "数学",
+  "title": "排序算法入门",
+  "subject": "人工智能通识",
   "gradeLevel": "八年级",
-  "description": "学习一次函数的定义和图像"
+  "description": "通过生活案例和动画理解排序算法"
 }
 ```
 
@@ -190,8 +190,8 @@ Token 输入框仅填令牌内容；若手写请求头，则填写 `Authorizatio
 
 ```json
 {
-  "title": "第一章：一次函数",
-  "content": "函数 y = kx + b，其中 k 不为 0。",
+  "title": "第一章：冒泡排序",
+  "content": "通过重复比较相邻元素并交换顺序，逐步完成排序。",
   "sortOrder": 1
 }
 ```

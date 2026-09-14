@@ -1,6 +1,9 @@
 import json
 from datetime import UTC, datetime
 
+import pytest
+from pydantic import ValidationError
+
 from k12_agent_runtime.infrastructure.messaging.messages import (
     AgentRunResultMessage,
     AgentRunTaskMessage,
@@ -34,3 +37,12 @@ def test_started_message_contains_camel_case_utc_timestamp() -> None:
 
     assert payload["status"] == "RUNNING"
     assert payload["startedTime"] == "2026-09-13T08:41:18Z"
+
+
+def test_rabbitmq_task_rejects_blank_required_text() -> None:
+    with pytest.raises(ValidationError):
+        AgentRunTaskMessage(
+            run_id="run-1",
+            agent_code="study-plan",
+            input_text="   ",
+        )

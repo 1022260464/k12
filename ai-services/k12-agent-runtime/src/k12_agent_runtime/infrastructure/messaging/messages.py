@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from k12_agent_runtime.domain.agents.models import AgentRunResult
 
@@ -25,6 +25,14 @@ class AgentRunTaskMessage(MessageModel):
     input_text: str = Field(min_length=1, max_length=20_000)
     user_id: str | None = None
     context: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("run_id", "agent_code", "input_text")
+    @classmethod
+    def required_text_must_not_be_blank(cls, value: str) -> str:
+        """拒绝只有空格的消息，让非法任务进入死信队列而不是占用 Worker。"""
+        if not value.strip():
+            raise ValueError("message field must not be blank")
+        return value
 
 
 class ArtifactMessage(MessageModel):
