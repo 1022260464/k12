@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.learning.mapper.LearningLeaderboardMapper">
+    <!--
+        MySQL是积分真相源：每个有效选课章节的最高进度累加为学习积分。
+        LIMIT使用绑定参数，调用方同时限制最大值，不能由前端传入SQL片段。
+    -->
+    <select id="selectTopScores" resultType="com.k12.platform.learning.model.LearningScoreSummary">
+        SELECT enrollment.user_id,
+               SUM(progress.progress_percent) AS learning_points
+        FROM learning_course_enrollment enrollment
+        INNER JOIN learning_chapter_progress progress
+                ON progress.enrollment_id = enrollment.id
+        WHERE enrollment.status = 'ACTIVE'
+        GROUP BY enrollment.user_id
+        HAVING SUM(progress.progress_percent) &gt; 0
+        ORDER BY learning_points DESC, enrollment.user_id ASC
+        LIMIT #{limit}
+    </select>
+</mapper>

@@ -15,6 +15,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.ReactiveAuthorizationManager;
+import org.springframework.security.web.server.authorization.AuthorizationContext;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -47,6 +50,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, ObjectMapper objectMapper) {
+        // 学习行为不是课程管理：学生必须同时拥有角色和读取权限，管理员可访问。
+        ReactiveAuthorizationManager<AuthorizationContext> studyAccess = (authentication, context) -> authentication
+                .map(auth -> {
+                    var authorities = auth.getAuthorities().stream().map(value -> value.getAuthority()).toList();
+                    return new AuthorizationDecision(auth.isAuthenticated() && (authorities.contains("ROLE_ADMIN")
+                            || (authorities.contains("ROLE_STUDENT") && authorities.contains("course:read"))));
+                }).defaultIfEmpty(new AuthorizationDecision(false));
         /*
          * AuthenticationEntryPoint 专门处理“认证失败”：无 Token、Token 过期、签名错误等。
          * 它返回 401；有合法 Token 但权限不足由 AccessDeniedHandler 返回 403。
@@ -108,20 +118,48 @@ public class SecurityConfig {
                          * hasAnyAuthority(A, B) 表示当前令牌拥有 A 或 B 任意一个即可。
                          * ROLE_ADMIN 是管理员兜底；user:read 是可单独分配的细粒度权限。
                          */
+                        .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/me/learning-profile").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.LEARNING_PROFILE_READ)
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/me/learning-profile").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.LEARNING_PROFILE_UPDATE)
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/me/password").authenticated()
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/*/password", "/api/v1/iam/users/*/status").hasAuthority(K12Authorities.ROLE_ADMIN)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/iam/audits/**").hasAuthority(K12Authorities.ROLE_ADMIN)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/iam/users/students/validate").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_READ)
                         .pathMatchers(HttpMethod.POST, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_CREATE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_UPDATE)
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_DELETE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/iam/roles/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.ROLE_READ)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/iam/roles/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.ROLE_UPDATE)
+                        // 具体动作必须先匹配，否则报名/进度 PUT 会误命中 course:update。
+                        .pathMatchers(HttpMethod.GET, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/progress").access(studyAccess)
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/chapters/*/progress").access(studyAccess)
+                        .pathMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/enrollment").access(studyAccess)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .pathMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
                         .pathMatchers(HttpMethod.POST, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_CREATE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_DELETE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/agents/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_READ)
+                        /* 运行、取消和重试都属于“调用智能体”，必须先于下面的 Agent 配置管理通配规则。 */
+                        .pathMatchers(HttpMethod.POST,
+                                "/api/v1/agents/*/runs",
+                                "/api/v1/agents/runs/*/cancel",
+                                "/api/v1/agents/runs/*/retry"
+                        ).hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_INVOKE)
                         .pathMatchers(HttpMethod.POST, "/api/v1/agents/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_CREATE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/agents/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_UPDATE)
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/agents/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_DELETE)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/submit").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_SUBMIT)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/grade").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/me/detail").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_READ)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/*/detail").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/assessments/homeworks/*/submissions/*/answers/*/grade").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .pathMatchers(HttpMethod.DELETE, "/api/v1/assessments/homeworks/*/questions/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/*/grade-history").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/recipients").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/publish", "/api/v1/assessments/homeworks/*/close").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_READ)
                         .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_CREATE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/assessments/homeworks/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)

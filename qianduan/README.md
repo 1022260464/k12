@@ -38,3 +38,6 @@ pnpm build
 - 登录接口返回 JWT，前端通过 `Authorization: Bearer <token>` 调用受保护接口。
 - 管理端提供用户 CRUD、角色分配和角色权限维护。
 - JWT 当前保存在 `sessionStorage`，关闭标签页后自动清除。生产环境建议进一步采用短期访问令牌配合 HttpOnly Refresh Token。
+
+完整的接口接入范围、已预留页面和后端待开发能力见
+[`frontend-api-integration-status.md`](./frontend-api-integration-status.md)。

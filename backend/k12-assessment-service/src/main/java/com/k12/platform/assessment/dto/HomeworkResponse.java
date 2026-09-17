@@ -8,6 +8,7 @@ public record HomeworkResponse(
         String title,
         String description,
         String status,
-        Instant updatedTime
+        Instant updatedTime,
+        Long teacherUserId
 ) {
 }

@@ -4,6 +4,9 @@ import com.k12.platform.common.api.ApiResponse;
 import com.k12.platform.iam.dto.UserCreateRequest;
 import com.k12.platform.iam.dto.UserResponse;
 import com.k12.platform.iam.dto.UserUpdateRequest;
+import com.k12.platform.iam.dto.ChangePasswordRequest;
+import com.k12.platform.iam.dto.ResetPasswordRequest;
+import com.k12.platform.iam.dto.UpdateUserStatusRequest;
 import com.k12.platform.iam.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -45,7 +48,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable("id") Long id) {
         return userService.getUser(id)
                 .map(user -> ResponseEntity.ok(ApiResponse.ok(user)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -60,7 +63,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody UserUpdateRequest request
     ) {
         return userService.updateUser(id, request)
@@ -70,11 +73,31 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable("id") Long id) {
         if (!userService.deleteUser(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.fail(404, "User not found"));
         }
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PutMapping("/me/password")
+    public ApiResponse<Void> changeOwnPassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changeOwnPassword(request);
+        return ApiResponse.ok(null);
+    }
+
+    @PutMapping("/{id}/password")
+    public ApiResponse<Void> resetPassword(@PathVariable("id") Long id,
+                                           @Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(id, request);
+        return ApiResponse.ok(null);
+    }
+
+    @PutMapping("/{id}/status")
+    public ApiResponse<Void> updateStatus(@PathVariable("id") Long id,
+                                          @Valid @RequestBody UpdateUserStatusRequest request) {
+        userService.updateStatus(id, request);
+        return ApiResponse.ok(null);
     }
 }

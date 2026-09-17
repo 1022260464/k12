@@ -1,4 +1,4 @@
-const AUTH_STORAGE_KEY = "k12-user-auth";
+import { api, AUTH_STORAGE_KEY } from "./client.js";
 
 export function getStoredSession() {
   const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -11,18 +11,9 @@ export function getStoredSession() {
   }
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...options.headers },
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(payload?.message || `请求失败（${response.status}）`);
-  return payload?.data;
-}
-
 export async function login(username, password) {
-  const data = await request("/api/v1/iam/auth/login", {
+  const data = await api("/api/v1/iam/auth/login", {
+    public: true,
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
@@ -32,7 +23,8 @@ export async function login(username, password) {
 }
 
 export async function register(form) {
-  return request("/api/v1/iam/auth/register", {
+  return api("/api/v1/iam/auth/register", {
+    public: true,
     method: "POST",
     body: JSON.stringify(form),
   });

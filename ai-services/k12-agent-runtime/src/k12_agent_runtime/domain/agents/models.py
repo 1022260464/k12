@@ -10,6 +10,9 @@ class AgentRunStatus(StrEnum):
 
 class AgentArtifactKind(StrEnum):
     CHART = "CHART"
+    ANIMATION = "ANIMATION"
+    GAME = "GAME"
+    CODE_RESULT = "CODE_RESULT"
     IMAGE = "IMAGE"
     TABLE = "TABLE"
     TEXT = "TEXT"

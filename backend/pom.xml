@@ -24,13 +24,16 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>${java.version}</maven.compiler.release>
+        <!-- 保留方法参数名，供 Spring MVC、校验框架和反射工具读取。 -->
+        <maven.compiler.parameters>true</maven.compiler.parameters>
         <spring-boot.version>3.3.5</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.3.4</spring-cloud-alibaba.version>
         <mybatis-spring-boot.version>3.0.5</mybatis-spring-boot.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
-        <!-- Spring Boot 3.3.5 管理的稳定版本，与项目 Java 17 编译环境匹配。 -->
-        <lombok.version>1.18.34</lombok.version>
+        <minio.version>9.0.1</minio.version>
+        <!-- 项目目标仍是 Java 17；1.18.38 同时兼容开发机上的 JDK 24 编译器。 -->
+        <lombok.version>1.18.38</lombok.version>
     </properties>
 
     <dependencyManagement>
@@ -71,6 +74,11 @@
                 <artifactId>k12-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -110,12 +118,19 @@
                     <version>3.13.0</version>
                     <configuration>
                         <release>${java.version}</release>
+                        <parameters>true</parameters>
                     </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
+                </plugin>
+                <!-- Surefire 3.x 原生识别 JUnit Jupiter（JUnit 5）测试。 -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -127,6 +142,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

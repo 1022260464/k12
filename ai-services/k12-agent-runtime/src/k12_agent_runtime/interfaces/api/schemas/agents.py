@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from k12_agent_runtime.domain.agents.models import AgentArtifact, AgentRunResult
 from k12_agent_runtime.interfaces.api.schemas.common import ApiModel
@@ -15,6 +15,14 @@ class AgentInvokeRequest(ApiModel):
     input_text: str = Field(min_length=1, max_length=20_000)
     user_id: str | None = None
     context: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("input_text")
+    @classmethod
+    def input_text_must_not_be_blank(cls, value: str) -> str:
+        """Pydantic 的 min_length 会把纯空格视为有长度，因此需要额外校验。"""
+        if not value.strip():
+            raise ValueError("inputText 不能为空")
+        return value
 
 
 class ArtifactResponse(ApiModel):

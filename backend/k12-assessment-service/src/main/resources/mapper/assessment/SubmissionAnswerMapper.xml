@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.assessment.mapper.SubmissionAnswerMapper">
+    <select id="findBySubmissionId" resultType="com.k12.platform.assessment.model.SubmissionAnswer">
+        SELECT * FROM assessment_submission_answer
+        WHERE submission_id = #{submissionId}
+        ORDER BY question_id
+    </select>
+    <select id="findForUpdate" resultType="com.k12.platform.assessment.model.SubmissionAnswer">
+        SELECT * FROM assessment_submission_answer
+        WHERE submission_id = #{submissionId} AND question_id = #{questionId}
+        FOR UPDATE
+    </select>
+    <select id="sumFinalScore" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(final_score), 0) FROM assessment_submission_answer
+        WHERE submission_id = #{submissionId}
+    </select>
+    <select id="countPending" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM assessment_submission_answer
+        WHERE submission_id = #{submissionId} AND final_score IS NULL
+    </select>
+</mapper>

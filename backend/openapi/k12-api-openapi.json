@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "K12 平台接口文档",
-    "description": "K12 多智能体教学平台第一期可调用接口。包含用户、角色权限、课程、智能体和作业 CRUD，统一通过 Gateway 和 JWT 鉴权。未实现的规划接口不进入本文件。",
-    "version": "0.1.1"
+    "description": "K12 多智能体教学平台可调用接口。包含 IAM 账号安全、课程、智能体、结构化作业题目、答题与批改，统一通过 Gateway 和 JWT 鉴权。",
+    "version": "0.2.0"
   },
   "servers": [
     {
@@ -133,7 +133,9 @@
     },
     "/api/v1/iam/auth/login": {
       "post": {
-        "tags": ["01-用户与权限服务"],
+        "tags": [
+          "01-用户与权限服务"
+        ],
         "summary": "用户名密码登录并获取 JWT",
         "operationId": "login",
         "security": [],
@@ -141,7 +143,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
             }
           }
         },
@@ -150,18 +154,26 @@
             "description": "登录成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LoginApiResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/LoginApiResponse"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/v1/iam/auth/register": {
       "post": {
-        "tags": ["01-用户与权限服务"],
+        "tags": [
+          "01-用户与权限服务"
+        ],
         "summary": "注册学生账号",
         "operationId": "registerStudent",
         "description": "公开注册固定分配 ROLE_STUDENT，不能通过请求指定管理员角色。",
@@ -170,7 +182,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
             }
           }
         },
@@ -179,12 +193,18 @@
             "description": "注册成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserApiResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UserApiResponse"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
         }
       }
     },
@@ -274,12 +294,18 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
         }
       }
     },
@@ -307,11 +333,15 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "put": {
@@ -340,13 +370,21 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
         }
       },
       "delete": {
@@ -365,18 +403,137 @@
           "200": {
             "$ref": "#/components/responses/OkEmpty"
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users/me/learning-profile": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "获取我的学习档案",
+        "operationId": "getCurrentLearningProfile",
+        "description": "需要 learning-profile:read，用户 ID 只从 JWT 获取。",
+        "responses": {
+          "200": {
+            "description": "学习档案",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningProfileApiResponse"
+                }
+              }
+            }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "创建或更新我的学习档案",
+        "operationId": "saveCurrentLearningProfile",
+        "description": "需要 learning-profile:update；学段与年级必须匹配。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearningProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存后的学习档案",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningProfileApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users/students/validate": {
+      "post": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "批量校验启用的学生账号",
+        "operationId": "validateStudentAccounts",
+        "description": "Assessment 服务设置作业接收人时使用，需要 homework:update。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentValidationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "有效与无效账号 ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentValidationApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/api/v1/iam/roles": {
       "get": {
-        "tags": ["01-用户与权限服务"],
+        "tags": [
+          "01-用户与权限服务"
+        ],
         "summary": "角色与权限列表",
         "operationId": "listRoles",
         "description": "需要 ROLE_ADMIN 或 role:read 权限。",
@@ -385,27 +542,41 @@
             "description": "角色与权限列表",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RoleListApiResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListApiResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/api/v1/iam/roles/{id}/permissions": {
       "put": {
-        "tags": ["01-用户与权限服务"],
+        "tags": [
+          "01-用户与权限服务"
+        ],
         "summary": "更新角色权限",
         "operationId": "updateRolePermissions",
         "description": "需要 ROLE_ADMIN 或 role:update 权限。ROLE_ADMIN 权限不可通过该接口移除。",
-        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateRolePermissionsRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRolePermissionsRequest"
+              }
             }
           }
         },
@@ -414,14 +585,24 @@
             "description": "更新后的角色",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RoleApiResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RoleApiResponse"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -447,6 +628,1133 @@
         }
       }
     },
+    "/api/v1/learning/leaderboard": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询学习积分排行榜",
+        "description": "需要 course:read 或管理员权限。积分由有效选课记录中的章节最高进度累加生成；MySQL是数据真相源，Redis只提供短时读取缓存。",
+        "operationId": "getLearningLeaderboard",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "返回榜单人数",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderboardApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/page": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "分页检索课程",
+        "description": "需要 course:read 或管理员；只返回有效课程。mine=true 按当前 JWT 用户筛选自己创建的课程，不是已报名课程。keyword 按标题字面值包含查询。",
+        "operationId": "searchCourses",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "gradeLevel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoursePageApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/{courseId}/chapters": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询课程章节目录",
+        "description": "需要 course:read 或管理员，且为课程创建人、管理员或已报名学生。仅返回目录，不返回正文。",
+        "operationId": "listCourseChapters",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterListApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "新增课程章节",
+        "description": "需要 course:update 且为课程创建人，或管理员。每门课程最多 500 个有效章节。",
+        "operationId": "createCourseChapter",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/{courseId}/chapters/{chapterId}": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询章节正文",
+        "description": "权限同章节目录，章节必须属于指定课程。",
+        "operationId": "getCourseChapter",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "修改章节内容与顺序",
+        "description": "需要 course:update 且为课程创建人，或管理员。",
+        "operationId": "updateCourseChapter",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "删除课程章节",
+        "description": "需要 course:update 且为课程创建人，或管理员。逻辑删除后章节不再计入学习进度。",
+        "operationId": "deleteCourseChapter",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/{courseId}/enrollment": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询我的课程报名状态",
+        "description": "需要学生角色及 course:read，或管理员。返回自己的 ACTIVE/WITHDRAWN 状态；从未报名返回 404。",
+        "operationId": "getMyCourseEnrollment",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "报名课程",
+        "description": "需要学生角色及 course:read，或管理员。用户 ID 来自 JWT；重复报名幂等，退课后重新报名保留原进度。",
+        "operationId": "enrollCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "退出课程",
+        "description": "需要学生角色及 course:read，或管理员。重复退课幂等；保留报名和学习记录，停止正文与进度访问。",
+        "operationId": "withdrawCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/{courseId}/chapters/{chapterId}/progress": {
+      "put": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "上报我的章节学习进度",
+        "description": "需要学生角色及 course:read，或管理员，并且已报名。仅保存 0 到 100 的历史最大值，不接受其他用户 ID。此为自主学习进度，不是考试成绩。",
+        "operationId": "updateChapterProgress",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterProgressApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/courses/{courseId}/progress": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询我的课程学习进度",
+        "description": "需要学生角色及 course:read，或管理员，并且已报名。当前有效章节进度均值向下取整；无章节为 0；新增、删除章节会改变总体进度。",
+        "operationId": "getMyCourseProgress",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProgressApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或令牌无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "功能权限或数据权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "课程、章节或报名记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "资源冲突或章节数量达到上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learning/history/me": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询我的最近课程学习历史",
+        "description": "需要学生角色及 course:read，或管理员。使用单次聚合查询返回当前用户有效选课的总体进度，按最后学习时间倒序。",
+        "operationId": "getMyLearningHistory",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户最近课程进度",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningHistoryApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "limit 参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/learning/courses": {
       "get": {
         "tags": [
@@ -454,7 +1762,7 @@
         ],
         "summary": "课程列表",
         "operationId": "listCourses",
-        "description": "需要 ROLE_ADMIN 或 course:read 权限。",
+        "description": "需要 ROLE_ADMIN 或 course:read 权限。兼容原有数组响应，最多返回最近更新的 100 门有效课程；完整检索使用 /courses/page。",
         "responses": {
           "200": {
             "description": "课程列表",
@@ -466,8 +1774,12 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
@@ -476,7 +1788,7 @@
         ],
         "summary": "创建课程",
         "operationId": "createCourse",
-        "description": "需要 ROLE_ADMIN 或 course:create 权限。",
+        "description": "需要 ROLE_ADMIN 或 course:create 权限。teacherId 自动取当前 JWT 用户 ID，客户端不能指定课程归属。",
         "requestBody": {
           "$ref": "#/components/requestBodies/CourseRequest"
         },
@@ -491,9 +1803,15 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -521,11 +1839,15 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "put": {
@@ -534,7 +1856,7 @@
         ],
         "summary": "更新课程",
         "operationId": "updateCourse",
-        "description": "需要 ROLE_ADMIN 或 course:update 权限。",
+        "description": "需要 course:update 且为课程创建人，或 ROLE_ADMIN。无归属的历史课程仅允许管理员维护。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -554,12 +1876,18 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "delete": {
@@ -568,7 +1896,7 @@
         ],
         "summary": "删除课程",
         "operationId": "deleteCourse",
-        "description": "需要 ROLE_ADMIN 或 course:delete 权限。",
+        "description": "需要 course:delete 且为课程创建人，或 ROLE_ADMIN。逻辑删除课程，保留历史报名与进度。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -578,11 +1906,15 @@
           "200": {
             "$ref": "#/components/responses/OkEmpty"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       }
     },
@@ -627,8 +1959,12 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
@@ -652,9 +1988,15 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -682,11 +2024,15 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "put": {
@@ -715,12 +2061,18 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "delete": {
@@ -739,11 +2091,624 @@
           "200": {
             "$ref": "#/components/responses/OkEmpty"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/code-executions": {
+      "post": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "执行Python代码",
+        "operationId": "executeSandboxCode",
+        "description": "需要ROLE_ADMIN或agent:invoke权限。SYNC模式由Java同步调用Python Runtime并返回终态；ASYNC模式返回HTTP 202和PENDING，由Python Worker通过RabbitMQ处理。两种模式都把运行结果和产物写入agent_run、agent_artifact，返回的runId可用于运行详情查询。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeExecutionRequest"
+              },
+              "example": {
+                "code": "print('hello k12')",
+                "timeoutSeconds": 10,
+                "executionMode": "SYNC"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SYNC代码执行完成；业务状态请读取data.status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeExecutionApiResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "ASYNC代码执行任务已进入队列，data.status为PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeExecutionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/{agentCode}/runs": {
+      "post": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "运行智能体",
+        "operationId": "createAgentRun",
+        "description": "需要 ROLE_ADMIN 或 agent:invoke 权限。Java 从 JWT 获取用户 ID，调用 Python Runtime，并保存运行记录和产物。",
+        "parameters": [
+          {
+            "name": "agentCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,63}$"
+            },
+            "example": "study-plan"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunRequest"
+              },
+              "example": {
+                "inputText": "为我制定八年级数学一次函数复习计划",
+                "sessionId": "session-demo-001",
+                "executionMode": "SYNC",
+                "context": {
+                  "grade": "八年级",
+                  "durationMinutes": 40,
+                  "weakPoints": [
+                    "函数图像"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "SYNC 运行完成并已保存",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunApiResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "ASYNC 运行已进入 RabbitMQ 队列，状态为 PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/{agentCode}/sessions/{sessionId}/history": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "查询当前用户的智能体会话历史",
+        "operationId": "getAgentSessionHistory",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。始终只读取当前 JWT 用户自己的成功轮次，不返回服务端聚合的 inputContext。",
+        "parameters": [
+          {
+            "name": "agentCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,63}$"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "按时间正序返回会话轮次",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionHistoryApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/runs": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "运行记录列表",
+        "operationId": "listAgentRuns",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。普通用户只返回自己的运行记录，管理员可查看全部。",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "运行记录分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunPageApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/runs/{runId}": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "运行记录详情",
+        "operationId": "getAgentRun",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。普通用户只能查看自己的运行详情。",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "运行详情和全部产物",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/runs/{runId}/cancel": {
+      "post": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "取消异步任务",
+        "operationId": "cancelAgentRun",
+        "description": "需要 ROLE_ADMIN 或 agent:invoke。普通用户仅可取消自己的任务，管理员可取消全部。仅 ASYNC 的 PENDING/RUNNING 可取消，重复取消幂等。当前为业务取消：Java 拒绝迟到结果，不会中断 Python 进程或删除已入队消息。",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "任务已取消",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/runs/{runId}/retry": {
+      "post": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "人工重试失败的异步任务",
+        "operationId": "retryAgentRun",
+        "description": "需要 ROLE_ADMIN 或 agent:invoke，且原记录对调用者可见。仅 FAILED/TIMED_OUT 的 ASYNC 可重试，重新校验智能体启用状态，复制输入创建新 runId。使用当前 JWT 身份，不冒用原用户。每次调用创建新任务，客户端不可自动重试此 POST；原任务可能仍在 Worker 执行，涉及外部写操作时需人工确认。",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "新的异步任务已受理",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/runs/{runId}/artifacts": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "运行产物列表",
+        "operationId": "listAgentRunArtifacts",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。返回图表、表格、图片和文件等前端可渲染产物。",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "运行产物",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentArtifactListApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/runs/{runId}/artifacts/{artifactId}/download-url": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "获取运行产物临时下载地址",
+        "operationId": "createAgentArtifactDownloadUrl",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。服务端校验运行记录和产物归属后，为 MinIO 对象生成短期签名 URL；不会向前端暴露存储凭据。",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "短期有效的 HTTP(S) 访问地址",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactDownloadUrlApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts": {
+      "post": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "提交 AI 课堂小测",
+        "description": "需要 agent:read。由服务端读取本人已完成的教学运行及题目判分；同一运行只允许提交一次。形成性练习不计入作业成绩。",
+        "operationId": "submitAiPracticeAttempt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/PracticeAttemptRequest"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "练习结果",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeAttemptApiResponse"}}}
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"$ref": "#/components/responses/Conflict"},
+          "502": {"$ref": "#/components/responses/BadGateway"},
+          "503": {"$ref": "#/components/responses/ServiceUnavailable"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/me": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "查询本人近期 AI 小测记录",
+        "operationId": "listMyAiPracticeAttempts",
+        "parameters": [{"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}}],
+        "responses": {
+          "200": {
+            "description": "近期练习记录",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeAttemptListApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/me/insights": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "查询本人近期 AI 小测表现与学习建议",
+        "description": "需要 agent:read。最多扫描最近50次小测、返回最近5个主题，每个主题最多统计5次。只是形成性练习分析，不是正式能力评定。",
+        "operationId": "getMyAiPracticeInsights",
+        "responses": {
+          "200": {
+            "description": "按主题汇总的练习建议",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeInsightListApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/me/mastery": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "查询本人按知识点累计的形成性练习掌握情况",
+        "description": "需要 agent:read。仅统计带稳定知识点编码的新小测；不是正式成绩或能力评级。",
+        "operationId": "getMyAiKnowledgeMastery",
+        "responses": {
+          "200": {
+            "description": "最近练习的知识点汇总",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/KnowledgeMasteryListApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/runs/{runId}/me": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "按教学运行查询本人小测结果",
+        "operationId": "getMyAiPracticeAttemptByRun",
+        "parameters": [{"name": "runId", "in": "path", "required": true, "schema": {"type": "string", "maxLength": 64}}],
+        "responses": {
+          "200": {
+            "description": "本次练习结果",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeAttemptApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
         }
       }
     },
@@ -776,7 +2741,28 @@
         ],
         "summary": "作业列表",
         "operationId": "listHomeworks",
-        "description": "需要 ROLE_ADMIN 或 homework:read 权限。",
+        "description": "需要 homework:read。教师查看自己创建的作业，学生查看分配给自己的已发布/已关闭作业，管理员查看全部。",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "作业列表",
@@ -788,8 +2774,12 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
@@ -798,7 +2788,7 @@
         ],
         "summary": "创建作业",
         "operationId": "createHomework",
-        "description": "需要 ROLE_ADMIN 或 homework:create 权限。",
+        "description": "需要 homework:create；新作业只能创建为 DRAFT，教师 ID 从 JWT 获取。",
         "requestBody": {
           "$ref": "#/components/requestBodies/HomeworkRequest"
         },
@@ -813,9 +2803,15 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -843,11 +2839,15 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "put": {
@@ -856,7 +2856,7 @@
         ],
         "summary": "更新作业",
         "operationId": "updateHomework",
-        "description": "需要 ROLE_ADMIN 或 homework:update 权限。",
+        "description": "需要 homework:update；仅创建教师或管理员可修改，且作业必须为 DRAFT。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -876,12 +2876,18 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
-          },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          }
         }
       },
       "delete": {
@@ -890,7 +2896,7 @@
         ],
         "summary": "删除作业",
         "operationId": "deleteHomework",
-        "description": "需要 ROLE_ADMIN 或 homework:delete 权限。",
+        "description": "需要 homework:delete；仅草稿可删除，已有提交记录时返回 409。",
         "parameters": [
           {
             "$ref": "#/components/parameters/Id"
@@ -900,11 +2906,1145 @@
           "200": {
             "$ref": "#/components/responses/OkEmpty"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/recipients": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "查询作业接收人",
+        "operationId": "getHomeworkRecipients",
+        "description": "需要 homework:update，仅创建教师或管理员可查看。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "学生 ID 列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkRecipientsApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "设置作业接收人",
+        "operationId": "setHomeworkRecipients",
+        "description": "仅草稿可设置；IAM 会校验每个 ID 都是启用的学生账号。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeworkRecipientsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存后的学生 ID 列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkRecipientsApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/publish": {
+      "post": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "发布作业",
+        "operationId": "publishHomework",
+        "description": "DRAFT 转为 PUBLISHED，发布前必须设置接收人。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已发布作业",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/close": {
+      "post": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "关闭作业",
+        "operationId": "closeHomework",
+        "description": "PUBLISHED 转为 CLOSED，关闭后不再接受提交。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已关闭作业",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submit": {
+      "post": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "提交作业",
+        "operationId": "submitHomework",
+        "description": "需要 homework:submit；学生必须在接收人名单中，且每份作业只能提交一次。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeworkSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "提交成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkSubmissionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/grade": {
+      "post": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "批改作业",
+        "operationId": "gradeHomework",
+        "description": "需要 homework:grade；expectedVersion 用于防止并发覆盖，每次批改保留历史。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeworkGradeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批改结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkSubmissionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/me": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "查询我的提交",
+        "operationId": "getMyHomeworkSubmission",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前学生提交",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkSubmissionApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "分页查询作业提交",
+        "operationId": "listHomeworkSubmissions",
+        "description": "需要 homework:grade，仅创建教师或管理员可查看。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "提交分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionPageApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/learning-results/me": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "查询我的学习结果",
+        "operationId": "getMyLearningResults",
+        "description": "仅返回 JWT 当前用户自己的提交、成绩和反馈。",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "学习结果分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionPageApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/{studentId}/grade-history": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "查询批改历史",
+        "operationId": "getHomeworkGradeHistory",
+        "description": "需要 homework:grade，仅创建教师或管理员可查看。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "批改历史",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkGradeHistoryListApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/auth/token-state": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "校验当前 JWT 状态",
+        "operationId": "validateTokenState",
+        "description": "业务服务内部调用；JWT 的 authVersion 必须与数据库一致。",
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users/me/password": {
+      "put": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "修改我的密码",
+        "operationId": "changeOwnPassword",
+        "description": "校验当前密码后更新 BCrypt 哈希，并使当前 JWT 失效。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users/{id}/password": {
+      "put": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "管理员重置用户密码",
+        "operationId": "resetUserPassword",
+        "description": "仅 ROLE_ADMIN；重置后目标用户的旧 JWT 失效。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/users/{id}/status": {
+      "put": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "更新用户状态",
+        "operationId": "updateUserStatus",
+        "description": "仅 ROLE_ADMIN；支持 ENABLED、DISABLED、LOCKED。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/audits/logins": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "分页查询登录审计",
+        "operationId": "listLoginAudits",
+        "description": "仅 ROLE_ADMIN，不包含密码和 JWT。",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginAuditPageApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/iam/audits/operations": {
+      "get": {
+        "tags": [
+          "01-用户与权限服务"
+        ],
+        "summary": "分页查询管理操作审计",
+        "operationId": "listOperationAudits",
+        "description": "仅 ROLE_ADMIN。",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationAuditPageApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/questions": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "查询作业题目",
+        "operationId": "listHomeworkQuestions",
+        "description": "发布期间学生响应不包含标准答案；教师、管理员或作业关闭后可见。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkQuestionListApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "新增作业题目",
+        "operationId": "createHomeworkQuestion",
+        "description": "仅草稿可新增，题目总分不能超过 100。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeworkQuestionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkQuestionApiResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkQuestionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/questions/{questionId}": {
+      "put": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "更新作业题目",
+        "operationId": "updateHomeworkQuestion",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomeworkQuestionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeworkQuestionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "删除作业题目",
+        "operationId": "deleteHomeworkQuestion",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/me/detail": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "查询我的逐题答题详情",
+        "operationId": "getMySubmissionDetail",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionDetailApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/{studentId}/detail": {
+      "get": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "教师查询学生逐题答题详情",
+        "operationId": "getStudentSubmissionDetail",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionDetailApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/homeworks/{id}/submissions/{studentId}/answers/{questionId}/grade": {
+      "put": {
+        "tags": [
+          "07-作业与批改服务"
+        ],
+        "summary": "教师逐题批改",
+        "operationId": "gradeSubmissionAnswer",
+        "description": "AI 结果只能作为建议；此接口确认最终分数，并使用 expectedSubmissionVersion 防止并发覆盖。",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionAnswerGradeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionDetailApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
         }
       }
     }
@@ -948,10 +4088,11 @@
               "$ref": "#/components/schemas/CourseRequest"
             },
             "example": {
-              "title": "Python Basics",
-              "subject": "Programming",
-              "gradeLevel": "BEGINNER",
-              "description": "Introductory programming course"
+              "title": "一次函数基础",
+              "subject": "数学",
+              "gradeLevel": "八年级",
+              "description": "学习一次函数的定义和图像",
+              "coverObjectKey": "course-assets/v1/course-math-comic.png"
             }
           }
         }
@@ -964,6 +4105,7 @@
               "$ref": "#/components/schemas/AgentRequest"
             },
             "example": {
+              "code": "code-tutor",
               "name": "Code Tutor Agent",
               "type": "CODE_TUTOR",
               "description": "Guide students through programming exercises"
@@ -993,7 +4135,9 @@
         "description": "未登录、JWT 无效或 JWT 已过期",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" },
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            },
             "example": {
               "code": 401,
               "message": "未登录、登录已过期或令牌无效",
@@ -1007,7 +4151,9 @@
         "description": "已登录，但没有访问该资源的权限",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" },
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            },
             "example": {
               "code": 403,
               "message": "没有访问该资源的权限",
@@ -1021,7 +4167,9 @@
         "description": "请求参数或业务输入不合法",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" }
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
           }
         }
       },
@@ -1029,7 +4177,9 @@
         "description": "唯一数据重复或资源状态冲突",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/EmptyApiResponse" }
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
           }
         }
       },
@@ -1052,9 +4202,112 @@
             }
           }
         }
+      },
+      "BadGateway": {
+        "description": "Python Runtime 返回的数据不符合内部契约",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Python Runtime 当前不可用，失败运行记录仍会保存",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EmptyApiResponse"
+            }
+          }
+        }
       }
     },
     "schemas": {
+      "PracticeAttemptRequest": {
+        "type": "object",
+        "required": ["runId", "answers"],
+        "properties": {
+          "runId": {"type": "string", "maxLength": 64},
+          "answers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "required": ["questionId", "optionId"],
+              "properties": {
+                "questionId": {"type": "string", "maxLength": 64},
+                "optionId": {"type": "string", "maxLength": 64}
+              }
+            }
+          }
+        }
+      },
+      "PracticeAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "runId": {"type": "string"},
+          "topic": {"type": "string"},
+          "knowledgeCode": {"type": "string", "nullable": true},
+          "score": {"type": "integer"},
+          "maxScore": {"type": "integer"},
+          "correctCount": {"type": "integer"},
+          "totalQuestions": {"type": "integer"},
+          "weakPoint": {"type": "string", "nullable": true},
+          "createdTime": {"type": "string", "format": "date-time"}
+        }
+      },
+      "PracticeAttemptApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/PracticeAttempt"}}}
+        ]
+      },
+      "PracticeAttemptListApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/PracticeAttempt"}}}}
+        ]
+      },
+      "PracticeInsight": {
+        "type": "object",
+        "properties": {
+          "topic": {"type": "string"},
+          "sampleCount": {"type": "integer", "minimum": 1, "maximum": 5},
+          "averageScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "latestScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "action": {"type": "string", "enum": ["REVIEW", "PRACTICE", "APPLY"]},
+          "suggestion": {"type": "string"},
+          "lastPracticedTime": {"type": "string", "format": "date-time", "nullable": true}
+        }
+      },
+      "PracticeInsightListApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/PracticeInsight"}}}}
+        ]
+      },
+      "KnowledgeMastery": {
+        "type": "object",
+        "properties": {
+          "knowledgeCode": {"type": "string", "example": "sorting.bubble_sort"},
+          "topic": {"type": "string"},
+          "attemptCount": {"type": "integer", "minimum": 1},
+          "masteryPercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "latestScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "action": {"type": "string", "enum": ["REVIEW", "PRACTICE", "APPLY"]},
+          "lastPracticedTime": {"type": "string", "format": "date-time"}
+        }
+      },
+      "KnowledgeMasteryListApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/KnowledgeMastery"}}}}
+        ]
+      },
       "ApiResponseBase": {
         "type": "object",
         "required": [
@@ -1290,90 +4543,178 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["username", "password"],
+        "required": [
+          "username",
+          "password"
+        ],
         "properties": {
-          "username": { "type": "string", "example": "admin" },
-          "password": { "type": "string", "format": "password", "example": "admin123" }
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "admin123"
+          }
         }
       },
       "LoginResponse": {
         "type": "object",
         "properties": {
-          "accessToken": { "type": "string", "description": "JWT 访问令牌" },
-          "tokenType": { "type": "string", "example": "Bearer" },
-          "expiresIn": { "type": "integer", "format": "int64", "example": 1800 },
-          "username": { "type": "string", "example": "admin" },
+          "accessToken": {
+            "type": "string",
+            "description": "JWT 访问令牌"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1800
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
           "authorities": {
             "type": "array",
-            "items": { "type": "string" },
-            "example": ["ROLE_ADMIN", "user:read", "user:create"]
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "ROLE_ADMIN",
+              "user:read",
+              "user:create"
+            ]
           }
         }
       },
       "LoginApiResponse": {
         "allOf": [
-          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
           {
             "type": "object",
             "properties": {
-              "data": { "$ref": "#/components/schemas/LoginResponse" }
+              "data": {
+                "$ref": "#/components/schemas/LoginResponse"
+              }
             }
           }
         ]
       },
       "RegisterRequest": {
         "type": "object",
-        "required": ["username", "password", "nickname"],
+        "required": [
+          "username",
+          "password",
+          "nickname"
+        ],
         "properties": {
-          "username": { "type": "string", "example": "student01" },
-          "password": { "type": "string", "format": "password", "minLength": 8, "maxLength": 72, "example": "Student@123" },
-          "nickname": { "type": "string", "example": "学生一" },
-          "email": { "type": "string", "format": "email", "example": "student01@example.com" }
+          "username": {
+            "type": "string",
+            "example": "student01"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 72,
+            "example": "Student@123"
+          },
+          "nickname": {
+            "type": "string",
+            "example": "学生一"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "student01@example.com"
+          }
         }
       },
       "UpdateRolePermissionsRequest": {
         "type": "object",
-        "required": ["permissionCodes"],
+        "required": [
+          "permissionCodes"
+        ],
         "properties": {
           "permissionCodes": {
             "type": "array",
-            "items": { "type": "string" },
-            "example": ["course:read", "course:update"]
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "course:read",
+              "course:update"
+            ]
           }
         }
       },
       "Role": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "format": "int64", "example": 2 },
-          "name": { "type": "string", "example": "Teacher" },
-          "code": { "type": "string", "example": "ROLE_TEACHER" },
-          "description": { "type": "string", "example": "Teacher user" },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 2
+          },
+          "name": {
+            "type": "string",
+            "example": "Teacher"
+          },
+          "code": {
+            "type": "string",
+            "example": "ROLE_TEACHER"
+          },
+          "description": {
+            "type": "string",
+            "example": "Teacher user"
+          },
           "permissionCodes": {
             "type": "array",
-            "items": { "type": "string" },
-            "example": ["course:read", "course:update"]
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "course:read",
+              "course:update"
+            ]
           }
         }
       },
       "RoleApiResponse": {
         "allOf": [
-          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
           {
             "type": "object",
-            "properties": { "data": { "$ref": "#/components/schemas/Role" } }
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Role"
+              }
+            }
           }
         ]
       },
       "RoleListApiResponse": {
         "allOf": [
-          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
           {
             "type": "object",
             "properties": {
               "data": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/Role" }
+                "items": {
+                  "$ref": "#/components/schemas/Role"
+                }
               }
             }
           }
@@ -1389,21 +4730,518 @@
         "properties": {
           "title": {
             "type": "string",
-            "example": "Python Basics"
+            "maxLength": 128,
+            "example": "一次函数基础"
           },
           "subject": {
             "type": "string",
-            "example": "Programming"
+            "maxLength": 64,
+            "example": "数学"
           },
           "gradeLevel": {
             "type": "string",
-            "example": "BEGINNER"
+            "maxLength": 32,
+            "example": "八年级"
           },
           "description": {
             "type": "string",
-            "example": "Introductory programming course"
+            "maxLength": 1000,
+            "nullable": true,
+            "example": "学习一次函数的定义和图像"
+          },
+          "coverObjectKey": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true,
+            "description": "MinIO中course-assets/目录下的稳定对象键",
+            "example": "course-assets/v1/course-math-comic.png"
           }
         }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "required": [
+          "rank",
+          "userId",
+          "learningPoints",
+          "currentUser"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1001
+          },
+          "learningPoints": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 280
+          },
+          "currentUser": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Leaderboard": {
+        "type": "object",
+        "required": [
+          "metric",
+          "generatedTime",
+          "entries"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "example": "chapter_progress_points"
+          },
+          "generatedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            }
+          }
+        }
+      },
+      "LeaderboardApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Leaderboard"
+              }
+            }
+          }
+        ]
+      },
+      "CoursePage": {
+        "type": "object",
+        "required": [
+          "page",
+          "size",
+          "hasNext",
+          "items"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Course"
+            }
+          }
+        }
+      },
+      "ChapterRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "content",
+          "sortOrder"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "example": "第一章：一次函数"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000,
+            "description": "纯文本正文；前端按文本展示，不作为 HTML 执行",
+            "example": "本章学习一次函数的定义。"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 1
+          }
+        }
+      },
+      "ChapterSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "courseId",
+          "title",
+          "sortOrder",
+          "updatedTime"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "courseId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "updatedTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Chapter": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ChapterSummary"
+          },
+          {
+            "type": "object",
+            "required": [
+              "content"
+            ],
+            "properties": {
+              "content": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "Enrollment": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "userId",
+          "status",
+          "enrolledTime"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "WITHDRAWN"
+            ]
+          },
+          "enrolledTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProgressRequest": {
+        "type": "object",
+        "required": [
+          "progressPercent"
+        ],
+        "properties": {
+          "progressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 60
+          }
+        }
+      },
+      "ChapterProgress": {
+        "type": "object",
+        "required": [
+          "chapterId",
+          "title",
+          "progressPercent",
+          "updatedTime"
+        ],
+        "properties": {
+          "chapterId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "progressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "updatedTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CourseProgress": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "totalChapters",
+          "completedChapters",
+          "progressPercent",
+          "chapters"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "totalChapters": {
+            "type": "integer"
+          },
+          "completedChapters": {
+            "type": "integer"
+          },
+          "progressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChapterProgress"
+            }
+          }
+        }
+      },
+      "CourseLearningSummary": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "courseTitle",
+          "subject",
+          "gradeLevel",
+          "totalChapters",
+          "completedChapters",
+          "progressPercent",
+          "enrolledTime"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "courseTitle": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "gradeLevel": {
+            "type": "string"
+          },
+          "totalChapters": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completedChapters": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "progressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "enrolledTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLearningTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "LearningHistory": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/CourseLearningSummary"
+            }
+          }
+        }
+      },
+      "CoursePageApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CoursePage"
+              }
+            }
+          }
+        ]
+      },
+      "ChapterApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Chapter"
+              }
+            }
+          }
+        ]
+      },
+      "EnrollmentApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Enrollment"
+              }
+            }
+          }
+        ]
+      },
+      "ChapterProgressApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ChapterProgress"
+              }
+            }
+          }
+        ]
+      },
+      "CourseProgressApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CourseProgress"
+              }
+            }
+          }
+        ]
+      },
+      "LearningHistoryApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LearningHistory"
+              }
+            }
+          }
+        ]
+      },
+      "ChapterListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChapterSummary"
+                }
+              }
+            }
+          }
+        ]
       },
       "Course": {
         "allOf": [
@@ -1413,6 +5251,18 @@
           {
             "type": "object",
             "properties": {
+              "teacherId": {
+                "type": "integer",
+                "format": "int64",
+                "nullable": true,
+                "description": "课程创建人的用户 ID；历史课程可能为空"
+              },
+              "coverUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true,
+                "description": "后端临时生成的课程封面签名地址；MinIO未启用时为空"
+              },
               "id": {
                 "type": "integer",
                 "format": "int64",
@@ -1462,20 +5312,29 @@
       "AgentRequest": {
         "type": "object",
         "required": [
+          "code",
           "name",
           "type"
         ],
         "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,63}$",
+            "example": "code-tutor"
+          },
           "name": {
             "type": "string",
+            "maxLength": 128,
             "example": "Code Tutor Agent"
           },
           "type": {
             "type": "string",
+            "maxLength": 64,
             "example": "CODE_TUTOR"
           },
           "description": {
             "type": "string",
+            "maxLength": 1000,
             "example": "Guide students through programming exercises"
           }
         }
@@ -1538,6 +5397,638 @@
           }
         ]
       },
+      "CodeExecutionRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100000,
+            "description": "需要在隔离沙箱中执行的Python代码"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 10,
+            "nullable": true
+          },
+          "executionMode": {
+            "type": "string",
+            "enum": [
+              "SYNC",
+              "ASYNC"
+            ],
+            "default": "SYNC",
+            "nullable": true,
+            "description": "SYNC同步等待执行结果；ASYNC进入RabbitMQ后返回PENDING"
+          }
+        }
+      },
+      "CodeExecutionArtifact": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CODE_RESULT",
+              "CHART",
+              "IMAGE",
+              "FILE",
+              "TABLE"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "storageUri": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "nullable": true
+          }
+        }
+      },
+      "CodeExecution": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "description": "K12平台运行编号，可用于查询运行详情"
+          },
+          "executionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Python Runtime代码执行编号；PENDING时尚未生成"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCEEDED",
+              "FAILED",
+              "TIMED_OUT",
+              "REJECTED"
+            ]
+          },
+          "stdout": {
+            "type": "string"
+          },
+          "stderr": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodeExecutionArtifact"
+            }
+          },
+          "exitCode": {
+            "type": "integer",
+            "nullable": true
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "CodeExecutionApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CodeExecution"
+              }
+            }
+          }
+        ]
+      },
+      "AgentRunRequest": {
+        "type": "object",
+        "required": [
+          "inputText"
+        ],
+        "properties": {
+          "inputText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "sessionId": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$",
+            "nullable": true
+          },
+          "executionMode": {
+            "type": "string",
+            "enum": [
+              "SYNC",
+              "ASYNC"
+            ],
+            "default": "SYNC"
+          },
+          "context": {
+            "type": "object",
+            "maxProperties": 50,
+            "additionalProperties": true,
+            "default": {}
+          }
+        }
+      },
+      "AgentArtifact": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CHART",
+              "IMAGE",
+              "TABLE",
+              "TEXT",
+              "FILE",
+              "ANIMATION",
+              "GAME",
+              "CODE_RESULT"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "storageUri": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "checksumSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AgentRun": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "agentCode": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "executionMode": {
+            "type": "string",
+            "enum": [
+              "SYNC",
+              "ASYNC"
+            ]
+          },
+          "inputText": {
+            "type": "string"
+          },
+          "inputContext": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED",
+              "TIMED_OUT",
+              "CANCELLED"
+            ]
+          },
+          "outputText": {
+            "type": "string",
+            "nullable": true
+          },
+          "outputMetadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentArtifact"
+            }
+          }
+        }
+      },
+      "AgentRunSummary": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "agentCode": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "executionMode": {
+            "type": "string",
+            "enum": [
+              "SYNC",
+              "ASYNC"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AgentRunPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentRunSummary"
+            }
+          }
+        }
+      },
+      "AgentRunApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AgentRun"
+              }
+            }
+          }
+        ]
+      },
+      "AgentRunPageApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AgentRunPage"
+              }
+            }
+          }
+        ]
+      },
+      "AgentArtifactListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AgentArtifact"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ArtifactDownloadUrl": {
+        "type": "object",
+        "required": [
+          "artifactId",
+          "url",
+          "expiresSeconds"
+        ],
+        "properties": {
+          "artifactId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresSeconds": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "ArtifactDownloadUrlApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ArtifactDownloadUrl"
+              }
+            }
+          }
+        ]
+      },
+      "AgentSessionTurn": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "userMessage": {
+            "type": "string"
+          },
+          "assistantMessage": {
+            "type": "string"
+          },
+          "outputMetadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentArtifact"
+            }
+          }
+        }
+      },
+      "AgentSessionHistory": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentCode": {
+            "type": "string"
+          },
+          "turns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSessionTurn"
+            }
+          }
+        }
+      },
+      "AgentSessionHistoryApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AgentSessionHistory"
+              }
+            }
+          }
+        ]
+      },
+      "LearningProfileRequest": {
+        "type": "object",
+        "required": [
+          "schoolStage",
+          "grade"
+        ],
+        "properties": {
+          "schoolStage": {
+            "type": "string",
+            "enum": [
+              "PRIMARY_LOWER",
+              "PRIMARY_UPPER",
+              "JUNIOR_HIGH",
+              "SENIOR_HIGH"
+            ]
+          },
+          "grade": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "example": 7
+          },
+          "textbook": {
+            "type": "string",
+            "maxLength": 128,
+            "example": "人教版"
+          },
+          "interests": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "example": [
+              "编程",
+              "机器人"
+            ]
+          }
+        }
+      },
+      "LearningProfile": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LearningProfileRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "updatedTime": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "LearningProfileApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LearningProfile"
+              }
+            }
+          }
+        ]
+      },
+      "StudentValidationRequest": {
+        "type": "object",
+        "required": [
+          "userIds"
+        ],
+        "properties": {
+          "userIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "StudentValidationResult": {
+        "type": "object",
+        "properties": {
+          "validStudentIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "invalidUserIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "StudentValidationApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/StudentValidationResult"
+              }
+            }
+          }
+        ]
+      },
       "HomeworkRequest": {
         "type": "object",
         "required": [
@@ -1561,6 +6052,9 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "DRAFT"
+            ],
             "example": "DRAFT"
           }
         }
@@ -1581,6 +6075,11 @@
               "updatedTime": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "teacherUserId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "从 JWT 获取的作业创建教师 ID"
               }
             }
           }
@@ -1614,6 +6113,748 @@
                 "items": {
                   "$ref": "#/components/schemas/Homework"
                 }
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkRecipientsRequest": {
+        "type": "object",
+        "required": [
+          "studentUserIds"
+        ],
+        "properties": {
+          "studentUserIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "HomeworkRecipientsApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkSubmitRequest": {
+        "type": "object",
+        "description": "answerContent 和 answers 至少填写一项；作业有结构化题目时必须提交全部 answers。",
+        "properties": {
+          "answerContent": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "answers": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/SubmissionAnswerRequest"
+            }
+          }
+        }
+      },
+      "HomeworkGradeRequest": {
+        "type": "object",
+        "required": [
+          "studentUserId",
+          "score",
+          "expectedVersion"
+        ],
+        "properties": {
+          "studentUserId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "multipleOf": 0.01
+          },
+          "feedback": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "HomeworkSubmission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "homeworkId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "courseId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "answerContent": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "PENDING_GRADING",
+              "GRADED"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "feedback": {
+            "type": "string",
+            "nullable": true
+          },
+          "gradedBy": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "submittedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "gradedTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HomeworkSubmissionApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/HomeworkSubmission"
+              }
+            }
+          }
+        ]
+      },
+      "SubmissionPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeworkSubmission"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SubmissionPageApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SubmissionPage"
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkGradeHistory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "submissionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "number"
+          },
+          "feedback": {
+            "type": "string",
+            "nullable": true
+          },
+          "gradedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gradedTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HomeworkGradeHistoryListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/HomeworkGradeHistory"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "BooleanApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "maxLength": 72
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "newPassword"
+        ],
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          }
+        }
+      },
+      "UpdateUserStatusRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ENABLED",
+              "DISABLED",
+              "LOCKED"
+            ]
+          }
+        }
+      },
+      "LoginAudit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "username": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientIp": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OperationAudit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "operatorUserId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LoginAuditPageApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/LoginAudit"
+                    }
+                  },
+                  "page": {
+                    "type": "integer"
+                  },
+                  "size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "OperationAuditPageApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/OperationAudit"
+                    }
+                  },
+                  "page": {
+                    "type": "integer"
+                  },
+                  "size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "QuestionOptionRequest": {
+        "type": "object",
+        "required": [
+          "key",
+          "content",
+          "sortOrder"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{1,8}$"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "HomeworkQuestionRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "stem",
+          "score",
+          "sortOrder"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "SINGLE_CHOICE",
+              "MULTIPLE_CHOICE",
+              "TRUE_FALSE",
+              "SHORT_ANSWER"
+            ]
+          },
+          "stem": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "options": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/QuestionOptionRequest"
+            }
+          },
+          "correctAnswers": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            }
+          },
+          "referenceAnswer": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "analysis": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        }
+      },
+      "QuestionOption": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "key": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "HomeworkQuestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "homeworkId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "stem": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            }
+          },
+          "correctAnswers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "referenceAnswer": {
+            "type": "string",
+            "nullable": true
+          },
+          "analysis": {
+            "type": "string",
+            "nullable": true
+          },
+          "answerVisible": {
+            "type": "boolean"
+          }
+        }
+      },
+      "HomeworkQuestionApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/HomeworkQuestion"
+              }
+            }
+          }
+        ]
+      },
+      "HomeworkQuestionListApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/HomeworkQuestion"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "SubmissionAnswerRequest": {
+        "type": "object",
+        "required": [
+          "questionId"
+        ],
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "selectedAnswers": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "answerText": {
+            "type": "string",
+            "maxLength": 10000,
+            "nullable": true
+          }
+        }
+      },
+      "SubmissionAnswerGradeRequest": {
+        "type": "object",
+        "required": [
+          "score",
+          "expectedSubmissionVersion"
+        ],
+        "properties": {
+          "score": {
+            "type": "number",
+            "minimum": 0
+          },
+          "feedback": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "expectedSubmissionVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SubmissionAnswer": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "questionType": {
+            "type": "string"
+          },
+          "stem": {
+            "type": "string"
+          },
+          "maxScore": {
+            "type": "number"
+          },
+          "selectedAnswers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "answerText": {
+            "type": "string",
+            "nullable": true
+          },
+          "autoScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "manualScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "finalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "gradingStatus": {
+            "type": "string",
+            "enum": [
+              "AUTO_GRADED",
+              "PENDING_REVIEW",
+              "MANUAL_GRADED"
+            ]
+          },
+          "feedback": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SubmissionDetail": {
+        "type": "object",
+        "properties": {
+          "submission": {
+            "$ref": "#/components/schemas/HomeworkSubmission"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmissionAnswer"
+            }
+          }
+        }
+      },
+      "SubmissionDetailApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SubmissionDetail"
               }
             }
           }

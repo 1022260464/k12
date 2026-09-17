@@ -21,7 +21,7 @@ docker compose ps
 - AMQP：`127.0.0.1:5672`
 - 管理控制台：<http://127.0.0.1:15672>
 - 默认用户名：`k12`
-- 默认密码：`k12_dev_only_change_me`
+- 示例密码：`k12_dev_only_change_me`；已经创建过数据卷时，以当前 `.env` 和实际用户密码为准
 - 默认虚拟主机：`k12`
 
 Java 和 Python 后续统一使用以下连接参数：
@@ -30,11 +30,12 @@ Java 和 Python 后续统一使用以下连接参数：
 RABBITMQ_HOST=127.0.0.1
 RABBITMQ_PORT=5672
 RABBITMQ_USERNAME=k12
-RABBITMQ_PASSWORD=k12_dev_only_change_me
+RABBITMQ_PASSWORD=<deploy/rabbitmq/.env 中的 RABBITMQ_DEFAULT_PASS>
 RABBITMQ_VIRTUAL_HOST=k12
 ```
 
 这些账号只允许用于本地开发。部署到共享服务器前必须修改密码，并重新评估端口暴露策略。
+注意：RabbitMQ 用户保存在数据卷中，容器首次创建后只修改 `.env` 不会自动修改既有用户密码。
 
 ## 查看日志
 

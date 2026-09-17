@@ -4,6 +4,9 @@ import com.k12.platform.iam.dto.UserCreateRequest;
 import com.k12.platform.iam.dto.UserResponse;
 import com.k12.platform.iam.dto.UserUpdateRequest;
 import com.k12.platform.iam.dto.RegisterRequest;
+import com.k12.platform.iam.dto.ChangePasswordRequest;
+import com.k12.platform.iam.dto.ResetPasswordRequest;
+import com.k12.platform.iam.dto.UpdateUserStatusRequest;
 import com.k12.platform.iam.mapper.UserMapper;
 import com.k12.platform.iam.model.SysUser;
 import com.k12.platform.iam.model.UserAccount;
@@ -29,10 +32,13 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final OperationAuditService operationAuditService;
 
-    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder,
+                       OperationAuditService operationAuditService) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.operationAuditService = operationAuditService;
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.USER_READ + "')")
@@ -79,6 +85,7 @@ public class UserService {
          * 拿到 user.id 后，再写 sys_user_role 绑定角色。
          */
         assignRole(user.getId(), request.roleCode());
+        operationAuditService.record("USER_CREATE", "USER", user.getId(), "role=" + request.roleCode());
 
         return toResponse(userMapper.findAccountById(user.getId()));
     }
@@ -108,7 +115,7 @@ public class UserService {
          * 更新用户不强制修改密码。
          * 密码修改后续应该单独做接口，避免普通资料更新误改密码。
          */
-        SysUser user = userMapper.selectById(id);
+        SysUser user = userMapper.findSecurityUserForUpdate(id);
         if (user == null) {
             return Optional.empty();
         }
@@ -122,6 +129,7 @@ public class UserService {
         user.setUsername(request.username());
         user.setNickname(request.nickname());
         user.setEmail(request.email());
+        user.setAuthVersion(nextAuthVersion(user.getAuthVersion()));
 
         userMapper.updateById(user);
         /*
@@ -131,6 +139,7 @@ public class UserService {
          */
         userMapper.deleteUserRoles(id);
         assignRole(id, request.roleCode());
+        operationAuditService.record("USER_UPDATE", "USER", id, "role=" + request.roleCode());
 
         return Optional.of(toResponse(userMapper.findAccountById(id)));
     }
@@ -148,9 +157,71 @@ public class UserService {
         int rows = userMapper.deleteById(id);
         if (rows > 0) {
             userMapper.deleteUserRoles(id);
+            operationAuditService.record("USER_DELETE", "USER", id, null);
             return true;
         }
         return false;
+    }
+
+    @Transactional
+    @PreAuthorize("isAuthenticated()")
+    public void changeOwnPassword(ChangePasswordRequest request) {
+        Long userId = K12SecurityContext.requireUserId();
+        SysUser user = requireSecurityUser(userId);
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("当前密码错误");
+        }
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("新密码不能与当前密码相同");
+        }
+        updatePassword(user, request.newPassword());
+        operationAuditService.record("PASSWORD_CHANGE", "USER", userId, "self=true");
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "')")
+    public void resetPassword(Long userId, ResetPasswordRequest request) {
+        SysUser user = requireSecurityUser(userId);
+        updatePassword(user, request.newPassword());
+        operationAuditService.record("PASSWORD_RESET", "USER", userId, null);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "')")
+    public void updateStatus(Long userId, UpdateUserStatusRequest request) {
+        if (userId.equals(K12SecurityContext.currentUserId().orElse(null))) {
+            throw new IllegalArgumentException("不能修改当前登录账号自己的状态");
+        }
+        SysUser user = requireSecurityUser(userId);
+        user.setStatus(request.status().databaseValue());
+        user.setAuthVersion(nextAuthVersion(user.getAuthVersion()));
+        if (request.status() == UpdateUserStatusRequest.UserStatus.ENABLED) {
+            user.setFailedLoginCount(0);
+            user.setLockedUntil(null);
+        }
+        userMapper.updateById(user);
+        operationAuditService.record("USER_STATUS_UPDATE", "USER", userId,
+                "status=" + request.status().name());
+    }
+
+    private void updatePassword(SysUser user, String rawPassword) {
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setAuthVersion(nextAuthVersion(user.getAuthVersion()));
+        user.setFailedLoginCount(0);
+        user.setLockedUntil(null);
+        userMapper.updateById(user);
+    }
+
+    private SysUser requireSecurityUser(Long userId) {
+        SysUser user = userMapper.findSecurityUserForUpdate(userId);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + userId);
+        }
+        return user;
+    }
+
+    private long nextAuthVersion(Long current) {
+        return current == null ? 2L : current + 1L;
     }
 
     private void assignRole(Long userId, String roleCode) {

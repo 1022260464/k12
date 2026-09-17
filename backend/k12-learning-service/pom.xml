@@ -13,6 +13,12 @@
     <name>K12 Learning Service</name>
 
     <dependencies>
+        <!-- 仅供自动化测试使用，验证真实 Mapper SQL 和事务，不连接团队 MySQL。 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.k12.platform</groupId>
             <artifactId>k12-common</artifactId>
@@ -33,6 +39,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
+        <!-- 排行榜使用Redis Sorted Set作为可重建的热点读模型。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
@@ -41,6 +52,11 @@
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <!-- 课程表只保存MinIO对象键；读取课程时在本地生成短期签名URL。 -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>

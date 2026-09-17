@@ -151,16 +151,17 @@ class CodeSandbox(Protocol):
     ) -> CodeExecutionResult: ...
 ```
 
-当前基础设施实现规划：
+当前基础设施实现：
 
 ```text
 CodeSandbox
-    -> DisabledCodeSandbox          当前未启用时返回明确错误
+    -> DisabledCodeSandbox          默认关闭时返回明确错误
     -> TencentAgentSandboxAdapter   正式云执行实现
+    -> PistonCodeSandbox            显式本地开发和断网演示实现
 ```
 
-Piston 调试代码放在部署和集成测试边界，不要让 Controller、用例层或领域模型出现腾讯云、
-E2B、Piston 的请求对象。
+供应商对象仅存在于基础设施层，不会进入Controller、用例层或领域模型。云端失败不会静默
+切换Piston；需要断网演示时必须在启动前显式修改`K12_AGENT_SANDBOX_PROVIDER`。
 
 统一请求至少包含：
 
@@ -194,13 +195,13 @@ providerRequestId
 ```text
 1. 前端请求 Gateway。
 2. Java 服务完成认证、授权、限流和参数校验。
-3. Java 创建 executionId 和 PENDING 记录。
+3. Java 创建平台 runId 和 RUNNING 记录。
 4. Java 通过内部 FastAPI 调用 Agent Runtime。
 5. Runtime 通过腾讯云适配器创建 AGSX 实例。
 6. 适配器上传代码和输入文件，执行受限 Python 代码。
 7. Runtime 收集输出，将产物上传 MinIO。
 8. 适配器在 finally 中销毁沙箱实例。
-9. Java 更新最终状态并向前端返回统一结果。
+9. Java 用短事务更新最终状态、写入Artifact并向前端返回统一结果。
 ```
 
 ### 6.2 长任务
@@ -307,12 +308,24 @@ INTERNAL_ERROR
 
 - AGSX 实例必须按任务创建、按任务销毁，禁止比赛阶段保持 7x24 小时常驻。
 - 在 `finally` 和后台补偿任务中都实现实例回收。
-- 设置单用户、单班级和系统级并发上限。
+- Java公开入口按用户设置日配额，启用后的默认值为5次/日；每个Runtime进程的每种沙箱适配器分别限制同时执行数与
+  最多等待人数，排队超过
+  `K12_AGENT_SANDBOX_QUEUE_WAIT_SECONDS`或`K12_AGENT_SANDBOX_MAX_WAITERS`即返回`REJECTED`，
+  不创建新实例，也不切换备用沙箱。每种适配器默认并发2、最多等待4个、等待3秒；主备
+  同时工作时各自占用名额，这不是跨进程或跨机器的统一限流。
+- 配置硬上限为并发4、等待8、等待5秒；范围、离线压测命令和真实环境验收步骤见
+  [代码沙箱容量与压测手册](code-sandbox-load-test-guide.md)。
+- 单用户/班级的实时并发名额及跨实例系统上限仍待设计，不能把当前进程内信号量当成全局配额。
 - 记录执行时长、CPU/内存规格、失败原因和估算费用。
 - 配置腾讯云预算告警、余额告警和 API 调用告警。
 - RabbitMQ 只传输任务元数据，小文件以外的内容通过 MinIO 传递。
-- 云服务故障时返回可识别的“执行服务暂不可用”，不能在主进程直接执行代码兜底。
-- 比赛现场需要断网演示时，显式切换本地开发配置，不做运行时静默跨平台降级。
+- 云服务故障时允许按配置降级到独立Piston容器，不能在主进程直接执行代码兜底。
+- 降级只捕获供应商不可用异常；语法错误、用户代码异常、超时和资源超限不得重复执行。
+- 只有云沙箱尚未返回实例、用户代码尚未提交时的创建故障才能自动切换Piston。实例已创建后若
+  运行请求或产物存储失败，代码是否执行成功可能未知，必须禁止自动重放；同步接口返回脱敏503，
+  异步任务记录失败，由用户确认后另起一次运行。
+- 主执行器失败后进入短暂冷却期，避免每次请求都等待同一个云端超时。
+- 云供应商控制面请求默认30秒超时，给Java 90秒整体读取窗口预留执行和本地降级时间。
 
 ## 11. 分阶段实施
 
@@ -323,25 +336,118 @@ INTERNAL_ERROR
 3. 验证超时、输出限制、网络策略、文件上传和实例销毁。
 4. 记录单任务耗时和费用，确定比赛配额。
 
-### 阶段二：Runtime 接入
+### 阶段二：Runtime 接入（适配层已完成）
 
-1. 在 `infrastructure/sandbox/` 实现 `TencentAgentSandboxAdapter`。
-2. 在 `core/config.py` 增加配置并在 `bootstrap/container.py` 装配。
-3. 保持 FastAPI 接口和领域模型不暴露厂商字段。
-4. 增加适配器单元测试、契约测试和一个受控云集成测试。
+1. 已在`infrastructure/sandbox/`实现腾讯云与Piston适配器。
+2. 已增加显式主备供应商配置，在`bootstrap/container.py`装配，并通过冷却时间控制云端重试。
+3. FastAPI接口和领域模型不暴露厂商SDK对象。
+4. 已完成无网络单元测试；受控云集成测试仍需使用团队配额执行。
 
 ### 阶段三：异步和产物闭环
 
-1. RabbitMQ 增加代码执行请求、结果和死信队列。
-2. 接入 MinIO，完成图片、CSV、Excel 的转存和下载授权。
-3. Java 服务保存任务状态、产物元数据和审计记录。
-4. 前端实现运行状态、错误信息、图表和文件展示。
+1. 已完成Java内部Feign契约、`CodeExecutionService`和同步公开Controller。
+2. Runtime已支持将腾讯云返回的PNG、JPEG和PDF二进制产物转存MinIO。
+3. Java已用`agent_run`保存平台runId、JWT用户归属、状态和脱敏审计元数据，并用
+   `agent_artifact`保存代码执行产物。
+4. 已增加`k12.code.execute.request`和`k12.code.execute.result`专用队列以及独立消息DTO；
+   Python Worker复用`ExecuteCodeUseCase`，Java消费者负责RUNNING通知、终态幂等和产物持久化。
+5. 同一公开接口通过`executionMode=SYNC|ASYNC`切换；异步首次返回HTTP 202和`PENDING`。
+6. Gateway通配路由和OpenAPI已完成，待实现前端运行状态、错误、图表和文件展示。
+
+前端代码编辑器和后端基础链路已经完成。2026-09-16真实联调确认内部API密钥已生效，但腾讯云
+创建沙箱实例发生读取超时；当前阶段增加本地Piston自动保底，随后进行主备真实HTTP联调和
+恶意代码安全验收。
+
+2026-09-16回归结果：Backend完整Maven反应堆7个模块共138个测试通过，Python Runtime Ruff
+检查和58个测试通过；OpenAPI JSON解析通过。
+
+同日主备联调结果：在Codex工具沙箱内，创建腾讯云实例的请求超时，降级后Gateway ->
+Java Agent Service -> Python Runtime -> Piston链路返回`200/SUCCEEDED`，首次约15.97秒，
+冷却期内再次请求约0.96秒。审计运行编号为`6312ddad-4d07-4370-b961-6914615e4f12`。
+随后在工具沙箱外重测，腾讯云创建实例并运行`print`成功，约6.7秒，结果执行器确认为
+`tencent_agsx`。因此前述超时应归因于该次工具沙箱的出站网络限制，不代表腾讯云服务故障。
+后续排查发现`8090`一直被上轮在Codex受限工具沙箱内启动的旧Runtime占用，因此新的正常网络
+进程无法绑定端口。停止该旧进程后，从正常网络启动Runtime，内部HTTP接口返回
+`tencent_agsx/SUCCEEDED`。Gateway到腾讯云的同步请求用10秒代码执行上限时，云实例创建成功，
+但解释器首次执行超时；改用30秒上限后返回`SUCCEEDED`，运行编号为
+`f5cc8cde-235d-489e-87ac-cb8aa4ef6366`。因此把学生代码默认上限设为30秒、供应商创建
+请求预算设为30秒、Java调用Runtime读取预算设为90秒。此上限仍受供应商及镜像限制；正式部署
+需要在宿主机或具备腾讯云出站权限的网络中启动Runtime，不能通过业务代码绕过工具沙箱限制。
+使用最终`.env`从仓库根目录启动Runtime后再次走Gateway同步接口，约5.6秒返回
+`200/SUCCEEDED`，产物供应商为`tencent_agsx`，运行编号
+`f8a1c8a5-5d65-4f19-a227-d3ab107d37ea`；用运行详情接口查询持久化状态同样为`SUCCEEDED`。
+本地`.env`已开启腾讯云主执行器；`.env.example`仍默认关闭，避免团队成员无意触发付费调用。
+前端代码实验页默认异步模式还依赖RabbitMQ Worker。正常网络环境启动Worker后，经Gateway
+提交异步代码执行，运行编号`852c3497-8c23-47df-8b43-1d3e43c15127`从`PENDING`收敛为
+`SUCCEEDED`，产物供应商确认为`tencent_agsx`。只启动HTTP Runtime而不启动Worker不能完成
+异步任务。
+
+2026-09-16真实文件验收：通过`tests/test_minio_live.py`向已配置的MinIO上传随机小文件，
+签发短期地址、下载并逐字节校验后清理测试对象。随后经Gateway提交云沙箱的极小PNG显示代码，
+运行`c431ff94-d72e-4af7-95d5-31f4d79f53e1`返回`SUCCEEDED`，保存了`CODE_RESULT`
+与`IMAGE`产物；运行详情回显`IMAGE`的`s3://`地址，按运行归属签发的900秒URL下载返回
+HTTP 200和有效PNG。未登录取地址返回401，不存在的运行返回404；跨用户访问由Java
+`AgentArtifactAccessServiceTest`覆盖，本轮没有新建测试用户。先前一次`matplotlib`绘图运行
+`7705c42c-fc9d-4ae3-a935-2c55317de937`在30秒代码上限内超时，不能据此认为复杂图表
+已完成云端验收。
+
+后续使用`scripts/probe_cloud_chart.py`分段复测：实例创建约2.9-3.6秒、解释器预热约
+2.3-3.2秒、`matplotlib`导入约0.4秒；导入并非这次超时的主要瓶颈。直接`display(fig)`
+虽然很快结束，但SDK没有返回PNG。使用无界面`Agg`后，先保存到`BytesIO`，再通过
+`display(Image(data=buffer.getvalue()))`输出，可在约1.3秒内得到PNG。相同写法经
+Gateway同步执行，运行`7d3eadf4-83ad-4b1c-b024-a7efc8ac5be6`约4.7秒成功，返回
+`CODE_RESULT`和`IMAGE`，MinIO短链下载HTTP 200，文件6419字节。原`plt.show()`超时
+是否由默认交互后端或偶发供应商延迟造成尚未单独证实；当前演示采用已验证的显式PNG写法，
+不扩大所有学生代码的30秒限制。
+
+绘图代码的关键部分：
+
+```python
+import matplotlib
+matplotlib.use("Agg", force=True)
+import matplotlib.pyplot as plt
+from io import BytesIO
+from IPython.display import Image, display
+
+fig, ax = plt.subplots()
+ax.plot([1, 2, 3], [2, 4, 3])
+buffer = BytesIO()
+fig.savefig(buffer, format="png")
+display(Image(data=buffer.getvalue()))
+plt.close(fig)
+```
+
+探针只供手动运行，会创建并销毁云实例、产生少量费用；不属于默认测试集：
+
+```powershell
+cd ai-services/k12-agent-runtime
+.\.venv\Scripts\python.exe scripts/probe_cloud_chart.py
+```
+
+MinIO回环测试默认跳过；只有团队共享存储允许写入和清理时才手动启用：
+
+```powershell
+cd ai-services/k12-agent-runtime
+$env:K12_RUN_LIVE_MINIO_TEST = "1"
+.\.venv\Scripts\python.exe -m pytest tests/test_minio_live.py -q
+Remove-Item Env:K12_RUN_LIVE_MINIO_TEST
+```
+
+测试读取本模块`.env`，不输出对象存储密钥或签名URL。Gateway云执行需另行启动Java服务
+和正常网络环境的Python Runtime，会产生云沙箱调用费用并保留运行审计记录。
 
 ### 阶段四：加固
 
-1. 增加配额、熔断、重试、取消、补偿回收和费用告警。
-2. 建立恶意代码、死循环、输出洪泛、路径穿越和网络探测测试集。
-3. 定期复核 SDK、镜像、依赖版本和腾讯云产品变更。
+1. 已完成第一批主备故障边界加固：创建失败仍可降级；云实例创建后运行结果不确定或产物存储失败
+   不再切换供应商重放，同步返回受控错误，实例在`finally`中尽力销毁。无网络回归覆盖两种故障、
+   正常降级及超时不重放；这不是云端恶意代码隔离能力验收。
+2. 第二批增加云端结果项、文件数量及累计文件字节上限，默认分别为20项、5个、20MB。
+   超限不解码或转存文件，返回`REJECTED`，并禁止主备重放；标准输出超限也不转存文件。
+   单元测试使用假沙箱；限制在Runtime收到供应商响应后生效，不能替代云端镜像、执行资源、
+   网络及响应体配额验收，也不代表计费配额已配置。
+3. Java公开代码入口的单用户日配额已完成；跨进程总并发、取消、补偿回收和费用告警仍待完成。
+4. 待建立恶意代码、死循环、路径穿越和网络探测的隔离测试集，并在受控环境验收。
+5. 定期复核 SDK、镜像、依赖版本和腾讯云产品变更。
 
 ## 12. 资源与备选方案
 

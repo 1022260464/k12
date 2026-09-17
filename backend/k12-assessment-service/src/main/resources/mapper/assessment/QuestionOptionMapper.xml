@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.assessment.mapper.QuestionOptionMapper">
+    <select id="findByQuestionId" resultType="com.k12.platform.assessment.model.QuestionOption">
+        SELECT * FROM assessment_question_option
+        WHERE question_id = #{questionId} AND deleted = 0
+        ORDER BY sort_order, id
+    </select>
+</mapper>

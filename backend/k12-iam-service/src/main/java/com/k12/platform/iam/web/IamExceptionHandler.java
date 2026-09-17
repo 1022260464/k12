@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 /* IAM 接口统一异常响应，保证前端始终能读取 code、message、data。 */
 @RestControllerAdvice(basePackages = "com.k12.platform.iam.web")
@@ -35,5 +37,17 @@ public class IamExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException exception) {
         return ResponseEntity.badRequest().body(ApiResponse.fail(400, exception.getMessage()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException exception) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(400, "请求 JSON 格式错误"));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException exception) {
+        int code = exception.getStatusCode().value();
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(ApiResponse.fail(code, exception.getReason()));
     }
 }

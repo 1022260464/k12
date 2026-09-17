@@ -7,6 +7,8 @@ import com.k12.platform.agent.mapper.AgentMapper;
 import com.k12.platform.agent.model.TeachingAgent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import com.k12.platform.common.security.K12Authorities;
 
 import java.util.List;
@@ -36,12 +38,14 @@ public class AgentService {
     }
 
     /* 智能体配置会影响全平台行为，默认仅管理员可以维护。 */
+    @Transactional
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_CREATE + "')")
     public AgentResponse createAgent(AgentRequest request) {
         TeachingAgent agent = new TeachingAgent();
-        agent.setName(request.name());
-        agent.setType(request.type());
-        agent.setDescription(request.description());
+        agent.setCode(request.code());
+        agent.setName(request.name().trim());
+        agent.setType(request.type().trim());
+        agent.setDescription(trimToNull(request.description()));
         agent.setStatus("ENABLED");
         agent.setDeleted(0);
 
@@ -49,6 +53,7 @@ public class AgentService {
         return toResponse(agentMapper.selectById(agent.getId()));
     }
 
+    @Transactional
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_UPDATE + "')")
     public Optional<AgentResponse> updateAgent(Long id, AgentRequest request) {
         TeachingAgent agent = agentMapper.selectById(id);
@@ -56,14 +61,16 @@ public class AgentService {
             return Optional.empty();
         }
 
-        agent.setName(request.name());
-        agent.setType(request.type());
-        agent.setDescription(request.description());
+        agent.setCode(request.code());
+        agent.setName(request.name().trim());
+        agent.setType(request.type().trim());
+        agent.setDescription(trimToNull(request.description()));
         agentMapper.updateById(agent);
 
         return Optional.of(toResponse(agentMapper.selectById(id)));
     }
 
+    @Transactional
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_DELETE + "')")
     public boolean deleteAgent(Long id) {
         return agentMapper.deleteById(id) > 0;
@@ -72,11 +79,16 @@ public class AgentService {
     private AgentResponse toResponse(TeachingAgent agent) {
         return new AgentResponse(
                 agent.getId(),
+                agent.getCode(),
                 agent.getName(),
                 agent.getType(),
                 agent.getDescription(),
                 agent.getStatus(),
                 agent.getUpdatedTime()
         );
+    }
+
+    private String trimToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }

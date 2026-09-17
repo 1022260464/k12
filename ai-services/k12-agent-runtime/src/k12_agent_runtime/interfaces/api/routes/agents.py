@@ -1,10 +1,6 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse
 
-from k12_agent_runtime.application.agents.run_agent import (
-    AgentNotFoundError,
-    RunAgentCommand,
-)
+from k12_agent_runtime.application.agents.run_agent import RunAgentCommand
 from k12_agent_runtime.interfaces.api.dependencies import (
     get_container,
     verify_internal_api_key,
@@ -41,26 +37,15 @@ async def invoke_agent(
     agent_code: str,
     body: AgentInvokeRequest,
     request: Request,
-) -> ApiResponse[AgentRunResponse] | JSONResponse:
+) -> ApiResponse[AgentRunResponse]:
     use_case = get_container(request).run_agent
-    try:
-        result = await use_case.execute(
-            RunAgentCommand(
-                agent_code=agent_code,
-                input_text=body.input_text,
-                user_id=body.user_id,
-                context=body.context,
-            )
+    result = await use_case.execute(
+        RunAgentCommand(
+            agent_code=agent_code,
+            input_text=body.input_text,
+            user_id=body.user_id,
+            context=body.context,
         )
-    except AgentNotFoundError as error:
-        response = ApiResponse[AgentRunResponse](
-            code=404,
-            message=str(error),
-            data=None,
-        )
-        return JSONResponse(
-            status_code=404,
-            content=response.model_dump(mode="json", by_alias=True),
-        )
+    )
 
     return ApiResponse[AgentRunResponse].ok(AgentRunResponse.from_domain(result))

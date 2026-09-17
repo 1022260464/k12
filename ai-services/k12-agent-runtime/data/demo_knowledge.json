@@ -1,0 +1,226 @@
+[
+  {
+    "document_id": "demo-lower-primary-ai-001",
+    "title": "人工智能是什么",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://lower-primary/ai-introduction",
+    "stage_code": "lower_primary",
+    "grade": "小学二年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第一章 认识人工智能",
+    "content": "学习目标：能用自己的话说出人工智能是什么，并能在生活中找到人工智能应用。人工智能可以理解为让计算机完成一些原来需要人来观察、判断或表达的任务。例如，语音助手能听懂问题，地图软件能规划路线，相册能帮助我们寻找照片。人工智能并不是真的像人一样什么都懂，它需要从数据和规则中学习，也可能判断错误。课堂活动：观察教室或家里的设备，把它们分成普通工具和可能使用人工智能的工具，并说明理由。安全提醒：不要把姓名、住址、电话号码和账号密码告诉陌生的智能程序。自测：扫地机器人会避开障碍物，说明它至少需要感知环境并根据情况行动。",
+    "metadata": {
+      "tags": ["人工智能", "生活应用", "AI安全"],
+      "difficulty": "启蒙",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-lower-primary-pattern-001",
+    "title": "像计算机一样寻找规律",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://lower-primary/patterns",
+    "stage_code": "lower_primary",
+    "grade": "小学三年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第二章 数据里的规律",
+    "content": "学习目标：通过颜色和形状游戏理解模式识别。模式是重复出现或有规律变化的特征，例如红、蓝、红、蓝，下一项很可能是红色。计算机识别图片时，也会寻找颜色、边缘、形状等特征。它看到的不是“可爱的小猫”，而是许多数值组成的数据。游戏活动：准备圆形、三角形和正方形卡片，先按颜色分类，再按形状分类，比较两次分类规则有什么不同。重要结论：分类结果取决于我们选择的特征和规则；样本太少时，得到的规律可能不可靠。自测：只看过白色小猫的程序，遇到黑色小猫可能认不出来，这说明训练样本需要丰富和多样。",
+    "metadata": {
+      "tags": ["模式识别", "分类", "数据"],
+      "difficulty": "启蒙",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-upper-primary-algorithm-001",
+    "title": "算法就是清晰的步骤",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://upper-primary/algorithm",
+    "stage_code": "upper_primary",
+    "grade": "小学五年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第三章 算法思维",
+    "content": "学习目标：理解算法是解决问题的一组明确、有限、可执行的步骤。以制作水果沙拉为例，步骤可以是清洗水果、去皮、切块、放入碗中并搅拌。如果只写“把水果处理好”，计算机无法知道具体要做什么。一个好算法应当说明输入、处理过程和输出，还要考虑特殊情况。课堂活动：给同伴写一份从教室走到图书馆的指令，让同伴严格执行，检查是否存在方向不清或步骤遗漏。编程中的顺序、条件和循环是组织算法的三种基本结构。自测：当下雨时带伞，否则不带伞，这是条件结构；连续做十次跳绳动作，可以用循环结构描述。",
+    "metadata": {
+      "tags": ["算法", "顺序", "条件", "循环"],
+      "difficulty": "基础",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-upper-primary-scratch-001",
+    "title": "用条件判断控制 Scratch 角色",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://upper-primary/scratch-condition",
+    "stage_code": "upper_primary",
+    "grade": "小学六年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第四章 图形化编程",
+    "content": "学习目标：使用“如果……那么……”积木让角色根据环境做出不同动作。条件判断会先检查一个真假问题，再决定是否执行积木中的命令。例如，在迷宫游戏中可以设置：如果碰到红色墙壁，那么后退十步；如果碰到终点颜色，那么说“挑战成功”。为了避免程序只检查一次，可以把条件判断放入重复执行积木。调试时应逐项观察角色位置、检测条件和执行结果，不要一次修改很多地方。扩展任务：加入得分变量，角色每收集一个星星就把分数增加一。自测：角色穿过墙壁时，应优先检查碰撞检测是否放在持续运行的循环中。",
+    "metadata": {
+      "tags": ["Scratch", "条件判断", "调试"],
+      "difficulty": "基础",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-upper-primary-safety-001",
+    "title": "安全、负责地使用生成式人工智能",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://upper-primary/responsible-ai",
+    "stage_code": "upper_primary",
+    "grade": "小学五年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第五章 负责任地使用AI",
+    "content": "学习目标：知道生成式人工智能的回答需要核对，并保护个人隐私。大模型会根据大量文本中的语言规律生成回答，但它可能把不确定的内容说得很肯定。因此，作业中遇到日期、人物、科学结论等事实，应当查阅教材或可靠来源。不能直接提交模型生成的作业，要先理解、修改并说明使用方式。不要输入真实姓名、家庭地址、证件号码、账号密码、未公开照片等敏感信息。看到不适合未成年人的内容时，应立即停止并告诉老师或家长。自测：AI 给出一个没有来源的科学结论，正确做法是查教材和可信资料进行交叉验证。",
+    "metadata": {
+      "tags": ["生成式AI", "隐私", "事实核查", "学术诚信"],
+      "difficulty": "基础",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-middle-python-001",
+    "title": "Python变量与基本数据类型",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://middle-school/python-variables",
+    "stage_code": "middle_school",
+    "grade": "初中一年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第六章 Python编程基础",
+    "content": "学习目标：理解变量用于保存程序运行中的数据，并区分整数、浮点数、字符串和布尔值。Python 使用赋值语句把右侧计算结果绑定到左侧变量名，例如 score = 80。整数 int 适合表示人数，浮点数 float 适合表示测量值，字符串 str 用引号包围文本，布尔值 bool 只有 True 和 False。input 函数得到的结果默认是字符串，进行数学运算前通常需要使用 int 或 float 转换。示例：age = int(input('请输入年龄：'))，然后可以判断 age >= 12。调试提示：TypeError 往往表示参与运算的数据类型不合适。练习：读取三次测验成绩，计算平均分，并输出平均分是否达到八十分。",
+    "metadata": {
+      "tags": ["Python", "变量", "数据类型", "输入输出"],
+      "difficulty": "入门",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-middle-bubble-sort-001",
+    "title": "冒泡排序的过程与优化",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://middle-school/bubble-sort",
+    "stage_code": "middle_school",
+    "grade": "初中二年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第七章 排序算法",
+    "content": "学习目标：能模拟冒泡排序的一轮比较，并解释已经排好序的区间。冒泡排序从序列一端开始比较相邻元素，如果前一个比后一个大就交换。对升序排序来说，一轮结束后，当前未排序部分中最大的元素会移动到末尾。以 5、2、4、1 为例，第一轮依次比较并交换后得到 2、4、1、5，此时 5 已到正确位置。继续处理前面三个元素，直到全部有序。若某一轮没有发生交换，说明序列已经有序，可以提前结束。普通实现的时间复杂度是 O(n²)，适合教学和小规模数据，不适合大规模排序。练习：记录每次交换后的数组，并标出每轮结束后的已排序区间。",
+    "metadata": {
+      "tags": ["算法", "冒泡排序", "时间复杂度", "Python"],
+      "difficulty": "基础",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-middle-ml-001",
+    "title": "机器学习中的训练集和测试集",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://middle-school/train-test-split",
+    "stage_code": "middle_school",
+    "grade": "初中二年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第八章 机器学习入门",
+    "content": "学习目标：理解为什么不能用同一批数据既训练又评价模型。训练集用于让模型寻找输入与答案之间的规律，测试集用于检查模型面对未见数据时是否仍然有效。如果模型只记住训练样本而没有学会一般规律，就发生了过拟合。划分数据时要尽量保持不同类别的比例，并避免同一个对象的高度相似样本同时出现在训练集和测试集中，否则评价结果会过于乐观。例如识别猫狗图片时，可以把约八成数据用于训练、两成用于测试，但比例不是固定规则，还要根据数据量和任务决定。练习：说明为什么先查看测试答案再调整模型会造成信息泄漏。",
+    "metadata": {
+      "tags": ["机器学习", "训练集", "测试集", "过拟合"],
+      "difficulty": "基础",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-middle-evaluation-001",
+    "title": "准确率并不总是足够",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://middle-school/model-evaluation",
+    "stage_code": "middle_school",
+    "grade": "初中三年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第九章 模型评价",
+    "content": "学习目标：理解准确率的含义，并知道类别不均衡时需要观察更多指标。准确率等于预测正确的样本数除以总样本数。假设一百封邮件中只有五封垃圾邮件，一个始终回答“正常邮件”的模型也有百分之九十五准确率，但它一封垃圾邮件都找不到。因此还要观察精确率和召回率：精确率关注被模型判为垃圾邮件的结果中有多少是真的，召回率关注所有真实垃圾邮件中有多少被找出来。混淆矩阵用真正例、假正例、真反例和假反例展示详细结果。评价指标应根据任务代价选择，例如漏掉危险信息和误报普通信息的影响不同。",
+    "metadata": {
+      "tags": ["模型评价", "准确率", "精确率", "召回率"],
+      "difficulty": "进阶",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-high-neural-network-001",
+    "title": "神经网络如何完成分类",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://high-school/neural-network",
+    "stage_code": "high_school",
+    "grade": "高中一年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第十章 神经网络基础",
+    "content": "学习目标：从输入、权重、激活和输出四个环节理解前馈神经网络。一个神经元接收多个输入，将输入乘以对应权重后求和，再加上偏置，最后经过激活函数得到输出。多层神经网络通过逐层变换，从原始数据中形成适合任务的表示。图像分类时，输入可以是像素数值，隐藏层逐渐组合局部边缘、纹理和更复杂形状，输出层给出各类别的分数或概率。训练的目标是让预测与真实标签之间的损失尽量小，反向传播负责计算参数对损失的影响，优化器据此更新权重。神经网络的预测是统计结果，并不等于理解，也会受到训练数据偏差影响。",
+    "metadata": {
+      "tags": ["神经网络", "激活函数", "反向传播", "分类"],
+      "difficulty": "进阶",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-high-gradient-descent-001",
+    "title": "用梯度下降寻找更好的参数",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://high-school/gradient-descent",
+    "stage_code": "high_school",
+    "grade": "高中二年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第十一章 模型训练",
+    "content": "学习目标：理解梯度、学习率和迭代更新的关系。训练模型可以看成在参数空间中寻找使损失函数较小的位置。梯度指出损失增长最快的方向，因此沿梯度的反方向移动，通常能让损失下降。基本更新形式是新参数等于旧参数减去学习率乘以梯度。学习率过大可能跨过最低点并产生震荡，过小则收敛很慢。实际训练常使用小批量数据估计梯度，并采用 Adam 等优化算法。观察训练曲线时，要同时比较训练集和验证集损失：训练损失持续下降而验证损失上升，可能出现过拟合。梯度下降只能保证按局部信息改进，并不保证任何问题都找到全局最优解。",
+    "metadata": {
+      "tags": ["梯度下降", "学习率", "损失函数", "优化器"],
+      "difficulty": "进阶",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-high-llm-001",
+    "title": "大语言模型为什么能生成文本",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://high-school/large-language-model",
+    "stage_code": "high_school",
+    "grade": "高中一年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第十二章 生成式人工智能",
+    "content": "学习目标：理解分词、上下文和下一词元预测的基本关系。大语言模型先把文本转换为词元序列，再根据当前上下文预测下一个词元的概率分布，重复采样便形成较长文本。Transformer 中的注意力机制帮助模型在上下文不同位置之间建立联系。预训练让模型学习大量语言规律，指令微调使它更善于按照任务要求回答。生成结果受提示词、上下文长度、采样参数和训练数据影响。模型可能产生事实错误，也无法仅凭流畅表达证明结论正确。使用模型完成学习任务时，应给出清晰目标和必要背景，对关键事实查证，并保留人的最终判断。",
+    "metadata": {
+      "tags": ["大语言模型", "Transformer", "注意力", "提示词"],
+      "difficulty": "进阶",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-high-rag-001",
+    "title": "RAG如何让回答参考指定知识库",
+    "source_type": "demo_lesson",
+    "source_uri": "demo://high-school/rag",
+    "stage_code": "high_school",
+    "grade": "高中二年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第十三章 智能体与知识库",
+    "content": "学习目标：说明检索增强生成的索引和问答流程。RAG 首先把教材或资料切分成片段，使用嵌入模型把片段转换为向量并存入向量数据库。用户提问时，系统把问题转换为同一向量空间中的向量，召回语义相近的候选片段，再用重排模型选出更相关的内容。最后把问题、检索片段和回答要求一起发送给生成模型。RAG 能帮助模型利用私有资料并提供来源，但检索不到、片段过时或生成模型误读资料时仍会出错。工程上需要记录文档来源、版本、学段和教材等元数据，并通过离线问题集评估召回率、排序质量和答案引用是否一致。",
+    "metadata": {
+      "tags": ["RAG", "向量数据库", "Embedding", "Reranker"],
+      "difficulty": "进阶",
+      "contentStatus": "demo"
+    }
+  },
+  {
+    "document_id": "demo-high-project-001",
+    "title": "设计一个校园垃圾分类AI项目",
+    "source_type": "demo_project",
+    "source_uri": "demo://high-school/waste-classification-project",
+    "stage_code": "high_school",
+    "grade": "高中一年级",
+    "textbook": "K12人工智能通识演示教材",
+    "chapter": "第十四章 项目式学习",
+    "content": "项目目标：设计一个识别可回收物、厨余垃圾、有害垃圾和其他垃圾的图像分类原型。第一步明确使用场景和评价标准，不能只追求训练集准确率。第二步在获得授权的前提下收集图片，避免出现人脸、姓名和位置信息，并让各类别数量尽量均衡。第三步划分训练集、验证集和测试集，记录数据版本。第四步训练基线模型并用混淆矩阵分析容易混淆的类别。第五步设计失败处理，例如置信度较低时提示用户人工确认。展示时应说明模型限制、数据来源和改进方向。拓展问题：光照、拍摄角度和背景变化为什么会影响模型？怎样通过补充样本和数据增强提高鲁棒性？",
+    "metadata": {
+      "tags": ["项目式学习", "图像分类", "数据集", "模型评价"],
+      "difficulty": "综合实践",
+      "contentStatus": "demo"
+    }
+  }
+]

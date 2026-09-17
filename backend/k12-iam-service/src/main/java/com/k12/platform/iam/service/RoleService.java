@@ -16,9 +16,11 @@ import java.util.List;
 public class RoleService {
 
     private final RoleMapper roleMapper;
+    private final OperationAuditService operationAuditService;
 
-    public RoleService(RoleMapper roleMapper) {
+    public RoleService(RoleMapper roleMapper, OperationAuditService operationAuditService) {
         this.roleMapper = roleMapper;
+        this.operationAuditService = operationAuditService;
     }
 
     /*
@@ -33,7 +35,7 @@ public class RoleService {
     @Transactional
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.ROLE_UPDATE + "')")
     public RoleResponse updatePermissions(Long roleId, List<String> permissionCodes) {
-        RoleAccount role = roleMapper.findRoleById(roleId);
+        RoleAccount role = roleMapper.findRoleByIdForUpdate(roleId);
         if (role == null) {
             throw new IllegalArgumentException("Role not found: " + roleId);
         }
@@ -47,6 +49,9 @@ public class RoleService {
                 throw new IllegalArgumentException("Permission not found or disabled: " + permissionCode);
             }
         });
+        roleMapper.bumpAuthVersionForRoleUsers(roleId);
+        operationAuditService.record("ROLE_PERMISSIONS_UPDATE", "ROLE", roleId,
+                "permissionCount=" + permissionCodes.stream().distinct().count());
         return toResponse(roleMapper.findRoleById(roleId));
     }
 

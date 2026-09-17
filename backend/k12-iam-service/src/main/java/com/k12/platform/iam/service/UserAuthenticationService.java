@@ -57,6 +57,9 @@ public class UserAuthenticationService {
                 user.getUsername(),
                 user.getPasswordHash(),
                 user.getStatus(),
+                user.getFailedLoginCount(),
+                user.getLockedUntil(),
+                user.getAuthVersion(),
                 authorities
         );
     }
@@ -72,6 +75,9 @@ public class UserAuthenticationService {
             String username,
             String passwordHash,
             int status,
+            int failedLoginCount,
+            java.time.Instant lockedUntil,
+            long authVersion,
             List<String> authorities
     ) {
     }

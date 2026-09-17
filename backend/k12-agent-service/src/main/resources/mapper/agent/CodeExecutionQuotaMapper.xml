@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.agent.mapper.CodeExecutionQuotaMapper">
+
+    <!-- 主键保证同一用户同一天只有一行，并发首次访问也不会创建重复记录。 -->
+    <insert id="ensureDay">
+        INSERT INTO code_execution_quota (user_id, quota_date, used_count)
+        VALUES (#{userId}, #{quotaDate}, 0)
+        ON DUPLICATE KEY UPDATE user_id = user_id
+    </insert>
+
+    <!-- InnoDB 对单行 UPDATE 加锁，多个服务实例也不能同时越过日上限。 -->
+    <update id="reserve">
+        UPDATE code_execution_quota
+        SET used_count = used_count + 1
+        WHERE user_id = #{userId}
+          AND quota_date = #{quotaDate}
+          AND used_count &lt; #{dailyLimit}
+    </update>
+</mapper>

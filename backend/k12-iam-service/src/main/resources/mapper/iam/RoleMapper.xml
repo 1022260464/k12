@@ -43,6 +43,13 @@
         GROUP BY r.id, r.role_name, r.role_code, r.description
     </select>
 
+    <select id="findRoleByIdForUpdate" resultMap="RoleAccountResultMap">
+        SELECT id, role_name AS name, role_code AS code, description, '' AS permissionCodes
+        FROM sys_role
+        WHERE id = #{id} AND status = 1
+        FOR UPDATE
+    </select>
+
     <delete id="deleteRolePermissions">
         DELETE FROM sys_role_permission
         WHERE role_id = #{roleId}
@@ -61,4 +68,12 @@
                 AND rp.permission_id = p.id
           )
     </insert>
+
+    <update id="bumpAuthVersionForRoleUsers">
+        UPDATE sys_user u
+        JOIN sys_user_role ur ON ur.user_id = u.id
+        SET u.auth_version = u.auth_version + 1
+        WHERE ur.role_id = #{roleId}
+          AND u.deleted = 0
+    </update>
 </mapper>

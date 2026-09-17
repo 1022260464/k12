@@ -1,6 +1,11 @@
 # K12 多智能体教学平台
 
-K12 多智能体教学平台是面向基础教育场景的教学辅助系统。当前仓库包含前端应用和后端微服务骨架，后端已按业务边界做了第一版 Maven 多模块拆分，便于后续接入用户体系、课程资源、智能体编排、测评诊断、网关路由等能力。
+K12 多智能体教学平台是面向 K12 人工智能通识课程的教学辅助系统。当前仓库包含前端应用、
+Java 微服务和 Python Agent Runtime，用于建设按学段适配的对话、动画、编程实践、游戏化练习
+与个性化学习闭环。
+
+产品最终边界、系统总流程、真实完成进度和后续阶段统一记录在
+[K12 AI 通识教学助手总体规划](docs/project-scope-and-roadmap.md)。
 
 ## 项目结构
 
@@ -74,6 +79,10 @@ mvn -pl k12-agent-service -am spring-boot:run
 IAM 校验数据库账号密码并签发 JWT，Gateway 与下游服务使用同一密钥验证令牌。默认放行健康检查、登录和学生注册接口；其他接口必须携带 `Authorization: Bearer <token>`。用户与角色管理接口仅允许 `ROLE_ADMIN` 访问。
 
 首次升级现有权限库时，执行 `backend/sql/mysql/k12_auth_permission_upgrade.sql`，然后重新登录获取包含新权限的 JWT。新增接口前参考 `backend/docs/security-development-guide.md`。
+
+已有业务库接入 Python Agent Runtime 前，执行
+`backend/sql/mysql/k12_business_agent_upgrade.sql`，为 `agent_config` 增加稳定运行时编码，
+并创建 `agent_run`、`agent_artifact`。详细执行顺序见 `backend/README.md`。
 
 ## 健康检查接口
 

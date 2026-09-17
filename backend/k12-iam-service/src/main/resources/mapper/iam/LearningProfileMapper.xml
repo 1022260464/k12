@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.k12.platform.iam.mapper.LearningProfileMapper">
+    <!-- MySQL 8 使用行别名 incoming，避免已经弃用的 VALUES(column) 写法。 -->
+    <insert id="upsert">
+        INSERT INTO sys_learning_profile (
+            user_id,
+            school_stage,
+            grade,
+            textbook,
+            interests_json
+        ) VALUES (
+            #{userId},
+            #{schoolStage},
+            #{grade},
+            #{textbook},
+            CAST(#{interestsJson} AS JSON)
+        ) AS incoming
+        ON DUPLICATE KEY UPDATE
+            school_stage = incoming.school_stage,
+            grade = incoming.grade,
+            textbook = incoming.textbook,
+            interests_json = incoming.interests_json,
+            updated_time = CURRENT_TIMESTAMP(3)
+    </insert>
+</mapper>

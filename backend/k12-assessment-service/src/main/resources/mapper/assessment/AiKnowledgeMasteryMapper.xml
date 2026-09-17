@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.assessment.mapper.AiKnowledgeMasteryMapper">
+    <insert id="recordAttempt">
+        INSERT INTO assessment_ai_knowledge_mastery
+        (student_user_id, knowledge_code, topic, attempt_count, total_score,
+         total_max_score, latest_score_percent, last_practiced_time)
+        VALUES (#{studentUserId}, #{knowledgeCode}, #{topic}, 1, #{score},
+                #{maxScore}, #{scorePercent}, #{practicedTime})
+        ON DUPLICATE KEY UPDATE
+            topic = #{topic},
+            attempt_count = attempt_count + 1,
+            total_score = total_score + #{score},
+            total_max_score = total_max_score + #{maxScore},
+            latest_score_percent = #{scorePercent},
+            last_practiced_time = #{practicedTime}
+    </insert>
+    <select id="findByStudent" resultType="com.k12.platform.assessment.model.AiKnowledgeMastery">
+        SELECT * FROM assessment_ai_knowledge_mastery
+        WHERE student_user_id = #{studentUserId}
+        ORDER BY last_practiced_time DESC, knowledge_code
+        LIMIT #{limit}
+    </select>
+</mapper>

@@ -26,3 +26,6 @@ class CodeExecutionResult:
     stdout: str = ""
     stderr: str = ""
     artifacts: tuple[AgentArtifact, ...] = ()
+    exit_code: int | None = None
+    duration_ms: int | None = None
+    provider_request_id: str | None = None

@@ -222,7 +222,7 @@ user:delete
 ```text
 homework:submit
 homework:grade
-agent:execute
+agent:invoke
 file:download
 ```
 

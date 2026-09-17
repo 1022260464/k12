@@ -27,11 +27,17 @@ public final class K12Authorities {
     public static final String AGENT_CREATE = "agent:create";
     public static final String AGENT_UPDATE = "agent:update";
     public static final String AGENT_DELETE = "agent:delete";
+    public static final String AGENT_INVOKE = "agent:invoke";
 
     public static final String HOMEWORK_READ = "homework:read";
     public static final String HOMEWORK_CREATE = "homework:create";
     public static final String HOMEWORK_UPDATE = "homework:update";
     public static final String HOMEWORK_DELETE = "homework:delete";
+    public static final String HOMEWORK_SUBMIT = "homework:submit";
+    public static final String HOMEWORK_GRADE = "homework:grade";
+
+    public static final String LEARNING_PROFILE_READ = "learning-profile:read";
+    public static final String LEARNING_PROFILE_UPDATE = "learning-profile:update";
 
     private K12Authorities() {
     }

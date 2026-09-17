@@ -15,7 +15,7 @@ def main() -> None:
         )
 
     container = build_container(settings)
-    worker = RabbitMqAgentWorker(settings, container.run_agent)
+    worker = RabbitMqAgentWorker(settings, container.run_agent, container.execute_code)
     asyncio.run(worker.run_forever())
 
 
