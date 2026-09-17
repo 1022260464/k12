@@ -23,9 +23,11 @@ import java.util.Optional;
 public class CourseService {
 
     private final CourseMapper courseMapper;
+    private final CourseMediaUrlResolver mediaUrlResolver;
 
-    public CourseService(CourseMapper courseMapper) {
+    public CourseService(CourseMapper courseMapper, CourseMediaUrlResolver mediaUrlResolver) {
         this.courseMapper = courseMapper;
+        this.mediaUrlResolver = mediaUrlResolver;
     }
 
     /* 查询课程需要 course:read 权限。管理员、教师、学生默认都拥有。 */
@@ -104,6 +106,8 @@ public class CourseService {
                 course.getSubject(),
                 course.getGradeLevel(),
                 course.getDescription(),
+                course.getCoverObjectKey(),
+                mediaUrlResolver.resolve(course.getCoverObjectKey()),
                 course.getUpdatedTime(),
                 course.getTeacherId()
         );
@@ -114,6 +118,7 @@ public class CourseService {
         course.setSubject(request.subject().trim());
         course.setGradeLevel(request.gradeLevel().trim());
         course.setDescription(StringUtils.hasText(request.description()) ? request.description().trim() : null);
+        course.setCoverObjectKey(cleanCoverObjectKey(request.coverObjectKey()));
     }
 
     private void requireOwner(Course course) {
@@ -125,5 +130,13 @@ public class CourseService {
 
     private String clean(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String cleanCoverObjectKey(String value) {
+        String objectKey = clean(value);
+        if (objectKey != null && !CourseMediaUrlResolver.isAllowedObjectKey(objectKey)) {
+            throw new IllegalArgumentException("课程封面对象键必须位于 course-assets/ 目录且不能包含路径穿越字符");
+        }
+        return objectKey;
     }
 }

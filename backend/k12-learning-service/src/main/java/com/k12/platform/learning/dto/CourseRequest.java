@@ -14,6 +14,12 @@ public record CourseRequest(
         @Size(max = 32, message = "年级不能超过 32 个字符")
         String gradeLevel,
         @Size(max = 1000, message = "课程描述不能超过 1000 个字符")
-        String description
+        String description,
+        @Size(max = 500, message = "课程封面对象键不能超过 500 个字符")
+        String coverObjectKey
 ) {
+    /** 保留四参数构造器，兼容已有Java调用方和测试。 */
+    public CourseRequest(String title, String subject, String gradeLevel, String description) {
+        this(title, subject, gradeLevel, description, null);
+    }
 }

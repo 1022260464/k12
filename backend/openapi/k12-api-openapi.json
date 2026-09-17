@@ -628,6 +628,51 @@
         }
       }
     },
+    "/api/v1/learning/leaderboard": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询学习积分排行榜",
+        "description": "需要 course:read 或管理员权限。积分由有效选课记录中的章节最高进度累加生成；MySQL是数据真相源，Redis只提供短时读取缓存。",
+        "operationId": "getLearningLeaderboard",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "返回榜单人数",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderboardApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/learning/courses/page": {
       "get": {
         "tags": [
@@ -1659,6 +1704,57 @@
         }
       }
     },
+    "/api/v1/learning/history/me": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询我的最近课程学习历史",
+        "description": "需要学生角色及 course:read，或管理员。使用单次聚合查询返回当前用户有效选课的总体进度，按最后学习时间倒序。",
+        "operationId": "getMyLearningHistory",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户最近课程进度",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningHistoryApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "limit 参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBase"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
     "/api/v1/learning/courses": {
       "get": {
         "tags": [
@@ -2007,6 +2103,68 @@
         }
       }
     },
+    "/api/v1/agents/code-executions": {
+      "post": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "执行Python代码",
+        "operationId": "executeSandboxCode",
+        "description": "需要ROLE_ADMIN或agent:invoke权限。SYNC模式由Java同步调用Python Runtime并返回终态；ASYNC模式返回HTTP 202和PENDING，由Python Worker通过RabbitMQ处理。两种模式都把运行结果和产物写入agent_run、agent_artifact，返回的runId可用于运行详情查询。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeExecutionRequest"
+              },
+              "example": {
+                "code": "print('hello k12')",
+                "timeoutSeconds": 10,
+                "executionMode": "SYNC"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SYNC代码执行完成；业务状态请读取data.status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeExecutionApiResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "ASYNC代码执行任务已进入队列，data.status为PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeExecutionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
     "/api/v1/agents/{agentCode}/runs": {
       "post": {
         "tags": [
@@ -2090,6 +2248,68 @@
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/{agentCode}/sessions/{sessionId}/history": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "查询当前用户的智能体会话历史",
+        "operationId": "getAgentSessionHistory",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。始终只读取当前 JWT 用户自己的成功轮次，不返回服务端聚合的 inputContext。",
+        "parameters": [
+          {
+            "name": "agentCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,63}$"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "按时间正序返回会话轮次",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionHistoryApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
@@ -2332,6 +2552,163 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
+        }
+      }
+    },
+    "/api/v1/agents/runs/{runId}/artifacts/{artifactId}/download-url": {
+      "get": {
+        "tags": [
+          "04-AI智能体服务"
+        ],
+        "summary": "获取运行产物临时下载地址",
+        "operationId": "createAgentArtifactDownloadUrl",
+        "description": "需要 ROLE_ADMIN 或 agent:read 权限。服务端校验运行记录和产物归属后，为 MinIO 对象生成短期签名 URL；不会向前端暴露存储凭据。",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "短期有效的 HTTP(S) 访问地址",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactDownloadUrlApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts": {
+      "post": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "提交 AI 课堂小测",
+        "description": "需要 agent:read。由服务端读取本人已完成的教学运行及题目判分；同一运行只允许提交一次。形成性练习不计入作业成绩。",
+        "operationId": "submitAiPracticeAttempt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/PracticeAttemptRequest"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "练习结果",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeAttemptApiResponse"}}}
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"$ref": "#/components/responses/Conflict"},
+          "502": {"$ref": "#/components/responses/BadGateway"},
+          "503": {"$ref": "#/components/responses/ServiceUnavailable"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/me": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "查询本人近期 AI 小测记录",
+        "operationId": "listMyAiPracticeAttempts",
+        "parameters": [{"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}}],
+        "responses": {
+          "200": {
+            "description": "近期练习记录",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeAttemptListApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/me/insights": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "查询本人近期 AI 小测表现与学习建议",
+        "description": "需要 agent:read。最多扫描最近50次小测、返回最近5个主题，每个主题最多统计5次。只是形成性练习分析，不是正式能力评定。",
+        "operationId": "getMyAiPracticeInsights",
+        "responses": {
+          "200": {
+            "description": "按主题汇总的练习建议",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeInsightListApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/me/mastery": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "查询本人按知识点累计的形成性练习掌握情况",
+        "description": "需要 agent:read。仅统计带稳定知识点编码的新小测；不是正式成绩或能力评级。",
+        "operationId": "getMyAiKnowledgeMastery",
+        "responses": {
+          "200": {
+            "description": "最近练习的知识点汇总",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/KnowledgeMasteryListApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"}
+        }
+      }
+    },
+    "/api/v1/assessments/practice-attempts/runs/{runId}/me": {
+      "get": {
+        "tags": ["07-作业与批改服务"],
+        "summary": "按教学运行查询本人小测结果",
+        "operationId": "getMyAiPracticeAttemptByRun",
+        "parameters": [{"name": "runId", "in": "path", "required": true, "schema": {"type": "string", "maxLength": 64}}],
+        "responses": {
+          "200": {
+            "description": "本次练习结果",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PracticeAttemptApiResponse"}}}
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "404": {"$ref": "#/components/responses/NotFound"}
         }
       }
     },
@@ -3714,7 +4091,8 @@
               "title": "一次函数基础",
               "subject": "数学",
               "gradeLevel": "八年级",
-              "description": "学习一次函数的定义和图像"
+              "description": "学习一次函数的定义和图像",
+              "coverObjectKey": "course-assets/v1/course-math-comic.png"
             }
           }
         }
@@ -3847,6 +4225,89 @@
       }
     },
     "schemas": {
+      "PracticeAttemptRequest": {
+        "type": "object",
+        "required": ["runId", "answers"],
+        "properties": {
+          "runId": {"type": "string", "maxLength": 64},
+          "answers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "required": ["questionId", "optionId"],
+              "properties": {
+                "questionId": {"type": "string", "maxLength": 64},
+                "optionId": {"type": "string", "maxLength": 64}
+              }
+            }
+          }
+        }
+      },
+      "PracticeAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "runId": {"type": "string"},
+          "topic": {"type": "string"},
+          "knowledgeCode": {"type": "string", "nullable": true},
+          "score": {"type": "integer"},
+          "maxScore": {"type": "integer"},
+          "correctCount": {"type": "integer"},
+          "totalQuestions": {"type": "integer"},
+          "weakPoint": {"type": "string", "nullable": true},
+          "createdTime": {"type": "string", "format": "date-time"}
+        }
+      },
+      "PracticeAttemptApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/PracticeAttempt"}}}
+        ]
+      },
+      "PracticeAttemptListApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/PracticeAttempt"}}}}
+        ]
+      },
+      "PracticeInsight": {
+        "type": "object",
+        "properties": {
+          "topic": {"type": "string"},
+          "sampleCount": {"type": "integer", "minimum": 1, "maximum": 5},
+          "averageScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "latestScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "action": {"type": "string", "enum": ["REVIEW", "PRACTICE", "APPLY"]},
+          "suggestion": {"type": "string"},
+          "lastPracticedTime": {"type": "string", "format": "date-time", "nullable": true}
+        }
+      },
+      "PracticeInsightListApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/PracticeInsight"}}}}
+        ]
+      },
+      "KnowledgeMastery": {
+        "type": "object",
+        "properties": {
+          "knowledgeCode": {"type": "string", "example": "sorting.bubble_sort"},
+          "topic": {"type": "string"},
+          "attemptCount": {"type": "integer", "minimum": 1},
+          "masteryPercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "latestScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "action": {"type": "string", "enum": ["REVIEW", "PRACTICE", "APPLY"]},
+          "lastPracticedTime": {"type": "string", "format": "date-time"}
+        }
+      },
+      "KnowledgeMasteryListApiResponse": {
+        "allOf": [
+          {"$ref": "#/components/schemas/ApiResponseBase"},
+          {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/KnowledgeMastery"}}}}
+        ]
+      },
       "ApiResponseBase": {
         "type": "object",
         "required": [
@@ -4287,8 +4748,88 @@
             "maxLength": 1000,
             "nullable": true,
             "example": "学习一次函数的定义和图像"
+          },
+          "coverObjectKey": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true,
+            "description": "MinIO中course-assets/目录下的稳定对象键",
+            "example": "course-assets/v1/course-math-comic.png"
           }
         }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "required": [
+          "rank",
+          "userId",
+          "learningPoints",
+          "currentUser"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1001
+          },
+          "learningPoints": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 280
+          },
+          "currentUser": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Leaderboard": {
+        "type": "object",
+        "required": [
+          "metric",
+          "generatedTime",
+          "entries"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "example": "chapter_progress_points"
+          },
+          "generatedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            }
+          }
+        }
+      },
+      "LeaderboardApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Leaderboard"
+              }
+            }
+          }
+        ]
       },
       "CoursePage": {
         "type": "object",
@@ -4507,6 +5048,72 @@
           }
         }
       },
+      "CourseLearningSummary": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "courseTitle",
+          "subject",
+          "gradeLevel",
+          "totalChapters",
+          "completedChapters",
+          "progressPercent",
+          "enrolledTime"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "courseTitle": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "gradeLevel": {
+            "type": "string"
+          },
+          "totalChapters": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completedChapters": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "progressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "enrolledTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLearningTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "LearningHistory": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/CourseLearningSummary"
+            }
+          }
+        }
+      },
       "CoursePageApiResponse": {
         "allOf": [
           {
@@ -4597,6 +5204,24 @@
           }
         ]
       },
+      "LearningHistoryApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LearningHistory"
+              }
+            }
+          }
+        ]
+      },
       "ChapterListApiResponse": {
         "allOf": [
           {
@@ -4631,6 +5256,12 @@
                 "format": "int64",
                 "nullable": true,
                 "description": "课程创建人的用户 ID；历史课程可能为空"
+              },
+              "coverUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true,
+                "description": "后端临时生成的课程封面签名地址；MinIO未启用时为空"
               },
               "id": {
                 "type": "integer",
@@ -4766,6 +5397,129 @@
           }
         ]
       },
+      "CodeExecutionRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100000,
+            "description": "需要在隔离沙箱中执行的Python代码"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 10,
+            "nullable": true
+          },
+          "executionMode": {
+            "type": "string",
+            "enum": [
+              "SYNC",
+              "ASYNC"
+            ],
+            "default": "SYNC",
+            "nullable": true,
+            "description": "SYNC同步等待执行结果；ASYNC进入RabbitMQ后返回PENDING"
+          }
+        }
+      },
+      "CodeExecutionArtifact": {
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CODE_RESULT",
+              "CHART",
+              "IMAGE",
+              "FILE",
+              "TABLE"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "storageUri": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "nullable": true
+          }
+        }
+      },
+      "CodeExecution": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "description": "K12平台运行编号，可用于查询运行详情"
+          },
+          "executionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Python Runtime代码执行编号；PENDING时尚未生成"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCEEDED",
+              "FAILED",
+              "TIMED_OUT",
+              "REJECTED"
+            ]
+          },
+          "stdout": {
+            "type": "string"
+          },
+          "stderr": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodeExecutionArtifact"
+            }
+          },
+          "exitCode": {
+            "type": "integer",
+            "nullable": true
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "CodeExecutionApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CodeExecution"
+              }
+            }
+          }
+        ]
+      },
       "AgentRunRequest": {
         "type": "object",
         "required": [
@@ -4780,6 +5534,7 @@
           "sessionId": {
             "type": "string",
             "maxLength": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$",
             "nullable": true
           },
           "executionMode": {
@@ -4812,7 +5567,10 @@
               "IMAGE",
               "TABLE",
               "TEXT",
-              "FILE"
+              "FILE",
+              "ANIMATION",
+              "GAME",
+              "CODE_RESULT"
             ]
           },
           "title": {
@@ -5041,6 +5799,103 @@
                 "items": {
                   "$ref": "#/components/schemas/AgentArtifact"
                 }
+              }
+            }
+          }
+        ]
+      },
+      "ArtifactDownloadUrl": {
+        "type": "object",
+        "required": [
+          "artifactId",
+          "url",
+          "expiresSeconds"
+        ],
+        "properties": {
+          "artifactId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresSeconds": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "ArtifactDownloadUrlApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ArtifactDownloadUrl"
+              }
+            }
+          }
+        ]
+      },
+      "AgentSessionTurn": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "userMessage": {
+            "type": "string"
+          },
+          "assistantMessage": {
+            "type": "string"
+          },
+          "outputMetadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentArtifact"
+            }
+          }
+        }
+      },
+      "AgentSessionHistory": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "agentCode": {
+            "type": "string"
+          },
+          "turns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSessionTurn"
+            }
+          }
+        }
+      },
+      "AgentSessionHistoryApiResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AgentSessionHistory"
               }
             }
           }

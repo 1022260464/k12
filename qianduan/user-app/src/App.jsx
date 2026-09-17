@@ -4,11 +4,13 @@ import { getStoredSession, login, logout, register } from "./api/auth.js";
 import { FloatingAssistant } from "./components/FloatingAssistant.jsx";
 import { SiteHeader } from "./components/SiteHeader.jsx";
 import { CoursesPage } from "./pages/CoursesPage.jsx";
+import { CodeLabPage } from "./pages/CodeLabPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
+import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { ProgressPage } from "./pages/ProgressPage.jsx";
 import { TasksPage } from "./pages/TasksPage.jsx";
 
-const validPages = new Set(["home", "courses", "tasks", "progress"]);
+const validPages = new Set(["home", "courses", "tasks", "code-lab", "leaderboard", "progress"]);
 
 function pageFromHash() {
   const page = window.location.hash.replace(/^#\/?/, "") || "home";
@@ -67,6 +69,8 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
 export function App() {
   const [session, setSession] = useState(getStoredSession);
   const [page, setPage] = useState(pageFromHash);
+  const [assistantDraft, setAssistantDraft] = useState(null);
+  const [practiceRevision, setPracticeRevision] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const displayName = useMemo(() => session?.user?.username ?? "同学", [session]);
@@ -96,15 +100,17 @@ export function App() {
     home: <HomePage session={session} displayName={displayName} navigate={navigate} requireLogin={requireLogin} />,
     courses: <CoursesPage session={session} requireLogin={requireLogin} />,
     tasks: <TasksPage session={session} requireLogin={requireLogin} />,
-    progress: <ProgressPage session={session} requireLogin={requireLogin} />,
+    "code-lab": <CodeLabPage session={session} requireLogin={requireLogin} />,
+    leaderboard: <LeaderboardPage session={session} requireLogin={requireLogin} />,
+    progress: <ProgressPage session={session} requireLogin={requireLogin} onPractice={(topic) => setAssistantDraft({ topic })} practiceRevision={practiceRevision} />,
   };
 
   return (
     <main>
-      <SiteHeader page={page} session={session} displayName={displayName} navigate={navigate} onLogin={() => openAuth("login")} onRegister={() => openAuth("register")} onLogout={() => { logout(); setSession(null); }} />
+      <SiteHeader page={page} session={session} displayName={displayName} navigate={navigate} onLogin={() => openAuth("login")} onRegister={() => openAuth("register")} onLogout={() => { logout(); setAssistantDraft(null); setSession(null); }} />
       {pages[page]}
       <footer className="site-footer"><button className="brand brand-button" type="button" onClick={() => navigate("home")}><span className="brand-mark">eg</span><span>EduGraph AI</span></button><p>面向 K12 的多智能体教学平台</p><span>© 2026 K12 Platform</span></footer>
-      <FloatingAssistant session={session} displayName={displayName} onRequireLogin={() => openAuth("login")} />
+      <FloatingAssistant session={session} displayName={displayName} onRequireLogin={() => openAuth("login")} draftRequest={assistantDraft} onPracticeRecorded={() => setPracticeRevision((value) => value + 1)} />
       {showLogin && <AuthDialog initialMode={authMode} onClose={() => setShowLogin(false)} onSuccess={(nextSession) => { setSession(nextSession); setShowLogin(false); }} />}
     </main>
   );

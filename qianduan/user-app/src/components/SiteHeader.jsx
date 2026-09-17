@@ -1,7 +1,7 @@
 import { Bell, LogOut, Menu, Search, X } from "lucide-react";
 import { useState } from "react";
 
-const navigation = [["home", "学习首页"], ["courses", "课程中心"], ["tasks", "作业练习"], ["progress", "学习报告"]];
+const navigation = [["home", "学习首页"], ["courses", "课程中心"], ["tasks", "作业练习"], ["code-lab", "编程实验"], ["leaderboard", "学习排行"], ["progress", "学习报告"]];
 
 export function SiteHeader({ page, session, displayName, navigate, onLogin, onRegister, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);

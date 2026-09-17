@@ -15,6 +15,7 @@ public record AgentRunRequest(
         @Size(max = 20000, message = "输入内容不能超过 20000 个字符")
         String inputText,
         @Size(max = 64, message = "会话编号不能超过 64 个字符")
+        @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._:-]{0,63}", message = "会话编号格式错误")
         String sessionId,
         @Pattern(regexp = "SYNC|ASYNC", message = "执行模式只能是 SYNC 或 ASYNC")
         String executionMode,

@@ -45,6 +45,23 @@ class WrongContractAgent(StubAgent):
         return replace(result, run_id="another-run")
 
 
+class FakeTraceRepository:
+    def __init__(self) -> None:
+        self.events = []
+
+    async def record_started(self, run_input) -> None:
+        self.events.append(("started", run_input.run_id))
+
+    async def record_succeeded(self, run_input, _result) -> None:
+        self.events.append(("succeeded", run_input.run_id))
+
+    async def record_failed(self, run_input, error_type) -> None:
+        self.events.append(("failed", run_input.run_id, error_type))
+
+    async def close(self) -> None:
+        return None
+
+
 def test_use_case_normalizes_input_and_preserves_run_id() -> None:
     use_case = RunAgentUseCase(InMemoryAgentRegistry([StubAgent()]))
 
@@ -92,3 +109,42 @@ def test_use_case_rejects_result_with_wrong_run_id() -> None:
 def test_registry_rejects_duplicate_agent_code() -> None:
     with pytest.raises(DuplicateAgentCodeError, match="Duplicate agent code"):
         InMemoryAgentRegistry([StubAgent(), StubAgent()])
+
+
+def test_use_case_records_successful_agent_trace() -> None:
+    trace_repository = FakeTraceRepository()
+    use_case = RunAgentUseCase(
+        InMemoryAgentRegistry([StubAgent()]),
+        trace_repository,
+    )
+
+    asyncio.run(
+        use_case.execute(
+            RunAgentCommand(run_id="trace-run-1", agent_code="stub", input_text="test")
+        )
+    )
+
+    assert trace_repository.events == [
+        ("started", "trace-run-1"),
+        ("succeeded", "trace-run-1"),
+    ]
+
+
+def test_use_case_records_failed_agent_trace() -> None:
+    trace_repository = FakeTraceRepository()
+    use_case = RunAgentUseCase(
+        InMemoryAgentRegistry([BrokenAgent()]),
+        trace_repository,
+    )
+
+    with pytest.raises(AgentExecutionError):
+        asyncio.run(
+            use_case.execute(
+                RunAgentCommand(run_id="trace-run-2", agent_code="stub", input_text="test")
+            )
+        )
+
+    assert trace_repository.events == [
+        ("started", "trace-run-2"),
+        ("failed", "trace-run-2", "RuntimeError"),
+    ]

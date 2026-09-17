@@ -32,7 +32,16 @@ spring:
         config:
           k12-agent-runtime:
             connect-timeout: ${K12_AGENT_RUNTIME_CONNECT_TIMEOUT_MS:3000}
-            read-timeout: ${K12_AGENT_RUNTIME_READ_TIMEOUT_MS:60000}
+            read-timeout: ${K12_AGENT_RUNTIME_READ_TIMEOUT_MS:90000}
+          k12-iam-service:
+            connect-timeout: ${K12_IAM_CONNECT_TIMEOUT_MS:1500}
+            read-timeout: ${K12_IAM_READ_TIMEOUT_MS:2500}
+          k12-learning-service:
+            connect-timeout: ${K12_LEARNING_CONNECT_TIMEOUT_MS:1500}
+            read-timeout: ${K12_LEARNING_READ_TIMEOUT_MS:2500}
+          k12-assessment-service:
+            connect-timeout: ${K12_ASSESSMENT_CONNECT_TIMEOUT_MS:1500}
+            read-timeout: ${K12_ASSESSMENT_READ_TIMEOUT_MS:2500}
     nacos:
       server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
       discovery:
@@ -64,7 +73,16 @@ management:
         include: health,info
 
 k12:
+  clients:
+    # 本地直接使用固定端口；团队部署后可由环境变量或Nacos覆盖。
+    iam-url: ${K12_IAM_SERVICE_URL:http://127.0.0.1:8081}
+    learning-url: ${K12_LEARNING_SERVICE_URL:http://127.0.0.1:8082}
+    assessment-url: ${K12_ASSESSMENT_SERVICE_URL:http://127.0.0.1:8084}
   agent:
+    code-quota:
+      # 先执行 backend/sql/mysql/k12_business_code_execution_quota.sql，再启用。
+      enabled: ${K12_AGENT_CODE_QUOTA_ENABLED:false}
+      daily-limit: ${K12_AGENT_CODE_DAILY_LIMIT:5}
     lifecycle:
       # 本地稍后启动 Worker 时有一小时排队时间；运行超时独立计算。
       enabled: ${K12_AGENT_LIFECYCLE_ENABLED:true}
@@ -85,6 +103,10 @@ k12:
       request-routing-key: ${K12_AGENT_RABBITMQ_REQUEST_ROUTING_KEY:agent.run.request}
       result-queue: ${K12_AGENT_RABBITMQ_RESULT_QUEUE:k12.agent.run.result}
       result-routing-key: ${K12_AGENT_RABBITMQ_RESULT_ROUTING_KEY:agent.run.result}
+      code-request-queue: ${K12_AGENT_RABBITMQ_CODE_REQUEST_QUEUE:k12.code.execute.request}
+      code-request-routing-key: ${K12_AGENT_RABBITMQ_CODE_REQUEST_ROUTING_KEY:code.execute.request}
+      code-result-queue: ${K12_AGENT_RABBITMQ_CODE_RESULT_QUEUE:k12.code.execute.result}
+      code-result-routing-key: ${K12_AGENT_RABBITMQ_CODE_RESULT_ROUTING_KEY:code.execute.result}
       dead-letter-exchange: ${K12_AGENT_RABBITMQ_DLX:k12.agent.dlx}
       dead-letter-queue: ${K12_AGENT_RABBITMQ_DLQ:k12.agent.run.dead}
   security:

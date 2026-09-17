@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +43,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("创建课程时清理文本并设置默认状态")
     void createCourseNormalizesFields() {
-        CourseService service = new CourseService(courseMapper);
+        CourseService service = new CourseService(courseMapper, objectKey -> null);
         when(courseMapper.insert(any(Course.class))).thenAnswer(invocation -> {
             Course course = invocation.getArgument(0);
             course.setId(1L);
@@ -72,7 +73,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("更新不存在的课程返回空结果")
     void updateMissingCourseReturnsEmpty() {
-        CourseService service = new CourseService(courseMapper);
+        CourseService service = new CourseService(courseMapper, objectKey -> null);
         when(courseMapper.selectForUpdate(99L)).thenReturn(null);
 
         Optional<CourseResponse> response = service.updateCourse(
@@ -81,5 +82,45 @@ class CourseServiceTest {
         );
 
         assertThat(response).isEmpty();
+    }
+
+    @Test
+    @DisplayName("课程响应同时包含稳定对象键和临时访问地址")
+    void responseContainsCourseCoverUrl() {
+        CourseService service = new CourseService(
+                courseMapper,
+                objectKey -> "https://minio.example.test/signed/" + objectKey
+        );
+        Course course = new Course();
+        course.setId(8L);
+        course.setTitle("人工智能启蒙");
+        course.setSubject("人工智能");
+        course.setGradeLevel("小学高年级");
+        course.setCoverObjectKey("course-assets/v1/k12-ai-learning-journey.png");
+        course.setStatus(1);
+        when(courseMapper.selectById(8L)).thenReturn(course);
+
+        CourseResponse response = service.getCourse(8L).orElseThrow();
+
+        assertThat(response.coverObjectKey()).isEqualTo("course-assets/v1/k12-ai-learning-journey.png");
+        assertThat(response.coverUrl())
+                .isEqualTo("https://minio.example.test/signed/course-assets/v1/k12-ai-learning-journey.png");
+    }
+
+    @Test
+    @DisplayName("拒绝越过课程素材目录的对象键")
+    void rejectsUnsafeCourseCoverObjectKey() {
+        CourseService service = new CourseService(courseMapper, objectKey -> null);
+        CourseRequest request = new CourseRequest(
+                "人工智能启蒙",
+                "人工智能",
+                "小学高年级",
+                null,
+                "course-assets/../private/secret.png"
+        );
+
+        assertThatThrownBy(() -> service.createCourse(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("course-assets/");
     }
 }

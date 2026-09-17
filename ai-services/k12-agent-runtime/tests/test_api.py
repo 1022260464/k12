@@ -129,6 +129,53 @@ def test_sandbox_is_disabled_by_default() -> None:
     assert response.json()["code"] == 503
 
 
+def test_sandbox_rejects_runtime_package_installation_before_execution() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.post(
+            "/internal/v1/sandbox/executions",
+            json={"code": "print('safe')", "packages": ["requests"]},
+        )
+
+    assert response.status_code == 422
+    assert "不能临时安装依赖" in response.json()["message"]
+
+
+def test_local_piston_capabilities_reflect_provider_limit() -> None:
+    settings = Settings(
+        _env_file=None,
+        sandbox_enabled=True,
+        sandbox_provider="local_piston",
+        sandbox_timeout_seconds=30,
+        piston_run_timeout_ms=3000,
+    )
+    with TestClient(create_app(settings)) as client:
+        response = client.get("/internal/v1/sandbox/capabilities")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["enabled"] is True
+    assert data["executionMode"] == "local_piston"
+    assert data["limits"]["timeoutSeconds"] == 3
+
+
+def test_sandbox_capabilities_expose_configured_failover_chain() -> None:
+    settings = Settings(
+        _env_file=None,
+        sandbox_enabled=True,
+        sandbox_provider="local_piston",
+        sandbox_fallback_provider="tencent_agsx",
+        e2b_domain="ap-guangzhou.tencentags.com",
+        e2b_api_key=SecretStr("e2b_0000000000000000000000000000000000000000"),
+    )
+    with TestClient(create_app(settings)) as client:
+        response = client.get("/internal/v1/sandbox/capabilities")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["executionMode"] == "local_piston->tencent_agsx"
+    assert data["limits"]["timeoutSeconds"] == 3
+
+
 def test_rag_capabilities_and_inference_are_disabled_by_default() -> None:
     with TestClient(create_app(Settings(_env_file=None))) as client:
         capabilities = client.get("/internal/v1/rag/capabilities")
@@ -139,9 +186,29 @@ def test_rag_capabilities_and_inference_are_disabled_by_default() -> None:
 
     assert capabilities.status_code == 200
     assert capabilities.json()["data"]["enabled"] is False
+    assert capabilities.json()["data"]["storageEnabled"] is False
     assert capabilities.json()["data"]["embeddingModel"] == "BAAI/bge-m3"
     assert embedding.status_code == 503
     assert embedding.json()["code"] == 503
+
+
+def test_rag_storage_endpoints_are_disabled_without_configuration() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        index_response = client.post(
+            "/internal/v1/rag/documents/index",
+            json={
+                "title": "人工智能入门",
+                "content": "机器可以从数据中学习规律。",
+                "sourceType": "manual",
+            },
+        )
+        search_response = client.post(
+            "/internal/v1/rag/search",
+            json={"query": "什么是机器学习？"},
+        )
+
+    assert index_response.status_code == 503
+    assert search_response.status_code == 503
 
 
 def test_internal_api_key_is_enforced_when_configured() -> None:
@@ -158,3 +225,16 @@ def test_internal_api_key_is_enforced_when_configured() -> None:
 
     assert unauthorized.status_code == 401
     assert authorized.status_code == 200
+
+
+def test_storage_is_disabled_by_default() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        capabilities = client.get("/internal/v1/storage/capabilities")
+        upload = client.post(
+            "/internal/v1/storage/objects",
+            files={"file": ("demo.txt", b"demo", "text/plain")},
+        )
+
+    assert capabilities.status_code == 200
+    assert capabilities.json()["data"]["enabled"] is False
+    assert upload.status_code == 503

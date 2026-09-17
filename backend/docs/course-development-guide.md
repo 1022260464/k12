@@ -40,7 +40,7 @@ Service 读取当前身份并确定数据范围，Mapper 仅执行查询和持�
 1. 先备份，确认连接的是目标环境，暂停 Learning 写入或在维护窗口操作。
 2. 用具备 `ALTER/CREATE` 权限的数据库维护账号打开 SQL 编辑器。
 3. 执行 `backend/sql/mysql/k12_business_learning_upgrade.sql` 的完整脚本。
-4. 脚本末尾应返回三个新增表以及 `learning_course.teacher_id` 字段。
+4. 脚本末尾应返回三个新增表以及 `learning_course.teacher_id`、`cover_object_key` 字段。
 5. 重启 Learning 服务，再发起接口请求。
 
 脚本包含 `USE k12_business`。其中 PREPARE 语句依赖当前会话变量，必须在同一个连接中顺序执行，
@@ -48,8 +48,9 @@ Service 读取当前身份并确定数据范围，Mapper 仅执行查询和持�
 MySQL DDL 会隐式提交，不能依赖事务回滚整份升级脚本。
 
 如果服务器仍将 `max_allowed_packet` 设置为 2048 字节，较长章节正文仍可能写入失败。
-可先执行 `SHOW VARIABLES LIKE 'max_allowed_packet';` 检查，请数据库管理员按请求体大小调整，
-再让连接池重新建立连接。接口正文上限是 20000 字符，不能用 2 KB 数据包配置进行完整验收。
+先使用MySQL管理员账号单独执行`backend/sql/mysql/mysql_server_packet_fix.sql`，断开并新建连接，
+再执行`backend/sql/mysql/mysql_server_packet_verify.sql`。两列均为`67108864`后再执行业务升级脚本。
+修改脚本把值持久化为64MB。接口正文上限是20000字符，不能用2KB数据包配置进行完整验收。
 
 ### 全新环境
 
@@ -60,6 +61,7 @@ MySQL DDL 会隐式提交，不能依赖事务回滚整份升级脚本。
 | 表/字段 | 内容 |
 | --- | --- |
 | `learning_course.teacher_id` | 当前课程创建人 ID；历史课程允许 NULL |
+| `learning_course.cover_object_key` | MinIO中 `course-assets/` 下的稳定封面对象键，不保存临时签名URL |
 | `learning_course_chapter` | 章节标题、纯文本正文、排序、逻辑删除标记 |
 | `learning_course_enrollment` | 用户报名状态；课程与用户的组合唯一 |
 | `learning_chapter_progress` | 报名记录下各章节进度；报名与章节的组合唯一 |

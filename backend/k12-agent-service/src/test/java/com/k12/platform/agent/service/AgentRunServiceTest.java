@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +63,10 @@ class AgentRunServiceTest {
     private AgentRunPersistenceService persistenceService;
     @Mock
     private AgentRunTaskPublisher taskPublisher;
+    @Mock
+    private LearnerContextEnricher learnerContextEnricher;
+    @Mock
+    private AgentSessionService sessionService;
 
     private AgentRunService runService;
     private AgentRabbitProperties rabbitProperties;
@@ -77,8 +82,14 @@ class AgentRunServiceTest {
                 persistenceService,
                 taskPublisher,
                 rabbitProperties,
-                new ObjectMapper()
+                new ObjectMapper(),
+                learnerContextEnricher,
+                sessionService
         );
+        lenient().when(learnerContextEnricher.enrich(any(), any(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(2));
+        lenient().when(sessionService.enrichContext(any(), any(), any(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(3));
         authenticate(42L, K12Authorities.AGENT_READ, K12Authorities.AGENT_INVOKE);
     }
 
@@ -119,6 +130,7 @@ class AgentRunServiceTest {
                 ArgumentCaptor.forClass(RuntimeAgentInvokeRequest.class);
         verify(runtimeClient).invoke(eq("demo-chart"), runtimeRequest.capture());
         assertThat(runtimeRequest.getValue().userId()).isEqualTo("42");
+        verify(sessionService).enrichContext(42L, "demo-chart", "session-1", Map.of("grade", 8));
         assertThat(response.runId()).isEqualTo("run-1");
         assertThat(response.status()).isEqualTo("SUCCEEDED");
         assertThat(response.artifacts()).hasSize(1);
@@ -264,6 +276,23 @@ class AgentRunServiceTest {
         assertThatThrownBy(() -> runService.retryRun("other"))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+        verify(taskPublisher, never()).publish(any());
+    }
+
+    @Test
+    @DisplayName("代码执行任务不能从普通智能体重试入口重新提交")
+    void retryRejectsCodeExecutionRun() {
+        AgentRun failed = run("code-run-1");
+        failed.setAgentCode("code-tutor");
+        failed.setExecutionMode("ASYNC");
+        failed.setStatus("FAILED");
+        when(runMapper.findVisibleByRunId("code-run-1", 42L, false)).thenReturn(failed);
+
+        assertThatThrownBy(() -> runService.retryRun("code-run-1"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, error -> {
+                    assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(error.getReason()).contains("代码执行接口");
+                });
         verify(taskPublisher, never()).publish(any());
     }
 

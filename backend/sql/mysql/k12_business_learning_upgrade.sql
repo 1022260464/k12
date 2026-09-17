@@ -13,6 +13,16 @@ PREPARE k12_learning_stmt FROM @k12_learning_ddl;
 EXECUTE k12_learning_stmt;
 DEALLOCATE PREPARE k12_learning_stmt;
 
+SELECT COUNT(*) INTO @k12_cover_object_key_column
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'learning_course' AND COLUMN_NAME = 'cover_object_key';
+SET @k12_learning_ddl = IF(@k12_cover_object_key_column = 0,
+    'ALTER TABLE learning_course ADD COLUMN cover_object_key VARCHAR(500) NULL COMMENT ''Stable MinIO key under course-assets/'' AFTER description',
+    'DO 0');
+PREPARE k12_learning_stmt FROM @k12_learning_ddl;
+EXECUTE k12_learning_stmt;
+DEALLOCATE PREPARE k12_learning_stmt;
+
 SELECT COUNT(*) INTO @k12_teacher_index
 FROM information_schema.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'learning_course' AND INDEX_NAME = 'idx_course_teacher';
@@ -63,9 +73,11 @@ CREATE TABLE IF NOT EXISTS learning_chapter_progress (
     CONSTRAINT fk_progress_chapter FOREIGN KEY (chapter_id) REFERENCES learning_course_chapter(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 验证：应返回三个表和 teacher_id 字段。
+-- 验证：应返回三个表，以及 teacher_id、cover_object_key 两个字段。
 SELECT TABLE_NAME FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = DATABASE()
 AND TABLE_NAME IN ('learning_course_chapter', 'learning_course_enrollment', 'learning_chapter_progress');
 SELECT COLUMN_NAME FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'learning_course' AND COLUMN_NAME = 'teacher_id';
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'learning_course'
+AND COLUMN_NAME IN ('teacher_id', 'cover_object_key')
+ORDER BY ORDINAL_POSITION;

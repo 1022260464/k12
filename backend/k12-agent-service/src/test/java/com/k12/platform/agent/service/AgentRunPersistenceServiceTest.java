@@ -33,6 +33,70 @@ class AgentRunPersistenceServiceTest {
     private AgentArtifactMapper artifactMapper;
 
     @Test
+    @DisplayName("同步代码执行结果在短事务内更新终态并写入产物")
+    void completeSyncCodeRunStoresTerminalResult() {
+        AgentRun run = syncCodeRun();
+        when(runMapper.selectForUpdateByRunId("code-run-1")).thenReturn(run);
+        AgentArtifact artifact = new AgentArtifact();
+        artifact.setArtifactId("artifact-code-1");
+
+        AgentRunPersistenceService service = new AgentRunPersistenceService(runMapper, artifactMapper);
+        service.completeSyncCodeRun(
+                "code-run-1", "SUCCEEDED", "hello\n", "{\"executionId\":\"exec-1\"}",
+                null, null, List.of(artifact)
+        );
+
+        assertThat(run.getStatus()).isEqualTo("SUCCEEDED");
+        assertThat(run.getOutputText()).isEqualTo("hello\n");
+        assertThat(run.getFinishedTime()).isNotNull();
+        assertThat(run.getDurationMs()).isNotNegative();
+        verify(runMapper).updateById(run);
+        verify(artifactMapper).insert(artifact);
+    }
+
+    @Test
+    @DisplayName("同步代码执行基础设施失败会留下脱敏失败记录")
+    void failSyncCodeRunStoresSanitizedFailure() {
+        AgentRun run = syncCodeRun();
+        when(runMapper.selectForUpdateByRunId("code-run-1")).thenReturn(run);
+
+        AgentRunPersistenceService service = new AgentRunPersistenceService(runMapper, artifactMapper);
+        service.failSyncCodeRun("code-run-1", "SANDBOX_HTTP_503", "代码执行服务暂不可用");
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getErrorCode()).isEqualTo("SANDBOX_HTTP_503");
+        assertThat(run.getErrorMessage()).isEqualTo("代码执行服务暂不可用");
+        verify(runMapper).updateById(run);
+    }
+
+    @Test
+    @DisplayName("异步代码终态幂等写入运行记录和产物")
+    void completeAsyncCodeRunStoresResult() {
+        AgentRun run = syncCodeRun();
+        run.setExecutionMode("ASYNC");
+        run.setStatus("RUNNING");
+        when(runMapper.selectForUpdateByRunId("code-run-1")).thenReturn(run);
+        AgentArtifact artifact = new AgentArtifact();
+        artifact.setArtifactId("artifact-code-1");
+        AgentRunPersistenceService service = new AgentRunPersistenceService(runMapper, artifactMapper);
+
+        assertThat(service.completeAsyncCodeRun(
+                "code-run-1", "SUCCEEDED", "hello\n", "{\"executionId\":\"exec-1\"}",
+                null, null, run.getStartedTime(), List.of(artifact)
+        )).isTrue();
+        assertThat(run.getStatus()).isEqualTo("SUCCEEDED");
+        verify(runMapper).updateById(run);
+        verify(artifactMapper).insert(artifact);
+
+        assertThat(service.completeAsyncCodeRun(
+                "code-run-1", "SUCCEEDED", "duplicate", "{}",
+                null, null, run.getStartedTime(), List.of(new AgentArtifact())
+        )).isTrue();
+        verify(runMapper).updateById(run);
+        verify(artifactMapper).insert(artifact);
+    }
+
+    @Test
     @DisplayName("异步成功结果更新运行记录并写入产物")
     void completeAsyncRunStoresResultAndArtifact() {
         AgentRun run = pendingRun();
@@ -112,6 +176,18 @@ class AgentRunPersistenceServiceTest {
         run.setExecutionMode("ASYNC");
         run.setStatus("PENDING");
         run.setCreatedTime(Instant.now().minusSeconds(1));
+        return run;
+    }
+
+    private AgentRun syncCodeRun() {
+        AgentRun run = new AgentRun();
+        run.setRunId("code-run-1");
+        run.setAgentCode("code-tutor");
+        run.setUserId(42L);
+        run.setExecutionMode("SYNC");
+        run.setStatus("RUNNING");
+        run.setStartedTime(Instant.now().minusMillis(10));
+        run.setCreatedTime(run.getStartedTime());
         return run;
     }
 

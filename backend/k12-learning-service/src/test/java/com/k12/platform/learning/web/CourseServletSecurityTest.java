@@ -42,7 +42,8 @@ class CourseServletSecurityTest {
 
     @RestController
     static class ProbeController {
-        @RequestMapping("/api/v1/learning/courses/**")
+        @RequestMapping({"/api/v1/learning/courses/**", "/api/v1/learning/leaderboard",
+                "/api/v1/learning/history/me"})
         String probe() { return "reached-controller"; }
     }
 
@@ -71,6 +72,12 @@ class CourseServletSecurityTest {
 
     private void expect(String method, String path, String token, int expected) throws Exception {
         var request = request(org.springframework.http.HttpMethod.valueOf(method), "/api/v1/learning/courses" + path);
+        if (token != null) request.header("Authorization", "Bearer " + token);
+        mvc.perform(request).andExpect(status().is(expected));
+    }
+
+    private void expectAbsolute(String method, String path, String token, int expected) throws Exception {
+        var request = request(org.springframework.http.HttpMethod.valueOf(method), path);
         if (token != null) request.header("Authorization", "Bearer " + token);
         mvc.perform(request).andExpect(status().is(expected));
     }
@@ -120,5 +127,22 @@ class CourseServletSecurityTest {
     @DisplayName("学习动作不能匿名调用")
     void anonymousRejected() throws Exception {
         expect("PUT", "/1/enrollment", null, 401);
+    }
+
+    @Test
+    @DisplayName("排行榜允许课程读取权限或管理员访问，并拒绝无权限与匿名请求")
+    void leaderboardAuthorization() throws Exception {
+        expectAbsolute("GET", "/api/v1/learning/leaderboard", "student", 200);
+        expectAbsolute("GET", "/api/v1/learning/leaderboard", "admin", 200);
+        expectAbsolute("GET", "/api/v1/learning/leaderboard", "roleOnly", 403);
+        expectAbsolute("GET", "/api/v1/learning/leaderboard", null, 401);
+    }
+
+    @Test
+    @DisplayName("学习历史要求登录，具体角色与权限由方法安全继续校验")
+    void learningHistoryRequiresAuthentication() throws Exception {
+        expectAbsolute("GET", "/api/v1/learning/history/me", "student", 200);
+        expectAbsolute("GET", "/api/v1/learning/history/me", "admin", 200);
+        expectAbsolute("GET", "/api/v1/learning/history/me", null, 401);
     }
 }

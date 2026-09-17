@@ -7,7 +7,7 @@ from k12_agent_runtime.bootstrap.container import build_container
 from k12_agent_runtime.core.config import Settings, get_settings
 from k12_agent_runtime.core.logging import configure_logging
 from k12_agent_runtime.interfaces.api.errors import register_exception_handlers
-from k12_agent_runtime.interfaces.api.routes import agents, health, rag, sandbox
+from k12_agent_runtime.interfaces.api.routes import agents, health, rag, sandbox, storage
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -16,8 +16,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         configure_logging(runtime_settings.log_level)
-        application.state.container = build_container(runtime_settings)
-        yield
+        container = build_container(runtime_settings)
+        application.state.container = container
+        try:
+            yield
+        finally:
+            await container.close()
 
     application = FastAPI(
         title="K12 Agent Runtime",
@@ -30,6 +34,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(agents.router, prefix="/internal/v1")
     application.include_router(sandbox.router, prefix="/internal/v1")
     application.include_router(rag.router, prefix="/internal/v1")
+    application.include_router(storage.router, prefix="/internal/v1")
     return application
 
 

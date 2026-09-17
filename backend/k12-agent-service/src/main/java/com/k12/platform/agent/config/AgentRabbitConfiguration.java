@@ -42,6 +42,20 @@ public class AgentRabbitConfiguration {
     }
 
     @Bean
+    public Queue codeExecutionRequestQueue(AgentRabbitProperties properties) {
+        return QueueBuilder.durable(properties.getCodeRequestQueue())
+                .deadLetterExchange(properties.getDeadLetterExchange())
+                .build();
+    }
+
+    @Bean
+    public Queue codeExecutionResultQueue(AgentRabbitProperties properties) {
+        return QueueBuilder.durable(properties.getCodeResultQueue())
+                .deadLetterExchange(properties.getDeadLetterExchange())
+                .build();
+    }
+
+    @Bean
     public Queue agentDeadLetterQueue(AgentRabbitProperties properties) {
         return QueueBuilder.durable(properties.getDeadLetterQueue()).build();
     }
@@ -66,6 +80,28 @@ public class AgentRabbitConfiguration {
         return BindingBuilder.bind(agentResultQueue)
                 .to(agentExchange)
                 .with(properties.getResultRoutingKey());
+    }
+
+    @Bean
+    public Binding codeExecutionRequestBinding(
+            @Qualifier("codeExecutionRequestQueue") Queue requestQueue,
+            @Qualifier("agentExchange") TopicExchange agentExchange,
+            AgentRabbitProperties properties
+    ) {
+        return BindingBuilder.bind(requestQueue)
+                .to(agentExchange)
+                .with(properties.getCodeRequestRoutingKey());
+    }
+
+    @Bean
+    public Binding codeExecutionResultBinding(
+            @Qualifier("codeExecutionResultQueue") Queue resultQueue,
+            @Qualifier("agentExchange") TopicExchange agentExchange,
+            AgentRabbitProperties properties
+    ) {
+        return BindingBuilder.bind(resultQueue)
+                .to(agentExchange)
+                .with(properties.getCodeResultRoutingKey());
     }
 
     @Bean

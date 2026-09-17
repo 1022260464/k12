@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.agent.mapper.AgentArtifactMapper">
+
+    <!-- 显式声明字段映射，不依赖全局下划线转驼峰配置。 -->
+    <resultMap id="AgentArtifactResultMap" type="com.k12.platform.agent.model.AgentArtifact">
+        <id property="id" column="id"/>
+        <result property="artifactId" column="artifact_id"/>
+        <result property="runId" column="run_id"/>
+        <result property="kind" column="kind"/>
+        <result property="title" column="title"/>
+        <result property="mimeType" column="mime_type"/>
+        <result property="storageUri" column="storage_uri"/>
+        <result property="payloadJson" column="payload_json"/>
+        <result property="sizeBytes" column="size_bytes"/>
+        <result property="checksumSha256" column="checksum_sha256"/>
+        <result property="createdTime" column="created_time"/>
+    </resultMap>
+
+    <select id="findByRunIds" resultMap="AgentArtifactResultMap">
+        SELECT id, artifact_id, run_id, kind, title, mime_type, storage_uri,
+               payload_json, size_bytes, checksum_sha256, created_time
+        FROM agent_artifact
+        WHERE run_id IN
+        <foreach collection="runIds" item="runId" open="(" separator="," close=")">
+            #{runId}
+        </foreach>
+        ORDER BY id
+    </select>
+</mapper>

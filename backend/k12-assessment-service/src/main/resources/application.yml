@@ -48,6 +48,7 @@ k12:
   clients:
     # 本地直连 IAM；团队环境可改成网关/服务内网地址。
     iam-url: ${K12_IAM_SERVICE_URL:http://localhost:8081}
+    agent-url: ${K12_AGENT_SERVICE_URL:http://127.0.0.1:8083}
   security:
     token-state:
       remote-enabled: ${K12_TOKEN_STATE_VALIDATION_ENABLED:true}

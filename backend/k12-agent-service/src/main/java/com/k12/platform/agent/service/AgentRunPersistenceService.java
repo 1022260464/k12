@@ -24,6 +24,8 @@ import java.util.Set;
 public class AgentRunPersistenceService {
 
     private static final Set<String> ASYNC_TERMINAL_STATUSES = Set.of("SUCCEEDED", "FAILED");
+    private static final Set<String> CODE_EXECUTION_TERMINAL_STATUSES =
+            Set.of("SUCCEEDED", "FAILED", "TIMED_OUT", "REJECTED");
 
     private final AgentRunMapper runMapper;
     private final AgentArtifactMapper artifactMapper;
@@ -39,6 +41,99 @@ public class AgentRunPersistenceService {
         for (AgentArtifact artifact : artifacts) {
             artifactMapper.insert(artifact);
         }
+    }
+
+    /**
+     * 收敛同步代码执行并写入产物。
+     *
+     * Runtime HTTP 调用已经在事务外完成；这里只持有很短时间的行锁，避免占用连接池。
+     */
+    @Transactional
+    public void completeSyncCodeRun(
+            String runId,
+            String status,
+            String outputText,
+            String outputMetadata,
+            String errorCode,
+            String errorMessage,
+            List<AgentArtifact> artifacts
+    ) {
+        if (!CODE_EXECUTION_TERMINAL_STATUSES.contains(status)) {
+            throw new IllegalArgumentException("代码执行结果状态不合法");
+        }
+        AgentRun run = requireRunningSyncRun(runId);
+        if (isTerminal(run.getStatus())) {
+            return;
+        }
+
+        Instant finishedTime = Instant.now();
+        run.setStatus(status);
+        run.setOutputText(outputText);
+        run.setOutputMetadata(outputMetadata);
+        run.setErrorCode(errorCode);
+        run.setErrorMessage(errorMessage);
+        run.setFinishedTime(finishedTime);
+        run.setUpdatedTime(finishedTime);
+        run.setDurationMs(durationFrom(run, finishedTime));
+        runMapper.updateById(run);
+        for (AgentArtifact artifact : artifacts) {
+            artifactMapper.insert(artifact);
+        }
+    }
+
+    /** Runtime 不可用或协议错误时，也要把 RUNNING 记录收敛为可审计的失败记录。 */
+    @Transactional
+    public void failSyncCodeRun(String runId, String errorCode, String errorMessage) {
+        AgentRun run = requireRunningSyncRun(runId);
+        if (isTerminal(run.getStatus())) {
+            return;
+        }
+        finishLocally(run, "FAILED", errorCode, errorMessage, Instant.now());
+    }
+
+    /** 消费异步代码执行终态；重复消息不会重复插入产物。 */
+    @Transactional
+    public boolean completeAsyncCodeRun(
+            String runId,
+            String status,
+            String outputText,
+            String outputMetadata,
+            String errorCode,
+            String errorMessage,
+            Instant startedTime,
+            List<AgentArtifact> artifacts
+    ) {
+        if (!CODE_EXECUTION_TERMINAL_STATUSES.contains(status)) {
+            throw new IllegalArgumentException("异步代码执行结果状态不合法");
+        }
+        AgentRun run = runMapper.selectForUpdateByRunId(runId);
+        if (run == null) {
+            return false;
+        }
+        if (!"ASYNC".equals(run.getExecutionMode()) || !"code-tutor".equals(run.getAgentCode())) {
+            throw new IllegalArgumentException("异步代码结果与运行记录不匹配");
+        }
+        if (isTerminal(run.getStatus())) {
+            return true;
+        }
+
+        Instant finishedTime = Instant.now();
+        if (run.getStartedTime() == null && startedTime != null) {
+            run.setStartedTime(startedTime);
+        }
+        run.setStatus(status);
+        run.setOutputText(outputText);
+        run.setOutputMetadata(outputMetadata);
+        run.setErrorCode(errorCode);
+        run.setErrorMessage(errorMessage);
+        run.setFinishedTime(finishedTime);
+        run.setUpdatedTime(finishedTime);
+        run.setDurationMs(durationFrom(run, finishedTime));
+        runMapper.updateById(run);
+        for (AgentArtifact artifact : artifacts) {
+            artifactMapper.insert(artifact);
+        }
+        return true;
     }
 
     /** 消息发送失败后把已经创建的 PENDING 记录改为 FAILED。 */
@@ -141,7 +236,19 @@ public class AgentRunPersistenceService {
 
     private boolean isTerminal(String status) {
         return "SUCCEEDED".equals(status) || "FAILED".equals(status)
-                || "TIMED_OUT".equals(status) || "CANCELLED".equals(status);
+                || "TIMED_OUT".equals(status) || "CANCELLED".equals(status)
+                || "REJECTED".equals(status);
+    }
+
+    private AgentRun requireRunningSyncRun(String runId) {
+        AgentRun run = runMapper.selectForUpdateByRunId(runId);
+        if (run == null) {
+            throw new IllegalStateException("同步运行记录不存在：" + runId);
+        }
+        if (!"SYNC".equals(run.getExecutionMode())) {
+            throw new IllegalArgumentException("运行记录不是同步执行：" + runId);
+        }
+        return run;
     }
 
     /** 在同一个行锁事务内校验归属与状态，防止取消和完成消息相互覆盖。 */

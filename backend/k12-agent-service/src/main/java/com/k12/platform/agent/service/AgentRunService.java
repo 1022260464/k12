@@ -62,6 +62,8 @@ public class AgentRunService {
     private final AgentRunTaskPublisher taskPublisher;
     private final AgentRabbitProperties rabbitProperties;
     private final ObjectMapper objectMapper;
+    private final LearnerContextEnricher learnerContextEnricher;
+    private final AgentSessionService sessionService;
 
     public AgentRunService(
             AgentMapper agentMapper,
@@ -71,7 +73,9 @@ public class AgentRunService {
             AgentRunPersistenceService persistenceService,
             AgentRunTaskPublisher taskPublisher,
             AgentRabbitProperties rabbitProperties,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            LearnerContextEnricher learnerContextEnricher,
+            AgentSessionService sessionService
     ) {
         this.agentMapper = agentMapper;
         this.runMapper = runMapper;
@@ -81,6 +85,8 @@ public class AgentRunService {
         this.taskPublisher = taskPublisher;
         this.rabbitProperties = rabbitProperties;
         this.objectMapper = objectMapper;
+        this.learnerContextEnricher = learnerContextEnricher;
+        this.sessionService = sessionService;
     }
 
     /**
@@ -99,7 +105,14 @@ public class AgentRunService {
         }
 
         Long userId = K12SecurityContext.requireUserId();
-        Map<String, Object> context = request.context() == null ? Map.of() : request.context();
+        // 教学 Agent 使用 IAM 和 Assessment 的服务端数据覆盖前端可伪造的画像字段。
+        Map<String, Object> context = learnerContextEnricher.enrich(
+                agentCode,
+                userId,
+                request.context()
+        );
+        // sessionId 不只是运行标签；服务端读取可信历史并覆盖前端可能伪造的同名字段。
+        context = sessionService.enrichContext(userId, agentCode, request.sessionId(), context);
         String executionMode = StringUtils.hasText(request.executionMode()) ? request.executionMode() : SYNC;
         if (!SYNC.equals(executionMode) && !ASYNC.equals(executionMode)) {
             throw new IllegalArgumentException("执行模式只能是 SYNC 或 ASYNC");
@@ -239,6 +252,13 @@ public class AgentRunService {
         if (!"ASYNC".equals(source.getExecutionMode())
                 || !("FAILED".equals(source.getStatus()) || "TIMED_OUT".equals(source.getStatus()))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "仅允许重试失败或超时的异步任务");
+        }
+        /*
+         * code-tutor 使用代码执行专用消息协议，不能复用普通 AgentRunRequest。
+         * 重新提交代码也能再次执行请求校验，避免绕过超时、代码长度和依赖包限制。
+         */
+        if ("code-tutor".equals(source.getAgentCode())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "代码执行任务请通过代码执行接口重新提交");
         }
         Map<String, Object> context = StringUtils.hasText(source.getInputContext())
                 ? objectMapper.convertValue(readJson(source.getInputContext()),

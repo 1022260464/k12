@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.learning.mapper.LearningHistoryMapper">
+    <!--
+        一条SQL聚合当前学生所有有效选课，避免先查课程再逐门查询进度的N+1问题。
+        章节新增或软删除后会按当前有效章节重新计算总体进度，与单课程进度接口保持一致。
+    -->
+    <select id="selectRecentByUserId" resultType="com.k12.platform.learning.model.CourseLearningSummary">
+        SELECT course.id AS course_id,
+               course.title AS course_title,
+               course.subject,
+               course.grade_level,
+               COUNT(DISTINCT chapter.id) AS total_chapters,
+               SUM(CASE WHEN progress.progress_percent = 100 THEN 1 ELSE 0 END) AS completed_chapters,
+               CASE
+                   WHEN COUNT(DISTINCT chapter.id) = 0 THEN 0
+                   ELSE FLOOR(SUM(COALESCE(progress.progress_percent, 0)) / COUNT(DISTINCT chapter.id))
+               END AS progress_percent,
+               enrollment.enrolled_time,
+               MAX(progress.updated_time) AS last_learning_time
+        FROM learning_course_enrollment enrollment
+        INNER JOIN learning_course course
+                ON course.id = enrollment.course_id
+               AND course.deleted = 0
+               AND course.status = 1
+        LEFT JOIN learning_course_chapter chapter
+               ON chapter.course_id = course.id
+              AND chapter.deleted = 0
+        LEFT JOIN learning_chapter_progress progress
+               ON progress.enrollment_id = enrollment.id
+              AND progress.chapter_id = chapter.id
+        WHERE enrollment.user_id = #{userId}
+          AND enrollment.status = 'ACTIVE'
+        GROUP BY course.id, course.title, course.subject, course.grade_level,
+                 enrollment.enrolled_time
+        ORDER BY COALESCE(MAX(progress.updated_time), enrollment.enrolled_time) DESC,
+                 course.id DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

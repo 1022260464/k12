@@ -1,6 +1,6 @@
 CREATE TABLE learning_course (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, teacher_id BIGINT, title VARCHAR(128), subject VARCHAR(64),
- grade_level VARCHAR(32), description VARCHAR(1000), status INT DEFAULT 1, deleted INT DEFAULT 0,
+ grade_level VARCHAR(32), description VARCHAR(1000), cover_object_key VARCHAR(500), status INT DEFAULT 1, deleted INT DEFAULT 0,
  created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE learning_course_chapter (

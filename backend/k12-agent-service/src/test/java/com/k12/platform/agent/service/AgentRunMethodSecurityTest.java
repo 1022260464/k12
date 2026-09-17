@@ -46,6 +46,8 @@ class AgentRunMethodSecurityTest {
     @MockBean AgentRuntimeClient runtimeClient;
     @MockBean AgentRunPersistenceService persistenceService;
     @MockBean AgentRunTaskPublisher taskPublisher;
+    @MockBean LearnerContextEnricher learnerContextEnricher;
+    @MockBean AgentSessionService sessionService;
     @Autowired AgentRunService service;
 
     @AfterEach

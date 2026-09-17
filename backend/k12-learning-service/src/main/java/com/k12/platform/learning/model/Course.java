@@ -26,6 +26,9 @@ public class Course {
     /** PUT 允许清空简介；默认 NOT_NULL 策略会跳过 null，导致旧简介无法删除。 */
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String description;
+    /** MinIO中的稳定对象键，不保存带签名且会过期的下载URL。 */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private String coverObjectKey;
     private Integer status;
     private Instant updatedTime;
 

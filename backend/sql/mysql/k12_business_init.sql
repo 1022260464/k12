@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS learning_course (
     subject VARCHAR(64) NOT NULL COMMENT 'Course subject',
     grade_level VARCHAR(32) DEFAULT NULL COMMENT 'Grade level',
     description VARCHAR(1000) DEFAULT NULL COMMENT 'Course description',
+    cover_object_key VARCHAR(500) DEFAULT NULL COMMENT 'Stable MinIO key under course-assets/',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '1 enabled, 0 disabled',
     created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Create time',
     updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'Update time',
@@ -147,7 +148,8 @@ CREATE TABLE IF NOT EXISTS agent_run (
     KEY idx_agent_run_agent_created (agent_code, created_time),
     KEY idx_agent_run_user_created (user_id, created_time),
     KEY idx_agent_run_status_created (status, created_time),
-    KEY idx_agent_run_session_created (session_id, created_time)
+    KEY idx_agent_run_session_created (session_id, created_time),
+    KEY idx_agent_run_user_agent_session_created (user_id, agent_code, session_id, created_time)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci

@@ -2,7 +2,12 @@ from typing import Annotated, Any
 
 from pydantic import Field
 
-from k12_agent_runtime.domain.rag import EmbeddingBatch, RankedDocument
+from k12_agent_runtime.domain.rag import (
+    EmbeddingBatch,
+    IndexedDocument,
+    KnowledgeSearchResult,
+    RankedDocument,
+)
 from k12_agent_runtime.interfaces.api.schemas.common import ApiModel
 
 NonBlankText = Annotated[str, Field(min_length=1, max_length=4000)]
@@ -69,3 +74,56 @@ class RagCapabilitiesResponse(ApiModel):
     reranker_model: str
     reranker_device: str
     loading_strategy: str
+    storage_enabled: bool
+
+
+class IndexDocumentRequest(ApiModel):
+    document_id: str | None = Field(default=None, min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=255)
+    content: str = Field(min_length=1, max_length=1_000_000)
+    source_type: str = Field(default="manual", min_length=1, max_length=32)
+    source_uri: str | None = Field(default=None, max_length=2000)
+    stage_code: str | None = Field(default=None, max_length=32)
+    grade: str | None = Field(default=None, max_length=32)
+    textbook: str | None = Field(default=None, max_length=255)
+    chapter: str | None = Field(default=None, max_length=255)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class IndexedDocumentResponse(ApiModel):
+    document_id: str
+    chunk_count: int
+    embedding_model: str
+
+    @classmethod
+    def from_domain(cls, result: IndexedDocument) -> "IndexedDocumentResponse":
+        return cls(
+            document_id=result.document_id,
+            chunk_count=result.chunk_count,
+            embedding_model=result.embedding_model,
+        )
+
+
+class KnowledgeSearchRequest(ApiModel):
+    query: NonBlankText
+    candidate_count: int | None = Field(default=None, ge=1, le=100)
+    top_k: int | None = Field(default=None, ge=1, le=20)
+    stage_code: str | None = Field(default=None, max_length=32)
+    grade: str | None = Field(default=None, max_length=32)
+    textbook: str | None = Field(default=None, max_length=255)
+
+
+class KnowledgeSearchResponse(ApiModel):
+    query: str
+    embedding_model: str
+    candidate_count: int
+    documents: list[RankedDocumentResponse]
+
+    @classmethod
+    def from_domain(cls, result: KnowledgeSearchResult) -> "KnowledgeSearchResponse":
+        return cls(
+            query=result.query,
+            embedding_model=result.embedding_model,
+            candidate_count=result.candidate_count,
+            documents=[RankedDocumentResponse.from_domain(item) for item in result.documents],
+        )

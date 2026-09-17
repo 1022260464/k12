@@ -5,5 +5,13 @@ from k12_agent_runtime.infrastructure.rag.bge import (
     BgeReranker,
     RagModelError,
 )
+from k12_agent_runtime.infrastructure.rag.pgvector_repository import (
+    PgVectorKnowledgeRepository,
+)
 
-__all__ = ["BgeM3Embedder", "BgeReranker", "RagModelError"]
+__all__ = [
+    "BgeM3Embedder",
+    "BgeReranker",
+    "PgVectorKnowledgeRepository",
+    "RagModelError",
+]

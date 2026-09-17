@@ -1,0 +1,65 @@
+[
+  {
+    "caseId": "lower-ai-definition",
+    "query": "人工智能是什么？生活中有哪些例子？",
+    "stageCode": "lower_primary",
+    "expectedDocumentIds": ["demo-lower-primary-ai-001"]
+  },
+  {
+    "caseId": "lower-pattern-sample",
+    "query": "为什么只看过白猫的程序可能认不出黑猫？",
+    "stageCode": "lower_primary",
+    "expectedDocumentIds": ["demo-lower-primary-pattern-001"]
+  },
+  {
+    "caseId": "upper-algorithm-steps",
+    "query": "为什么算法的每一个步骤都必须写清楚？",
+    "stageCode": "upper_primary",
+    "expectedDocumentIds": ["demo-upper-primary-algorithm-001"]
+  },
+  {
+    "caseId": "upper-responsible-ai",
+    "query": "使用生成式人工智能做作业时怎样保护隐私并核对答案？",
+    "stageCode": "upper_primary",
+    "expectedDocumentIds": ["demo-upper-primary-safety-001"]
+  },
+  {
+    "caseId": "middle-python-input",
+    "query": "Python的input结果为什么做加法前经常要转换类型？",
+    "stageCode": "middle_school",
+    "expectedDocumentIds": ["demo-middle-python-001"]
+  },
+  {
+    "caseId": "middle-bubble-sort",
+    "query": "冒泡排序一轮结束后为什么最大值会在末尾？",
+    "stageCode": "middle_school",
+    "expectedDocumentIds": ["demo-middle-bubble-sort-001"]
+  },
+  {
+    "caseId": "middle-train-test",
+    "query": "为什么不能用训练模型的同一批数据评价模型？",
+    "stageCode": "middle_school",
+    "expectedDocumentIds": ["demo-middle-ml-001"]
+  },
+  {
+    "caseId": "middle-imbalanced-accuracy",
+    "query": "垃圾邮件很少时，为什么准确率很高也可能没有用？",
+    "stageCode": "middle_school",
+    "expectedDocumentIds": ["demo-middle-evaluation-001"]
+  },
+  {
+    "caseId": "high-rag-flow",
+    "query": "RAG怎样通过向量召回和重排让回答参考指定知识库？",
+    "stageCode": "high_school",
+    "expectedDocumentIds": ["demo-high-rag-001"]
+  },
+  {
+    "caseId": "strict-filter-no-result",
+    "query": "冒泡排序是什么？",
+    "stageCode": "middle_school",
+    "grade": "不存在的年级",
+    "textbook": "不存在的教材",
+    "expectNoResults": true,
+    "expectedDocumentIds": []
+  }
+]

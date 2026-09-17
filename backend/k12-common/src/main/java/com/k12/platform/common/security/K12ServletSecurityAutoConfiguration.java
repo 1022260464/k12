@@ -183,6 +183,7 @@ public class K12ServletSecurityAutoConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/progress").access(studyAccess)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/chapters/*/progress").access(studyAccess)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/enrollment").access(studyAccess)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/learning/leaderboard").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
                         .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
@@ -193,6 +194,7 @@ public class K12ServletSecurityAutoConfiguration {
                         /* 运行、取消和重试都属于“调用智能体”，必须先于下面的 Agent 配置管理通配规则。 */
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/agents/*/runs",
+                                "/api/v1/agents/code-executions",
                                 "/api/v1/agents/runs/*/cancel",
                                 "/api/v1/agents/runs/*/retry"
                         ).hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_INVOKE)

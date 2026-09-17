@@ -8,6 +8,8 @@ public record CourseResponse(
         String subject,
         String gradeLevel,
         String description,
+        String coverObjectKey,
+        String coverUrl,
         Instant updatedTime,
         Long teacherId
 ) {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.assessment.mapper.AiPracticeAttemptMapper">
+    <select id="findByRunAndStudent" resultType="com.k12.platform.assessment.model.AiPracticeAttempt">
+        SELECT * FROM assessment_ai_practice_attempt
+        WHERE run_id = #{runId} AND student_user_id = #{studentUserId}
+    </select>
+    <select id="findByRunAndStudentForUpdate" resultType="com.k12.platform.assessment.model.AiPracticeAttempt">
+        SELECT * FROM assessment_ai_practice_attempt
+        WHERE run_id = #{runId} AND student_user_id = #{studentUserId}
+        FOR UPDATE
+    </select>
+    <select id="findRecentByStudent" resultType="com.k12.platform.assessment.model.AiPracticeAttempt">
+        SELECT * FROM assessment_ai_practice_attempt
+        WHERE student_user_id = #{studentUserId}
+        ORDER BY created_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

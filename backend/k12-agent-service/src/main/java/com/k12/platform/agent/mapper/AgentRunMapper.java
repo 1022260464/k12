@@ -24,6 +24,14 @@ public interface AgentRunMapper extends BaseMapper<AgentRun> {
             @Param("admin") boolean admin
     );
 
+    /** 当前用户同一智能体会话的最近成功轮次；Service 会反转为时间正序。 */
+    List<AgentRun> findRecentSuccessfulSessionRuns(
+            @Param("userId") Long userId,
+            @Param("agentCode") String agentCode,
+            @Param("sessionId") String sessionId,
+            @Param("limit") int limit
+    );
+
     AgentRun selectForUpdateByRunId(@Param("runId") String runId);
 
     List<String> findExpiredRunIds(

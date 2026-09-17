@@ -24,6 +24,11 @@ public class AgentRabbitProperties {
     private String requestRoutingKey = "agent.run.request";
     private String resultQueue = "k12.agent.run.result";
     private String resultRoutingKey = "agent.run.result";
+    /** 代码执行使用独立队列，避免与普通Agent消息模型互相污染。 */
+    private String codeRequestQueue = "k12.code.execute.request";
+    private String codeRequestRoutingKey = "code.execute.request";
+    private String codeResultQueue = "k12.code.execute.result";
+    private String codeResultRoutingKey = "code.execute.result";
     private String deadLetterExchange = "k12.agent.dlx";
     private String deadLetterQueue = "k12.agent.run.dead";
 }

@@ -25,6 +25,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** 使用真实公共 Servlet 安全链验证 Agent 运行接口的 URL 权限。 */
@@ -60,6 +61,7 @@ class AgentServletSecurityTest {
     private static Jwt jwt(String token) {
         List<String> authorities = switch (token) {
             case "invoker" -> List.of("agent:invoke");
+            case "reader" -> List.of("agent:read");
             case "creator" -> List.of("agent:create");
             case "admin" -> List.of("ROLE_ADMIN");
             default -> List.of();
@@ -77,6 +79,7 @@ class AgentServletSecurityTest {
     @DisplayName("调用权限可创建、取消和重试运行")
     void invokePermissionMatchesRunCommands() throws Exception {
         expect("/api/v1/agents/demo-chart/runs", "invoker", 200);
+        expect("/api/v1/agents/code-executions", "invoker", 200);
         expect("/api/v1/agents/runs/run-1/cancel", "invoker", 200);
         expect("/api/v1/agents/runs/run-1/retry", "invoker", 200);
     }
@@ -85,13 +88,23 @@ class AgentServletSecurityTest {
     @DisplayName("创建权限不能越权取消运行")
     void createPermissionCannotCancelRun() throws Exception {
         expect("/api/v1/agents/runs/run-1/cancel", "creator", 403);
+        expect("/api/v1/agents/code-executions", "creator", 403);
     }
 
     @Test
     @DisplayName("管理员可执行所有运行命令")
     void adminCanInvokeRuns() throws Exception {
         expect("/api/v1/agents/demo-chart/runs", "admin", 200);
+        expect("/api/v1/agents/code-executions", "admin", 200);
         expect("/api/v1/agents/runs/run-1/cancel", "admin", 200);
         expect("/api/v1/agents/runs/run-1/retry", "admin", 200);
+    }
+
+    @Test
+    @DisplayName("读取权限可以查询自己的会话历史")
+    void readPermissionMatchesSessionHistory() throws Exception {
+        mvc.perform(get("/api/v1/agents/teaching-assistant/sessions/web-session-1/history")
+                        .header("Authorization", "Bearer reader"))
+                .andExpect(status().isOk());
     }
 }

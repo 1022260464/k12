@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
@@ -10,6 +11,9 @@ from k12_agent_runtime.domain.agents.models import (
     AgentRunStatus,
 )
 from k12_agent_runtime.domain.agents.ports import AgentRegistry
+from k12_agent_runtime.domain.observability import AgentTraceRepository
+
+logger = logging.getLogger(__name__)
 
 
 class AgentNotFoundError(LookupError):
@@ -40,8 +44,13 @@ class RunAgentCommand:
 
 
 class RunAgentUseCase:
-    def __init__(self, registry: AgentRegistry) -> None:
+    def __init__(
+        self,
+        registry: AgentRegistry,
+        trace_repository: AgentTraceRepository | None = None,
+    ) -> None:
         self._registry = registry
+        self._trace_repository = trace_repository
 
     async def execute(self, command: RunAgentCommand) -> AgentRunResult:
         agent_code = command.agent_code.strip()
@@ -63,14 +72,58 @@ class RunAgentUseCase:
             # 复制一份上下文，避免调用方在 Agent 执行期间修改同一个字典。
             context=dict(command.context),
         )
+        await self._record_trace_started(run_input)
         try:
             result = await agent.invoke(run_input)
         except Exception as error:  # noqa: BLE001
+            await self._record_trace_failed(run_input, type(error).__name__)
             # 对外只暴露稳定错误，原始异常仍通过异常链交给 API/Worker 日志。
             raise AgentExecutionError(f"Agent execution failed: {agent_code}") from error
 
-        self._validate_result(run_input, result)
+        try:
+            self._validate_result(run_input, result)
+        except AgentContractError as error:
+            await self._record_trace_failed(run_input, type(error).__name__)
+            raise
+        await self._record_trace_succeeded(run_input, result)
         return result
+
+    async def _record_trace_started(self, run_input: AgentRunInput) -> None:
+        if self._trace_repository is None:
+            return
+        try:
+            await self._trace_repository.record_started(run_input)
+        except Exception:  # noqa: BLE001
+            self._log_trace_failure("started")
+
+    async def _record_trace_succeeded(
+        self,
+        run_input: AgentRunInput,
+        result: AgentRunResult,
+    ) -> None:
+        if self._trace_repository is None:
+            return
+        try:
+            await self._trace_repository.record_succeeded(run_input, result)
+        except Exception:  # noqa: BLE001
+            self._log_trace_failure("succeeded")
+
+    async def _record_trace_failed(self, run_input: AgentRunInput, error_type: str) -> None:
+        if self._trace_repository is None:
+            return
+        try:
+            await self._trace_repository.record_failed(run_input, error_type)
+        except Exception:  # noqa: BLE001
+            self._log_trace_failure("failed")
+
+    @staticmethod
+    def _log_trace_failure(operation: str) -> None:
+        """轨迹是辅助数据；MongoDB不可用时核心Agent仍然继续执行。"""
+        logger.warning(
+            "MongoDB agent trace write failed operation=%s",
+            operation,
+            exc_info=True,
+        )
 
     @staticmethod
     def _validate_result(run_input: AgentRunInput, result: AgentRunResult) -> None:

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.k12.platform.learning.dto.ChapterRequest;
 import com.k12.platform.learning.dto.CourseRequest;
+import com.k12.platform.learning.config.LeaderboardProperties;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,8 +48,14 @@ class CourseLearningIntegrationTest {
     @EnableTransactionManagement
     @EnableMethodSecurity
     @MapperScan("com.k12.platform.learning.mapper")
-    @Import({CourseService.class, CourseAccessService.class, CourseChapterService.class, CourseStudyService.class})
+    @Import({CourseService.class, CourseAccessService.class, CourseChapterService.class,
+            CourseStudyService.class, LearningHistoryService.class, LearningLeaderboardService.class,
+            LeaderboardProperties.class})
     static class Config {
+        @Bean CourseMediaUrlResolver courseMediaUrlResolver() {
+            return objectKey -> null;
+        }
+
         @Bean DataSource dataSource() {
             var ds = new DriverManagerDataSource("jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
             new ResourceDatabasePopulator(new ClassPathResource("learning-schema.sql")).execute(ds);
@@ -70,6 +77,8 @@ class CourseLearningIntegrationTest {
     @Autowired CourseService courses;
     @Autowired CourseChapterService chapters;
     @Autowired CourseStudyService study;
+    @Autowired LearningHistoryService history;
+    @Autowired LearningLeaderboardService leaderboard;
     @Autowired JdbcTemplate jdbc;
     private Long courseId;
     private Long chapterId;
@@ -219,6 +228,62 @@ class CourseLearningIntegrationTest {
             executor.shutdownNow();
             executor.awaitTermination(5, TimeUnit.SECONDS);
         }
+    }
+
+    @Test
+    @DisplayName("学习排行榜从MySQL进度聚合，并标记当前用户")
+    void leaderboardAggregatesChapterProgress() {
+        student(920L);
+        study.enroll(courseId);
+        study.updateProgress(courseId, chapterId, 100);
+        student(921L);
+        study.enroll(courseId);
+        study.updateProgress(courseId, chapterId, 60);
+
+        student(920L);
+        var result = leaderboard.leaderboard(100);
+        var first = result.entries().stream()
+                .filter(item -> item.userId().equals(920L))
+                .findFirst()
+                .orElseThrow();
+        var second = result.entries().stream()
+                .filter(item -> item.userId().equals(921L))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(result.metric()).isEqualTo("chapter_progress_points");
+        assertThat(first.learningPoints()).isEqualTo(100L);
+        assertThat(first.currentUser()).isTrue();
+        assertThat(second.learningPoints()).isEqualTo(60L);
+        assertThat(first.rank()).isLessThan(second.rank());
+    }
+
+    @Test
+    @DisplayName("学习历史使用单次聚合查询，并隔离用户、退课和软删除章节")
+    void learningHistoryAggregatesCurrentUserProgress() {
+        student(20L);
+        study.enroll(courseId);
+        study.updateProgress(courseId, chapterId, 80);
+
+        student(21L);
+        study.enroll(courseId);
+        study.updateProgress(courseId, chapterId, 100);
+
+        student(20L);
+        var current = history.currentUserHistory(5);
+        var currentCourse = current.items().stream()
+                .filter(item -> item.courseId().equals(courseId))
+                .findFirst()
+                .orElseThrow();
+        assertThat(currentCourse.progressPercent()).isEqualTo(80);
+        assertThat(currentCourse.completedChapters()).isZero();
+        assertThat(currentCourse.lastLearningTime()).isNotNull();
+
+        study.withdraw(courseId);
+        assertThat(history.currentUserHistory(20).items())
+                .noneMatch(item -> item.courseId().equals(courseId));
+        assertThatThrownBy(() -> history.currentUserHistory(21))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private void concurrentStudy(CountDownLatch ready, CountDownLatch start, int percent) {

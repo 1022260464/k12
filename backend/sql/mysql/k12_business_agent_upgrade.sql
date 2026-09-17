@@ -121,11 +121,27 @@ CREATE TABLE IF NOT EXISTS agent_run (
     KEY idx_agent_run_agent_created (agent_code, created_time),
     KEY idx_agent_run_user_created (user_id, created_time),
     KEY idx_agent_run_status_created (status, created_time),
-    KEY idx_agent_run_session_created (session_id, created_time)
+    KEY idx_agent_run_session_created (session_id, created_time),
+    KEY idx_agent_run_user_agent_session_created (user_id, agent_code, session_id, created_time)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Agent execution records';
+
+SELECT COUNT(*) INTO @k12_agent_session_index_exists
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'agent_run'
+  AND INDEX_NAME = 'idx_agent_run_user_agent_session_created';
+
+SET @k12_sql = IF(
+    @k12_agent_session_index_exists = 0,
+    'ALTER TABLE agent_run ADD KEY idx_agent_run_user_agent_session_created (user_id, agent_code, session_id, created_time)',
+    'DO 0'
+);
+PREPARE k12_stmt FROM @k12_sql;
+EXECUTE k12_stmt;
+DEALLOCATE PREPARE k12_stmt;
 
 CREATE TABLE IF NOT EXISTS agent_artifact (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Artifact primary key',

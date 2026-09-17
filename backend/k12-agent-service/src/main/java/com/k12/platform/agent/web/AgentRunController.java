@@ -1,10 +1,14 @@
 package com.k12.platform.agent.web;
 
 import com.k12.platform.agent.dto.AgentArtifactResponse;
+import com.k12.platform.agent.dto.ArtifactDownloadUrlResponse;
 import com.k12.platform.agent.dto.AgentRunPageResponse;
 import com.k12.platform.agent.dto.AgentRunRequest;
 import com.k12.platform.agent.dto.AgentRunResponse;
+import com.k12.platform.agent.dto.AgentSessionHistoryResponse;
 import com.k12.platform.agent.service.AgentRunService;
+import com.k12.platform.agent.service.AgentArtifactAccessService;
+import com.k12.platform.agent.service.AgentSessionService;
 import com.k12.platform.common.api.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -28,9 +32,17 @@ import java.util.List;
 public class AgentRunController {
 
     private final AgentRunService runService;
+    private final AgentSessionService sessionService;
+    private final AgentArtifactAccessService artifactAccessService;
 
-    public AgentRunController(AgentRunService runService) {
+    public AgentRunController(
+            AgentRunService runService,
+            AgentSessionService sessionService,
+            AgentArtifactAccessService artifactAccessService
+    ) {
         this.runService = runService;
+        this.sessionService = sessionService;
+        this.artifactAccessService = artifactAccessService;
     }
 
     @PostMapping("/{agentCode}/runs")
@@ -60,11 +72,32 @@ public class AgentRunController {
         return ApiResponse.ok(runService.getRun(runId));
     }
 
+    @GetMapping("/{agentCode}/sessions/{sessionId}/history")
+    public ApiResponse<AgentSessionHistoryResponse> getSessionHistory(
+            @PathVariable("agentCode")
+            @Pattern(regexp = "[a-z][a-z0-9-]{1,63}", message = "智能体编码格式错误")
+            String agentCode,
+            @PathVariable("sessionId")
+            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._:-]{0,63}", message = "会话编号格式错误")
+            String sessionId,
+            @RequestParam(name = "limit", defaultValue = "20") int limit
+    ) {
+        return ApiResponse.ok(sessionService.getHistory(agentCode, sessionId, limit));
+    }
+
     @GetMapping("/runs/{runId}/artifacts")
     public ApiResponse<List<AgentArtifactResponse>> listArtifacts(
             @PathVariable("runId") @Size(max = 64, message = "运行编号不能超过 64 个字符") String runId
     ) {
         return ApiResponse.ok(runService.listArtifacts(runId));
+    }
+
+    @GetMapping("/runs/{runId}/artifacts/{artifactId}/download-url")
+    public ApiResponse<ArtifactDownloadUrlResponse> createArtifactDownloadUrl(
+            @PathVariable("runId") @Size(max = 64, message = "运行编号不能超过 64 个字符") String runId,
+            @PathVariable("artifactId") @Size(max = 64, message = "产物编号不能超过 64 个字符") String artifactId
+    ) {
+        return ApiResponse.ok(artifactAccessService.createDownloadUrl(runId, artifactId));
     }
 
     @PostMapping("/runs/{runId}/cancel")

@@ -144,6 +144,16 @@ backend/sql/mysql/k12_auth_permission_upgrade.sql
 7. 重新登录，获取包含新权限的 JWT
 ```
 
+如果数据库报告`Packet for query is too large (... > 2,048)`，不是SQL语法错误，而是服务器
+把`max_allowed_packet`错误设成了2KB。使用MySQL管理员账号执行
+[`mysql_server_packet_fix.sql`](sql/mysql/mysql_server_packet_fix.sql)，断开并新建连接后执行
+[`mysql_server_packet_verify.sql`](sql/mysql/mysql_server_packet_verify.sql)，确认全局值和会话值均为
+`67108864`。只补Agent会话索引时，先执行
+[`k12_business_agent_session_index_check.sql`](sql/mysql/k12_business_agent_session_index_check.sql)；
+检查结果为空才执行
+[`k12_business_agent_session_index_upgrade.sql`](sql/mysql/k12_business_agent_session_index_upgrade.sql)。
+数据库软件中请使用“执行当前语句”，不要将这些文件合并后批量执行。
+
 后续新增业务接口时，按以下安全规范同步 Gateway、Service 注解、权限数据和数据范围：
 
 ```text
@@ -276,13 +286,62 @@ backend/docs/api-development-guide.md
 
 课程模块已补充教师归属、分页检索、章节管理、学生报名/退课与学习进度，
 并增加 Service 数据权限、事务及数据库集成测试。
-已有数据库需先执行 [课程升级脚本](sql/mysql/k12_business_learning_upgrade.sql)，再重启 Learning。
+已有数据库需先执行 [课程升级脚本](sql/mysql/k12_business_learning_upgrade.sql)，再按需执行
+[课程封面关联脚本](sql/mysql/k12_business_course_media_seed.sql)，最后重启 Learning。
 分层说明、权限矩阵和 Apifox 操作步骤见 [课程业务开发与联调说明](docs/course-development-guide.md)。
 各模块剩余工作见 [Java 业务完善进度](docs/java-business-roadmap.md)。
+
+学习排行榜根据MySQL中的有效选课章节进度计算，MySQL始终是积分真相源；开启Redis后，
+Redis Sorted Set只作为可丢弃、可重建的短时读取缓存。Redis故障时接口自动回退MySQL。
+
+```text
+GET /api/v1/learning/leaderboard?limit=20
+```
+
+Learning服务本地启用Redis所需环境变量：
+
+```dotenv
+K12_REDIS_ENABLED=true
+K12_REDIS_HOST=<redis-host>
+K12_REDIS_PORT=6379
+K12_REDIS_USERNAME=
+K12_REDIS_PASSWORD=<redis-password>
+K12_LEADERBOARD_CACHE_TTL=60s
+```
+
+密码只放在IDE运行配置、操作系统环境变量或后续Nacos密文配置中，不提交到仓库。
+
+Learning服务读取MinIO课程封面时，需要配置以下环境变量。数据库保存的是稳定
+`cover_object_key`，接口返回的 `coverUrl` 是短期签名地址；关闭或连接失败时课程接口仍可用，
+前端自动显示本地默认插画。
+
+```dotenv
+K12_COURSE_MEDIA_ENABLED=true
+K12_MINIO_ENDPOINT=http://127.0.0.1:9000
+K12_MINIO_ACCESS_KEY=<minio-access-key>
+K12_MINIO_SECRET_KEY=<minio-secret-key>
+K12_MINIO_BUCKET=k12-agent-artifacts
+K12_COURSE_MEDIA_URL_TTL=15m
+```
 
 Agent Java 服务已经提供同步和异步运行闭环：校验 `agent:invoke`、从 JWT 获取用户 ID；
 短任务调用 FastAPI，长任务通过 RabbitMQ 交给 Python Worker；结果统一写入 `agent_run`、
 `agent_artifact`。接口如下：
+
+代码沙箱通过同一个公开接口支持同步和异步执行：
+
+```text
+POST /api/v1/agents/code-executions
+```
+
+该接口通过Gateway转发，需要`ROLE_ADMIN`或`agent:invoke`。`executionMode=SYNC`时Java会先写
+`RUNNING`，等待Runtime返回后持久化结果；`executionMode=ASYNC`时先写`PENDING`并返回HTTP 202，
+由Python Worker消费代码队列并回传结果。响应中的`runId`可直接用于运行详情接口。
+`agentCode=code-tutor`仅用于运行记录分类，无需新增智能体配置记录，也不能从普通Agent重试接口重试。
+按用户限制云沙箱调用次数时，先单独执行
+`backend/sql/mysql/k12_business_code_execution_quota.sql`，再设置
+`K12_AGENT_CODE_QUOTA_ENABLED=true`并重启Agent Service；默认每位用户每天20次，可用
+`K12_AGENT_CODE_DAILY_LIMIT`调整。超额返回429。完整计数规则见Agent Java联调说明。
 
 ```text
 POST /api/v1/agents/{agentCode}/runs

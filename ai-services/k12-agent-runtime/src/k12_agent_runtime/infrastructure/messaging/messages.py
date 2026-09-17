@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from k12_agent_runtime.domain.agents.models import AgentRunResult
+from k12_agent_runtime.domain.sandbox.models import CodeExecutionResult
 
 
 def to_camel(value: str) -> str:
@@ -106,5 +107,95 @@ class AgentRunResultMessage(MessageModel):
             agent_code=task.agent_code,
             status="FAILED",
             output_text=message,
+            started_time=started_time,
+        )
+
+
+class CodeExecutionTaskMessage(MessageModel):
+    run_id: str = Field(min_length=1, max_length=64)
+    code: str = Field(min_length=1, max_length=100_000)
+    timeout_seconds: int = Field(default=30, ge=1, le=30)
+    packages: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("run_id", "code")
+    @classmethod
+    def code_task_text_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("message field must not be blank")
+        return value
+
+    @field_validator("packages")
+    @classmethod
+    def code_task_cannot_install_packages(cls, value: list[str]) -> list[str]:
+        if value:
+            raise ValueError("runtime package installation is not allowed")
+        return value
+
+
+class CodeExecutionResultMessage(MessageModel):
+    run_id: str
+    execution_id: str | None = None
+    status: str
+    stdout: str = ""
+    stderr: str = ""
+    artifacts: list[ArtifactMessage] = Field(default_factory=list)
+    exit_code: int | None = None
+    duration_ms: int | None = None
+    started_time: datetime | None = None
+
+    @classmethod
+    def started(
+        cls,
+        task: CodeExecutionTaskMessage,
+        started_time: datetime,
+    ) -> "CodeExecutionResultMessage":
+        return cls(
+            run_id=task.run_id,
+            status="RUNNING",
+            started_time=started_time,
+        )
+
+    @classmethod
+    def from_domain(
+        cls,
+        task: CodeExecutionTaskMessage,
+        result: CodeExecutionResult,
+        started_time: datetime,
+    ) -> "CodeExecutionResultMessage":
+        return cls(
+            run_id=task.run_id,
+            execution_id=result.execution_id,
+            status=result.status.value,
+            stdout=result.stdout,
+            stderr=result.stderr,
+            artifacts=[
+                ArtifactMessage(
+                    artifact_id=item.artifact_id,
+                    kind=item.kind.value,
+                    mime_type=item.mime_type,
+                    title=item.title,
+                    uri=item.uri,
+                    payload=item.payload,
+                )
+                for item in result.artifacts
+            ],
+            exit_code=result.exit_code,
+            duration_ms=result.duration_ms,
+            started_time=started_time,
+        )
+
+    @classmethod
+    def failed(
+        cls,
+        task: CodeExecutionTaskMessage,
+        execution_id: str,
+        started_time: datetime,
+    ) -> "CodeExecutionResultMessage":
+        # 详细异常只写服务端日志，结果消息不携带供应商异常或密钥。
+        return cls(
+            run_id=task.run_id,
+            execution_id=execution_id,
+            status="FAILED",
+            stderr="代码执行服务内部错误",
             started_time=started_time,
         )

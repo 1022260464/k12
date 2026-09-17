@@ -30,8 +30,9 @@ class TutorAgent:
 
 ## 3. 同步与异步边界
 
-短任务通过Java OpenFeign调用FastAPI。文档解析、批量批改、长时间Agent任务和代码执行
-通过RabbitMQ投递。两种入口最终都调用 `RunAgentUseCase`，防止出现两套业务逻辑。
+短任务通过Java OpenFeign调用FastAPI。文档解析、批量批改、长时间Agent任务和异步代码执行
+通过RabbitMQ投递。普通Agent的HTTP和消息入口复用`RunAgentUseCase`，代码执行的HTTP和消息入口
+复用`ExecuteCodeUseCase`，防止同步与异步形成两套沙箱业务逻辑。
 
 RabbitMQ任务和结果使用camelCase JSON，便于Java DTO直接反序列化。消息必须包含
 `runId`，由Java数据库记录负责幂等和状态查询。
@@ -59,8 +60,9 @@ Frontend
   -> RabbitMQ代码任务队列
   -> Python Agent Worker
   -> CodeSandbox领域端口
-  -> TencentAgentSandboxAdapter
-  -> 腾讯云Agent Sandbox临时实例
+  -> FailoverCodeSandbox
+      -> TencentAgentSandboxAdapter -> 腾讯云Agent Sandbox临时实例
+      -> PistonCodeSandbox          -> 本地Piston隔离容器（显式备用）
   -> 生成PNG/JSON/CSV
   -> MinIO
   -> RabbitMQ结果消息
@@ -73,8 +75,9 @@ Frontend
 限制。依赖通过团队维护的固定Python镜像提供，不允许用户任意访问PyPI。API和Worker主
 进程只负责校验、调度和结果处理，永远不直接执行用户代码。
 
-本地Piston只用于开发验证和断网演示。本地Rust Code Reviewer负责静态代码审查，不属于
-云沙箱，也不执行用户代码。完整方案与备选平台资源见
+本地Piston只用于开发验证、断网演示和显式配置的云故障保底。故障转移只处理供应商不可用，
+不会重新执行已经得到失败、超时或拒绝结果的学生代码。本地Rust Code Reviewer负责静态代码
+审查，不属于云沙箱，也不执行用户代码。完整方案与备选平台资源见
 [`code-sandbox-platform-guide.md`](code-sandbox-platform-guide.md)。
 
 ## 6. 后续基础设施适配器
@@ -85,7 +88,7 @@ infrastructure/rag/          pgvector检索和重排
 infrastructure/tools/        课程、题库、搜索等工具
 infrastructure/storage/      MinIO产物存储
 infrastructure/persistence/  仅AI运行所需的存储适配器
-infrastructure/sandbox/      腾讯云AGSX适配器
+infrastructure/sandbox/      腾讯云AGSX、Piston及故障转移适配器
 ```
 
 这些目录在真正出现实现时再创建，避免空目录和无效抽象。
