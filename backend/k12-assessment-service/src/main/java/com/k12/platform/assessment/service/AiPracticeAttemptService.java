@@ -86,10 +86,8 @@ public class AiPracticeAttemptService {
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_READ + "')")
     public PracticeAttemptResponse findByRun(String runId) {
         AiPracticeAttempt attempt = mapper.findByRunAndStudent(runId, K12SecurityContext.requireUserId());
-        if (attempt == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "尚未提交该次小测");
-        }
-        return toResponse(attempt);
+        // 未作答是常态查询结果，返回 null 而不是 404，避免学习台恢复历史时刷屏。
+        return attempt == null ? null : toResponse(attempt);
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_READ + "')")

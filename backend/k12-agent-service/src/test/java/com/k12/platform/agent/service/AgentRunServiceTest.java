@@ -2,6 +2,8 @@ package com.k12.platform.agent.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.k12.platform.agent.client.AgentRuntimeClient;
+import com.k12.platform.agent.client.IamAccountBehaviorClient;
+import com.k12.platform.agent.client.dto.AccountBehaviorResponse;
 import com.k12.platform.agent.client.dto.RuntimeAgentInvokeRequest;
 import com.k12.platform.agent.client.dto.RuntimeAgentRunResponse;
 import com.k12.platform.agent.client.dto.RuntimeArtifactResponse;
@@ -67,6 +69,8 @@ class AgentRunServiceTest {
     private LearnerContextEnricher learnerContextEnricher;
     @Mock
     private AgentSessionService sessionService;
+    @Mock
+    private IamAccountBehaviorClient accountBehaviorClient;
 
     private AgentRunService runService;
     private AgentRabbitProperties rabbitProperties;
@@ -84,12 +88,15 @@ class AgentRunServiceTest {
                 rabbitProperties,
                 new ObjectMapper(),
                 learnerContextEnricher,
-                sessionService
+                sessionService,
+                accountBehaviorClient
         );
-        lenient().when(learnerContextEnricher.enrich(any(), any(), any()))
+        lenient().when(learnerContextEnricher.enrich(any(), any(), any(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(2));
         lenient().when(sessionService.enrichContext(any(), any(), any(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(3));
+        lenient().when(accountBehaviorClient.getCurrentBehavior()).thenReturn(ApiResponse.ok(
+                new AccountBehaviorResponse(0, 5, 0, 5, null, false, false, "")));
         authenticate(42L, K12Authorities.AGENT_READ, K12Authorities.AGENT_INVOKE);
     }
 

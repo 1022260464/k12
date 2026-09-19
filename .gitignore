@@ -58,3 +58,7 @@ Thumbs.db
 
 # Third-party runtime source and installed Piston language packages
 /deploy/piston-runtime/
+
+# Local scratch / one-off DB checks (never commit; may contain secrets)
+/tmp-db-query/
+/tmp/

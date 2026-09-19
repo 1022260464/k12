@@ -4,6 +4,7 @@ import com.k12.platform.common.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -55,5 +56,10 @@ public class LearningExceptionHandler {
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicateKey(DuplicateKeyException exception) {
         return ResponseEntity.status(409).body(ApiResponse.fail(409, "课程数据已存在"));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUploadSize(MaxUploadSizeExceededException exception) {
+        return ResponseEntity.status(413).body(ApiResponse.fail(413, "教学资料文件不能超过 50 MB"));
     }
 }

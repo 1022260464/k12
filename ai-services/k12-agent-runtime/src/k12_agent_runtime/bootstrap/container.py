@@ -9,6 +9,7 @@ from k12_agent_runtime.application.rag import (
     SearchKnowledgeUseCase,
 )
 from k12_agent_runtime.application.rag.chunk_text import TextChunker
+from k12_agent_runtime.application.rag.index_teaching_resource import IndexTeachingResourceUseCase
 from k12_agent_runtime.application.sandbox.execute_code import ExecuteCodeUseCase
 from k12_agent_runtime.application.storage import (
     CreateDownloadUrlUseCase,
@@ -49,6 +50,7 @@ class ApplicationContainer:
     embed_texts: EmbedTextsUseCase
     rerank_documents: RerankDocumentsUseCase
     index_document: IndexDocumentUseCase
+    index_teaching_resource: IndexTeachingResourceUseCase
     search_knowledge: SearchKnowledgeUseCase
     knowledge_repository: PgVectorKnowledgeRepository | None
     rag_cache: RedisKnowledgeSearchCache | None
@@ -78,6 +80,7 @@ def build_container(settings: Settings) -> ApplicationContainer:
     object_storage = _build_object_storage(settings)
     store_object = StoreObjectUseCase(object_storage, settings.minio_max_upload_bytes)
     chunker = TextChunker(settings.rag_chunk_size, settings.rag_chunk_overlap)
+    index_document = IndexDocumentUseCase(embedder, repository, chunker, rag_cache)
     search_knowledge = SearchKnowledgeUseCase(
         embedder,
         reranker,
@@ -108,7 +111,10 @@ def build_container(settings: Settings) -> ApplicationContainer:
         chat_model=chat_model,
         embed_texts=EmbedTextsUseCase(embedder),
         rerank_documents=RerankDocumentsUseCase(reranker),
-        index_document=IndexDocumentUseCase(embedder, repository, chunker, rag_cache),
+        index_document=index_document,
+        index_teaching_resource=IndexTeachingResourceUseCase(
+            object_storage, index_document, settings.minio_bucket
+        ),
         search_knowledge=search_knowledge,
         knowledge_repository=repository,
         rag_cache=rag_cache,

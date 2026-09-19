@@ -5,6 +5,7 @@ import com.k12.platform.assessment.dto.HomeworkGradeRequest;
 import com.k12.platform.assessment.dto.HomeworkRecipientsRequest;
 import com.k12.platform.assessment.dto.HomeworkRequest;
 import com.k12.platform.assessment.dto.HomeworkResponse;
+import com.k12.platform.assessment.dto.HomeworkReturnRequest;
 import com.k12.platform.assessment.dto.HomeworkSubmissionResponse;
 import com.k12.platform.assessment.dto.HomeworkSubmitRequest;
 import com.k12.platform.assessment.dto.SubmissionPageResponse;
@@ -116,6 +117,14 @@ public class HomeworkController {
             @Valid @RequestBody HomeworkGradeRequest request
     ) {
         return ApiResponse.ok(homeworkService.gradeHomework(id, request));
+    }
+
+    @PostMapping("/{id}/return")
+    public ApiResponse<HomeworkSubmissionResponse> returnSubmission(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody HomeworkReturnRequest request
+    ) {
+        return ApiResponse.ok(homeworkService.returnSubmission(id, request));
     }
 
     @GetMapping("/{id}/submissions/me")

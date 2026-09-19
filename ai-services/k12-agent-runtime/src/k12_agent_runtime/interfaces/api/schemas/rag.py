@@ -90,6 +90,24 @@ class IndexDocumentRequest(ApiModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class IndexTeachingResourceRequest(ApiModel):
+    resource_id: int = Field(ge=1)
+    title: str = Field(min_length=1, max_length=160)
+    object_key: str = Field(min_length=1, max_length=255)
+    stage_code: str = Field(min_length=1, max_length=32)
+    subject: str = Field(min_length=1, max_length=64)
+    source_note: str = Field(min_length=1, max_length=255)
+    course_id: int | None = Field(default=None, ge=1)
+    chapter_id: int | None = Field(default=None, ge=1)
+    chapter: str | None = Field(default=None, min_length=1, max_length=128)
+    grade: str | None = Field(default=None, min_length=1, max_length=32)
+    textbook: str | None = Field(default=None, min_length=1, max_length=255)
+    knowledge_code: str | None = Field(
+        default=None, pattern=r"^[a-z][a-z0-9_.-]{2,63}$"
+    )
+    description: str | None = Field(default=None, max_length=1000)
+
+
 class IndexedDocumentResponse(ApiModel):
     document_id: str
     chunk_count: int
@@ -111,6 +129,8 @@ class KnowledgeSearchRequest(ApiModel):
     stage_code: str | None = Field(default=None, max_length=32)
     grade: str | None = Field(default=None, max_length=32)
     textbook: str | None = Field(default=None, max_length=255)
+    knowledge_code: str | None = Field(default=None, max_length=64)
+    knowledge_codes: list[str] | None = Field(default=None, max_length=20)
 
 
 class KnowledgeSearchResponse(ApiModel):

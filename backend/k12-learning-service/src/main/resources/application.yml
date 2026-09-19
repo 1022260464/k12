@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: k12-learning-service
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 51MB
   datasource:
     url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=${K12_DB_USE_SSL:false}&allowPublicKeyRetrieval=${K12_DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=Asia/Shanghai
     username: ${K12_BUSINESS_DB_USERNAME:k12}
@@ -49,6 +53,10 @@ mybatis-plus:
     banner: false
 
 management:
+  health:
+    # 排行榜 Redis 默认关闭；未启用时不要让可选缓存把服务健康状态判为 DOWN。
+    redis:
+      enabled: ${K12_REDIS_ENABLED:false}
   endpoints:
     web:
       exposure:
@@ -56,11 +64,17 @@ management:
 
 k12:
   learning:
+    rag:
+      # 与 Python Runtime 使用相同的内部密钥；Java 不直接访问 pgvector。
+      runtime-url: ${K12_AGENT_RUNTIME_URL:http://127.0.0.1:8090}
+      api-key: ${K12_AGENT_INTERNAL_API_KEY:}
     media:
       # 数据库只保存稳定对象键，接口响应时临时生成15分钟有效的MinIO访问地址。
       # 默认关闭，因此未配置MinIO时课程查询仍可正常工作，前端会使用本地默认封面。
       enabled: ${K12_COURSE_MEDIA_ENABLED:false}
       endpoint: ${K12_MINIO_ENDPOINT:http://127.0.0.1:9000}
+      # 浏览器打开封面用的地址；若本机代理访问不了 endpoint，可单独配公网/隧道地址
+      public-endpoint: ${K12_MINIO_PUBLIC_ENDPOINT:${K12_MINIO_ENDPOINT:http://127.0.0.1:9000}}
       access-key: ${K12_MINIO_ACCESS_KEY:}
       secret-key: ${K12_MINIO_SECRET_KEY:}
       bucket: ${K12_MINIO_BUCKET:k12-agent-artifacts}
@@ -71,6 +85,14 @@ k12:
       key: ${K12_LEADERBOARD_REDIS_KEY:k12:learning:leaderboard:v1}
       ttl: ${K12_LEADERBOARD_CACHE_TTL:60s}
       rebuild-limit: ${K12_LEADERBOARD_REBUILD_LIMIT:1000}
+    neo4j:
+      # 知识关系层；关闭时助教降级为无先修导航，不影响主链路。
+      enabled: ${K12_NEO4J_ENABLED:false}
+      uri: ${K12_NEO4J_URI:bolt://127.0.0.1:7687}
+      username: ${K12_NEO4J_USERNAME:neo4j}
+      password: ${K12_NEO4J_PASSWORD:}
+      database: ${K12_NEO4J_DATABASE:neo4j}
+      seed-on-startup: ${K12_NEO4J_SEED_ON_STARTUP:true}
   security:
     token-state:
       remote-enabled: ${K12_TOKEN_STATE_VALIDATION_ENABLED:true}

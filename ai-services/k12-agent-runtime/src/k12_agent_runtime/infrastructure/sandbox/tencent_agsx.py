@@ -162,12 +162,28 @@ class TencentAgentSandboxAdapter:
             raise SandboxUnavailableError("腾讯云Agent Sandbox不可用") from exc
         finally:
             if sandbox is not None:
-                try:
-                    await asyncio.to_thread(sandbox.kill)
-                except Exception:  # noqa: BLE001
+                await self._release_sandbox(sandbox, request.execution_id)
+
+    async def _release_sandbox(self, sandbox: Any, execution_id: str) -> None:
+        # kill is safe to retry when the first response is lost; the instance also has a TTL.
+        for attempt in range(2):
+            try:
+                await asyncio.to_thread(sandbox.kill, request_timeout=3.0)
+                return
+            except Exception:  # noqa: BLE001
+                if attempt == 0:
+                    logger.warning(
+                        "Tencent sandbox release failed; retrying execution_id=%s sandbox_id=%s",
+                        execution_id,
+                        getattr(sandbox, "sandbox_id", None),
+                        exc_info=True,
+                    )
+                    await asyncio.sleep(0.2)
+                else:
                     logger.exception(
-                        "Failed to release Tencent sandbox execution_id=%s",
-                        request.execution_id,
+                        "Tencent sandbox release failed after retry execution_id=%s sandbox_id=%s",
+                        execution_id,
+                        getattr(sandbox, "sandbox_id", None),
                     )
 
     def _create_sandbox(self, execution_id: str) -> Any:

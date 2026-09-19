@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.k12.platform.learning.dto.ChapterRequest;
 import com.k12.platform.learning.dto.ChapterResponse;
 import com.k12.platform.learning.dto.ChapterSummaryResponse;
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import com.k12.platform.learning.mapper.CourseChapterMapper;
 import com.k12.platform.learning.model.CourseChapter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -19,10 +21,19 @@ import java.util.List;
 public class CourseChapterService {
     private final CourseAccessService access;
     private final CourseChapterMapper chapterMapper;
+    private final KnowledgeGraphService knowledgeGraphService;
+    private final CourseContentMediaRewriter contentMediaRewriter;
 
-    public CourseChapterService(CourseAccessService access, CourseChapterMapper chapterMapper) {
+    public CourseChapterService(
+            CourseAccessService access,
+            CourseChapterMapper chapterMapper,
+            KnowledgeGraphService knowledgeGraphService,
+            CourseContentMediaRewriter contentMediaRewriter
+    ) {
         this.access = access;
         this.chapterMapper = chapterMapper;
+        this.knowledgeGraphService = knowledgeGraphService;
+        this.contentMediaRewriter = contentMediaRewriter;
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:read')")
@@ -57,6 +68,8 @@ public class CourseChapterService {
         chapter.setDeleted(0);
         apply(chapter, request);
         chapterMapper.insert(chapter);
+        knowledgeGraphService.syncChapterRef(
+                courseId, chapter.getId(), chapter.getTitle(), chapter.getContent());
         return response(chapter);
     }
 
@@ -67,6 +80,8 @@ public class CourseChapterService {
         CourseChapter chapter = requireChapter(courseId, chapterId);
         apply(chapter, request);
         chapterMapper.updateById(chapter);
+        knowledgeGraphService.syncChapterRef(
+                courseId, chapter.getId(), chapter.getTitle(), chapter.getContent());
         return response(chapter);
     }
 
@@ -76,6 +91,7 @@ public class CourseChapterService {
         access.requireOwner(access.requireCourse(courseId, true));
         requireChapter(courseId, chapterId);
         chapterMapper.deleteById(chapterId);
+        knowledgeGraphService.removeChapterCovers(courseId, chapterId);
     }
 
     private CourseChapter requireChapter(Long courseId, Long chapterId) {
@@ -88,13 +104,20 @@ public class CourseChapterService {
 
     private void apply(CourseChapter chapter, ChapterRequest request) {
         chapter.setTitle(request.title().trim());
-        chapter.setContent(request.content().trim());
+        String content = request.content() == null ? "" : request.content().trim();
+        String stamped = contentMediaRewriter.stampObjectKeys(content);
+        String plain = KnowledgeGraphService.collapseWhitespace(KnowledgeGraphService.stripHtml(stamped));
+        if (!StringUtils.hasText(plain)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "章节导语不能为空");
+        }
+        chapter.setContent(stamped);
         chapter.setSortOrder(request.sortOrder());
         chapter.setUpdatedTime(Instant.now());
     }
 
     private ChapterResponse response(CourseChapter chapter) {
         return new ChapterResponse(chapter.getId(), chapter.getCourseId(), chapter.getTitle(),
-                chapter.getContent(), chapter.getSortOrder(), chapter.getUpdatedTime());
+                contentMediaRewriter.refreshImageUrls(chapter.getContent()),
+                chapter.getSortOrder(), chapter.getUpdatedTime());
     }
 }

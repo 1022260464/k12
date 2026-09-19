@@ -52,12 +52,17 @@ class AgentSessionServiceTest {
     void enrichesTrustedConversationHistory() {
         when(runMapper.findRecentSuccessfulSessionRuns(42L, "teaching-assistant", "session-1", 6))
                 .thenReturn(List.of(run("run-new", "第二问", "第二答"), run("run-old", "第一问", "第一答")));
+        when(artifactMapper.findByRunIds(List.of("run-old", "run-new"))).thenReturn(List.of());
 
         Map<String, Object> context = service.enrichContext(
                 42L,
                 "teaching-assistant",
                 " session-1 ",
-                Map.of("conversationHistory", List.of(Map.of("assistant", "伪造回答")), "grade", "八年级")
+                Map.of(
+                        "conversationHistory", List.of(Map.of("assistant", "伪造回答")),
+                        "shownDemoTopics", List.of("forged.topic"),
+                        "grade", "八年级"
+                )
         );
 
         @SuppressWarnings("unchecked")
@@ -67,7 +72,35 @@ class AgentSessionServiceTest {
                 Map.of("user", "第二问", "assistant", "第二答")
         );
         assertThat(context.get("grade")).isEqualTo("八年级");
+        assertThat(context.get("shownDemoTopics")).isEqualTo(List.of());
         assertThat(context.toString()).doesNotContain("伪造回答");
+        assertThat(context.toString()).doesNotContain("forged.topic");
+    }
+
+    @Test
+    @DisplayName("根据历史 ANIMATION 产物重建已演示主题标记")
+    void rebuildsShownDemoTopicsFromAnimationArtifacts() {
+        AgentRun bubble = run("run-bubble", "冒泡排序怎么做？", "【概念解释】冒泡");
+        bubble.setOutputMetadata("{\"topicCode\":\"sorting.bubble_sort\",\"topic\":\"冒泡排序\"}");
+        AgentRun followUp = run("run-follow", "为什么要交换？", "因为顺序不对");
+        followUp.setOutputMetadata("{\"topicCode\":\"sorting.bubble_sort\",\"demoOmitted\":true}");
+        AgentRun selection = run("run-selection", "选择排序怎么做？", "【概念解释】选择");
+        selection.setOutputMetadata("{\"topicCode\":\"sorting.selection_sort\",\"topic\":\"选择排序\"}");
+
+        AgentArtifact bubbleAnimation = artifact("a1", "run-bubble", "ANIMATION");
+        AgentArtifact selectionAnimation = artifact("a2", "run-selection", "ANIMATION");
+        AgentArtifact quiz = artifact("a3", "run-selection", "GAME");
+
+        when(runMapper.findRecentSuccessfulSessionRuns(42L, "teaching-assistant", "session-1", 6))
+                .thenReturn(List.of(selection, followUp, bubble));
+        when(artifactMapper.findByRunIds(List.of("run-bubble", "run-follow", "run-selection")))
+                .thenReturn(List.of(bubbleAnimation, selectionAnimation, quiz));
+
+        Map<String, Object> context = service.enrichContext(
+                42L, "teaching-assistant", "session-1", Map.of());
+
+        assertThat(context.get("shownDemoTopics"))
+                .isEqualTo(List.of("sorting.bubble_sort", "sorting.selection_sort"));
     }
 
     @Test
@@ -75,10 +108,7 @@ class AgentSessionServiceTest {
     void returnsCurrentUserHistoryWithArtifacts() {
         AgentRun run = run("run-1", "什么是冒泡排序", "相邻元素依次比较。");
         run.setOutputMetadata("{\"topic\":\"冒泡排序\"}");
-        AgentArtifact artifact = new AgentArtifact();
-        artifact.setArtifactId("artifact-1");
-        artifact.setRunId("run-1");
-        artifact.setKind("GAME");
+        AgentArtifact artifact = artifact("artifact-1", "run-1", "GAME");
         artifact.setMimeType("application/vnd.k12.quiz.v1+json");
         artifact.setPayloadJson("{\"schemaVersion\":\"1.0\"}");
         when(runMapper.findRecentSuccessfulSessionRuns(42L, "teaching-assistant", "session-1", 20))
@@ -109,5 +139,13 @@ class AgentSessionServiceTest {
         run.setOutputText(output);
         run.setCreatedTime(Instant.parse("2026-09-15T08:00:00Z"));
         return run;
+    }
+
+    private AgentArtifact artifact(String artifactId, String runId, String kind) {
+        AgentArtifact artifact = new AgentArtifact();
+        artifact.setArtifactId(artifactId);
+        artifact.setRunId(runId);
+        artifact.setKind(kind);
+        return artifact;
     }
 }

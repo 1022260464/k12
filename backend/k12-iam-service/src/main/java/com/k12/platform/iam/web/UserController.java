@@ -6,10 +6,13 @@ import com.k12.platform.iam.dto.UserResponse;
 import com.k12.platform.iam.dto.UserUpdateRequest;
 import com.k12.platform.iam.dto.ChangePasswordRequest;
 import com.k12.platform.iam.dto.ResetPasswordRequest;
+import com.k12.platform.iam.dto.SelfProfileResponse;
+import com.k12.platform.iam.dto.SelfProfileUpdateRequest;
 import com.k12.platform.iam.dto.UpdateUserStatusRequest;
 import com.k12.platform.iam.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +21,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -79,6 +84,21 @@ public class UserController {
                     .body(ApiResponse.fail(404, "User not found"));
         }
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<SelfProfileResponse> getOwnProfile() {
+        return ApiResponse.ok(userService.getOwnProfile());
+    }
+
+    @PutMapping("/me")
+    public ApiResponse<SelfProfileResponse> updateOwnProfile(@Valid @RequestBody SelfProfileUpdateRequest request) {
+        return ApiResponse.ok(userService.updateOwnProfile(request));
+    }
+
+    @PostMapping(path = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<SelfProfileResponse> uploadOwnAvatar(@RequestPart("file") MultipartFile file) {
+        return ApiResponse.ok(userService.uploadOwnAvatar(file));
     }
 
     @PutMapping("/me/password")

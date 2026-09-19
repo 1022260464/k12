@@ -88,4 +88,6 @@ public interface UserMapper extends BaseMapper<SysUser> {
 
     /* 批量返回处于启用状态且拥有 ROLE_STUDENT 的用户 ID。 */
     List<Long> findActiveStudentIds(@Param("userIds") List<Long> userIds);
+
+    List<com.k12.platform.iam.dto.StudentDirectoryEntry> findActiveStudents();
 }

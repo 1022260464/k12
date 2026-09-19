@@ -1,6 +1,7 @@
 package com.k12.platform.learning.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.k12.platform.learning.dto.ContentImageResponse;
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.CourseResponse;
 import com.k12.platform.learning.dto.CoursePageResponse;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import com.k12.platform.common.security.K12Authorities;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,17 +26,24 @@ public class CourseService {
 
     private final CourseMapper courseMapper;
     private final CourseMediaUrlResolver mediaUrlResolver;
+    private final CourseCoverStorage coverStorage;
 
-    public CourseService(CourseMapper courseMapper, CourseMediaUrlResolver mediaUrlResolver) {
+    public CourseService(CourseMapper courseMapper, CourseMediaUrlResolver mediaUrlResolver,
+                         CourseCoverStorage coverStorage) {
         this.courseMapper = courseMapper;
         this.mediaUrlResolver = mediaUrlResolver;
+        this.coverStorage = coverStorage;
     }
 
     /* 查询课程需要 course:read 权限。管理员、教师、学生默认都拥有。 */
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_READ + "')")
     public List<CourseResponse> listCourses() {
-        return courseMapper.selectList(Wrappers.lambdaQuery(Course.class)
-                        .eq(Course::getStatus, 1)
+        var query = Wrappers.lambdaQuery(Course.class);
+        if (!K12SecurityContext.hasAuthority(K12Authorities.ROLE_ADMIN)) {
+            Long userId = K12SecurityContext.requireUserId();
+            query.and(scope -> scope.eq(Course::getStatus, 1).or().eq(Course::getTeacherId, userId));
+        }
+        return courseMapper.selectList(query
                         .orderByDesc(Course::getUpdatedTime, Course::getId)
                         .last("LIMIT 100"))
                 .stream()
@@ -45,7 +54,10 @@ public class CourseService {
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_READ + "')")
     public Optional<CourseResponse> getCourse(Long id) {
         return Optional.ofNullable(courseMapper.selectById(id))
-                .filter(course -> Integer.valueOf(1).equals(course.getStatus())).map(this::toResponse);
+                .filter(course -> Integer.valueOf(1).equals(course.getStatus())
+                        || K12SecurityContext.hasAuthority(K12Authorities.ROLE_ADMIN)
+                        || K12SecurityContext.requireUserId().equals(course.getTeacherId()))
+                .map(this::toResponse);
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:read')")
@@ -65,7 +77,7 @@ public class CourseService {
     public CourseResponse createCourse(CourseRequest request) {
         Course course = new Course();
         applyRequest(course, request);
-        course.setStatus(1);
+        course.setStatus(0);
         course.setDeleted(0);
         course.setTeacherId(K12SecurityContext.requireUserId());
 
@@ -99,6 +111,40 @@ public class CourseService {
         return courseMapper.deleteById(id) > 0;
     }
 
+    @Transactional
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_UPDATE + "')")
+    public CourseResponse uploadCover(Long id, MultipartFile file) {
+        Course course = courseMapper.selectForUpdate(id);
+        if (course == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "课程不存在");
+        }
+        requireOwner(course);
+        String previous = course.getCoverObjectKey();
+        String objectKey = coverStorage.upload(id, file);
+        course.setCoverObjectKey(objectKey);
+        course.setUpdatedTime(Instant.now());
+        courseMapper.updateById(course);
+        if (StringUtils.hasText(previous) && !previous.equals(objectKey)) {
+            coverStorage.removeQuietly(previous);
+        }
+        return toResponse(courseMapper.selectById(id));
+    }
+
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_UPDATE + "')")
+    public ContentImageResponse uploadContentImage(Long id, MultipartFile file) {
+        Course course = courseMapper.selectById(id);
+        if (course == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "课程不存在");
+        }
+        requireOwner(course);
+        String objectKey = coverStorage.uploadContentImage(id, file);
+        String url = mediaUrlResolver.resolve(objectKey);
+        if (!StringUtils.hasText(url)) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "课程媒体访问地址不可用");
+        }
+        return new ContentImageResponse(objectKey, url);
+    }
+
     private CourseResponse toResponse(Course course) {
         return new CourseResponse(
                 course.getId(),
@@ -109,7 +155,8 @@ public class CourseService {
                 course.getCoverObjectKey(),
                 mediaUrlResolver.resolve(course.getCoverObjectKey()),
                 course.getUpdatedTime(),
-                course.getTeacherId()
+                course.getTeacherId(),
+                course.getStatus()
         );
     }
 

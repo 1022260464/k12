@@ -38,6 +38,7 @@ class BgeM3Embedder:
     ) -> None:
         self._model_name = model_name
         self._device = device
+        self._requested_device = device
         self._use_fp16 = use_fp16
         self._batch_size = batch_size
         self._max_length = max_length
@@ -52,7 +53,11 @@ class BgeM3Embedder:
         except RagModelError:
             raise
         except Exception as exc:  # noqa: BLE001
-            logger.exception("BGE-M3向量化失败：model=%s device=%s", self._model_name, self._device)
+            logger.exception(
+                "BGE-M3向量化失败：model=%s device=%s",
+                self._model_name,
+                self._device,
+            )
             raise RagModelError("embedding_failed") from exc
 
     def _embed_sync(self, texts: tuple[str, ...]) -> EmbeddingBatch:
@@ -84,17 +89,59 @@ class BgeM3Embedder:
         except ImportError as exc:
             raise RagModelError("embedding_dependency_missing") from exc
 
-        logger.info("开始加载Embedding模型：model=%s device=%s", self._model_name, self._device)
-        model = SentenceTransformer(
+        # 先在 CPU 完整加载，再尝试迁到 CUDA，避免 OOM 半截状态污染缓存/进程。
+        logger.info(
+            "开始加载Embedding模型：model=%s requested_device=%s",
             self._model_name,
-            device=self._device,
-            cache_folder=self._cache_dir,
-            trust_remote_code=False,
+            self._requested_device,
         )
+        model_kwargs = _embedding_model_kwargs(self._use_fp16, self._requested_device)
+        try:
+            model = SentenceTransformer(
+                self._model_name,
+                device="cpu",
+                cache_folder=self._cache_dir,
+                trust_remote_code=False,
+                model_kwargs=model_kwargs,
+            )
+        except TypeError:
+            # 旧版 sentence-transformers 可能不支持 model_kwargs
+            model = SentenceTransformer(
+                self._model_name,
+                device="cpu",
+                cache_folder=self._cache_dir,
+                trust_remote_code=False,
+            )
         model.max_seq_length = self._max_length
-        if self._use_fp16 and self._device.startswith("cuda"):
-            model.half()
-        logger.info("Embedding模型加载完成：model=%s", self._model_name)
+
+        target = self._requested_device
+        if target.startswith("cuda"):
+            try:
+                model.to(target)
+                if self._use_fp16:
+                    try:
+                        model.half()
+                    except Exception:  # noqa: BLE001
+                        logger.warning("Embedding FP16 转换失败，继续使用当前精度")
+                self._device = target
+            except Exception as exc:  # noqa: BLE001
+                if not _is_cuda_oom(exc):
+                    _clear_cuda_memory()
+                    raise
+                logger.warning(
+                    "Embedding CUDA OOM，自动回退 CPU（显存不足或被其他进程占用）：%s",
+                    exc,
+                )
+                _clear_cuda_memory()
+                self._device = "cpu"
+                try:
+                    model.to("cpu")
+                except Exception:  # noqa: BLE001
+                    pass
+        else:
+            self._device = target or "cpu"
+
+        logger.info("Embedding模型加载完成：model=%s device=%s", self._model_name, self._device)
         return model
 
 
@@ -114,6 +161,7 @@ class BgeReranker:
     ) -> None:
         self._model_name = model_name
         self._device = device
+        self._requested_device = device
         self._use_fp16 = use_fp16
         self._batch_size = batch_size
         self._max_length = max_length
@@ -189,23 +237,83 @@ class BgeReranker:
             except ImportError as exc:
                 raise RagModelError("reranker_dependency_missing") from exc
 
-            logger.info("开始加载Reranker模型：model=%s device=%s", self._model_name, self._device)
+            logger.info(
+                "开始加载Reranker模型：model=%s requested_device=%s",
+                self._model_name,
+                self._requested_device,
+            )
             self._tokenizer = AutoTokenizer.from_pretrained(
                 self._model_name,
                 cache_dir=self._cache_dir,
                 trust_remote_code=False,
             )
+            dtype = torch.float16 if (
+                self._use_fp16 and self._requested_device.startswith("cuda")
+            ) else None
+            load_kwargs: dict[str, Any] = {
+                "cache_dir": self._cache_dir,
+                "trust_remote_code": False,
+            }
+            if dtype is not None:
+                load_kwargs["torch_dtype"] = dtype
             self._model = AutoModelForSequenceClassification.from_pretrained(
                 self._model_name,
-                cache_dir=self._cache_dir,
-                trust_remote_code=False,
+                **load_kwargs,
             )
-            if self._use_fp16 and self._device.startswith("cuda"):
-                self._model.half()
-            self._model.to(self._device)
+            target = self._requested_device
+            if target.startswith("cuda"):
+                try:
+                    self._model.to(target)
+                    self._device = target
+                except Exception as exc:  # noqa: BLE001
+                    if not _is_cuda_oom(exc):
+                        _clear_cuda_memory()
+                        raise
+                    logger.warning(
+                        "Reranker CUDA OOM，自动回退 CPU：%s",
+                        exc,
+                    )
+                    _clear_cuda_memory()
+                    self._model.to("cpu")
+                    self._device = "cpu"
+            else:
+                self._model.to(target or "cpu")
+                self._device = target or "cpu"
             self._model.eval()
             self._torch = torch
-            logger.info("Reranker模型加载完成：model=%s", self._model_name)
+            logger.info("Reranker模型加载完成：model=%s device=%s", self._model_name, self._device)
+
+
+def _embedding_model_kwargs(use_fp16: bool, device: str) -> dict[str, Any] | None:
+    if not (use_fp16 and device.startswith("cuda")):
+        return None
+    try:
+        import torch
+    except ImportError:
+        return None
+    return {"torch_dtype": torch.float16}
+
+
+def _is_cuda_oom(exc: BaseException) -> bool:
+    name = type(exc).__name__
+    if name in {"OutOfMemoryError", "CudaOutOfMemoryError"}:
+        return True
+    message = str(exc).lower()
+    return "out of memory" in message or "cuda out of memory" in message
+
+
+def _clear_cuda_memory() -> None:
+    try:
+        import torch
+    except ImportError:
+        return
+    if not torch.cuda.is_available():
+        return
+    try:
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+    except Exception:  # noqa: BLE001
+        logger.debug("清理 CUDA 缓存失败", exc_info=True)
 
 
 def _sigmoid(value: float) -> float:

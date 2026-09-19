@@ -44,16 +44,24 @@ class CourseControllerTest {
     }
 
     @Test
-    @DisplayName("章节空白标题、缺正文或负排序值被 HTTP 校验拒绝")
+    @DisplayName("章节空白标题或负排序值被 HTTP 校验拒绝")
     void invalidChapterRejected() throws Exception {
         for (String body : new String[]{
                 "{\"title\":\" \",\"content\":\"正文\",\"sortOrder\":1}",
-                "{\"title\":\"第一章\",\"sortOrder\":1}",
                 "{\"title\":\"第一章\",\"content\":\"正文\",\"sortOrder\":-1}"}) {
             mvc.perform(post(BASE + "/chapters").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(400));
         }
         verifyNoInteractions(chapters);
+    }
+
+    @Test
+    @DisplayName("章节允许不写导语，教学正文可以放在小节")
+    void chapterIntroIsOptional() throws Exception {
+        mvc.perform(post(BASE + "/chapters").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"第一章\",\"sortOrder\":1}"))
+                .andExpect(status().isCreated());
+        verify(chapters).create(eq(1L), any());
     }
 
     @Test

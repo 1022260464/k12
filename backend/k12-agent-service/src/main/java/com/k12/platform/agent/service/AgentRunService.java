@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.k12.platform.agent.client.AgentRuntimeClient;
+import com.k12.platform.agent.client.IamAccountBehaviorClient;
+import com.k12.platform.agent.client.dto.AccountBehaviorResponse;
 import com.k12.platform.agent.client.dto.RuntimeAgentInvokeRequest;
 import com.k12.platform.agent.client.dto.RuntimeAgentRunResponse;
 import com.k12.platform.agent.client.dto.RuntimeArtifactResponse;
@@ -64,6 +66,7 @@ public class AgentRunService {
     private final ObjectMapper objectMapper;
     private final LearnerContextEnricher learnerContextEnricher;
     private final AgentSessionService sessionService;
+    private final IamAccountBehaviorClient accountBehaviorClient;
 
     public AgentRunService(
             AgentMapper agentMapper,
@@ -75,7 +78,8 @@ public class AgentRunService {
             AgentRabbitProperties rabbitProperties,
             ObjectMapper objectMapper,
             LearnerContextEnricher learnerContextEnricher,
-            AgentSessionService sessionService
+            AgentSessionService sessionService,
+            IamAccountBehaviorClient accountBehaviorClient
     ) {
         this.agentMapper = agentMapper;
         this.runMapper = runMapper;
@@ -87,6 +91,7 @@ public class AgentRunService {
         this.objectMapper = objectMapper;
         this.learnerContextEnricher = learnerContextEnricher;
         this.sessionService = sessionService;
+        this.accountBehaviorClient = accountBehaviorClient;
     }
 
     /**
@@ -105,14 +110,19 @@ public class AgentRunService {
         }
 
         Long userId = K12SecurityContext.requireUserId();
+        AccountBehaviorResponse behavior = requireCallableBehavior();
         // 教学 Agent 使用 IAM 和 Assessment 的服务端数据覆盖前端可伪造的画像字段。
         Map<String, Object> context = learnerContextEnricher.enrich(
                 agentCode,
                 userId,
-                request.context()
+                request.context(),
+                request.inputText()
         );
         // sessionId 不只是运行标签；服务端读取可信历史并覆盖前端可能伪造的同名字段。
         context = sessionService.enrichContext(userId, agentCode, request.sessionId(), context);
+        context.put("offTopicStrikeCount", behavior.offTopicStrikeCount());
+        context.put("offTopicLimit", behavior.offTopicLimit());
+        context.put("abnormalBehaviorCount", behavior.abnormalBehaviorCount());
         String executionMode = StringUtils.hasText(request.executionMode()) ? request.executionMode() : SYNC;
         if (!SYNC.equals(executionMode) && !ASYNC.equals(executionMode)) {
             throw new IllegalArgumentException("执行模式只能是 SYNC 或 ASYNC");
@@ -158,6 +168,8 @@ public class AgentRunService {
             run.setErrorCode("AGENT_EXECUTION_FAILED");
             run.setErrorMessage("智能体执行失败");
             artifacts = List.of();
+        } else {
+            applyOffTopicPenaltyIfNeeded(run);
         }
         persistenceService.save(run, artifacts);
 
@@ -462,6 +474,78 @@ public class AgentRunService {
 
     private boolean isAdmin() {
         return K12SecurityContext.hasAuthority(K12Authorities.ROLE_ADMIN);
+    }
+
+    private AccountBehaviorResponse requireCallableBehavior() {
+        AccountBehaviorResponse behavior;
+        try {
+            ApiResponse<AccountBehaviorResponse> response = accountBehaviorClient.getCurrentBehavior();
+            behavior = response == null ? null : response.data();
+        } catch (RuntimeException exception) {
+            log.warn("读取账号行为状态失败，error={}", exception.getClass().getSimpleName());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "账号状态服务暂时不可用");
+        }
+        if (behavior == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "账号状态服务暂时不可用");
+        }
+        if (behavior.permanentlyBanned()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    StringUtils.hasText(behavior.message()) ? behavior.message() : "账号已被封禁");
+        }
+        if (behavior.temporarilyLocked()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    StringUtils.hasText(behavior.message()) ? behavior.message() : "账号已被临时封禁");
+        }
+        return behavior;
+    }
+
+    private void applyOffTopicPenaltyIfNeeded(AgentRun run) {
+        if (!"OFF_TOPIC".equals(readIntentMode(run.getOutputMetadata()))) {
+            return;
+        }
+        try {
+            ApiResponse<AccountBehaviorResponse> response = accountBehaviorClient.recordOffTopicStrike();
+            AccountBehaviorResponse behavior = response == null ? null : response.data();
+            if (behavior == null) {
+                return;
+            }
+            if (StringUtils.hasText(behavior.message())) {
+                run.setOutputText(behavior.message());
+            }
+            run.setOutputMetadata(mergeBehaviorMetadata(run.getOutputMetadata(), behavior));
+        } catch (RuntimeException exception) {
+            log.warn("记录无关提问失败 runId={}, error={}", run.getRunId(), exception.getClass().getSimpleName());
+        }
+    }
+
+    private String readIntentMode(String outputMetadata) {
+        JsonNode root = readJson(outputMetadata);
+        if (root == null || !root.hasNonNull("intentMode")) {
+            return null;
+        }
+        String mode = root.get("intentMode").asText("").trim();
+        return StringUtils.hasText(mode) ? mode : null;
+    }
+
+    private String mergeBehaviorMetadata(String outputMetadata, AccountBehaviorResponse behavior) {
+        try {
+            com.fasterxml.jackson.databind.node.ObjectNode root = outputMetadata == null || outputMetadata.isBlank()
+                    ? objectMapper.createObjectNode()
+                    : (com.fasterxml.jackson.databind.node.ObjectNode) objectMapper.readTree(outputMetadata);
+            root.put("intentMode", "OFF_TOPIC");
+            root.put("offTopicStrikeCount", behavior.offTopicStrikeCount());
+            root.put("offTopicLimit", behavior.offTopicLimit());
+            root.put("abnormalBehaviorCount", behavior.abnormalBehaviorCount());
+            root.put("abnormalBehaviorLimit", behavior.abnormalBehaviorLimit());
+            root.put("temporarilyLocked", behavior.temporarilyLocked());
+            root.put("permanentlyBanned", behavior.permanentlyBanned());
+            if (behavior.lockedUntil() != null) {
+                root.put("lockedUntil", behavior.lockedUntil().toString());
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (JsonProcessingException | ClassCastException exception) {
+            return outputMetadata;
+        }
     }
 
     private String writeJson(Object value) {

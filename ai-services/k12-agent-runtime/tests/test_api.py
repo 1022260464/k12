@@ -95,6 +95,23 @@ def test_teaching_assistant_is_registered_and_adapts_to_stage() -> None:
     assert data["artifacts"][0]["payload"]["schemaVersion"] == "1.0"
 
 
+def test_teaching_assistant_new_topic_returns_only_matching_quiz() -> None:
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.post(
+            "/internal/v1/agents/teaching-assistant/invoke",
+            json={
+                "inputText": "图像分类为什么需要测试图片？",
+                "context": {"stage": "初中", "topic": "冒泡排序"},
+            },
+        )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["metadata"]["topicCode"] == "machine_learning.image_classification"
+    assert [artifact["kind"] for artifact in data["artifacts"]] == ["GAME"]
+    assert data["artifacts"][0]["payload"]["knowledgeCode"] == data["metadata"]["topicCode"]
+
+
 def test_unknown_agent_returns_standard_error() -> None:
     with TestClient(create_app(Settings(_env_file=None))) as client:
         response = client.post(

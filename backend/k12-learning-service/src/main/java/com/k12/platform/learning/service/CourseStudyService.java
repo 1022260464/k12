@@ -43,7 +43,9 @@ public class CourseStudyService {
     @Transactional
     public EnrollmentResponse enroll(Long courseId) {
         // 先锁父课程，再检查报名记录；配合数据库唯一键防止重复请求并发插入。
-        access.requireCourse(courseId, true);
+        if (!Integer.valueOf(1).equals(access.requireCourse(courseId, true).getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "课程尚未发布");
+        }
         CourseEnrollment enrollment = access.enrollment(courseId);
         if (enrollment == null) {
             enrollment = new CourseEnrollment();
@@ -65,8 +67,9 @@ public class CourseStudyService {
     public EnrollmentResponse enrollment(Long courseId) {
         access.requireCourse(courseId, false);
         CourseEnrollment enrollment = access.enrollment(courseId);
-        if (enrollment == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "尚未选课");
+        // 未选课是常态查询结果，返回 null 避免学生端打开详情时刷 404。
+        if (enrollment == null || !"ACTIVE".equals(enrollment.getStatus())) {
+            return null;
         }
         return enrollmentResponse(enrollment);
     }

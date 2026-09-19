@@ -71,6 +71,45 @@ def test_tencent_adapter_executes_without_network_and_releases_instance() -> Non
     assert sandbox.killed is True
 
 
+def test_cloud_release_retries_once_without_changing_success() -> None:
+    class ReleaseFailsOnce(_FakeTencentSandbox):
+        def __init__(self) -> None:
+            super().__init__()
+            self.release_attempts = 0
+
+        def kill(self, **kwargs):
+            assert kwargs["request_timeout"] == 3.0
+            self.release_attempts += 1
+            if self.release_attempts == 1:
+                raise OSError("release response lost")
+            super().kill(**kwargs)
+
+    sandbox = ReleaseFailsOnce()
+    result = asyncio.run(_cloud_adapter(lambda **_kwargs: sandbox).execute(_request()))
+
+    assert result.status is CodeExecutionStatus.SUCCEEDED
+    assert sandbox.release_attempts == 2
+    assert sandbox.killed is True
+
+
+def test_cloud_release_exhaustion_keeps_result_and_logs_error(caplog) -> None:
+    class ReleaseAlwaysFails(_FakeTencentSandbox):
+        def __init__(self) -> None:
+            super().__init__()
+            self.release_attempts = 0
+
+        def kill(self, **kwargs):
+            self.release_attempts += 1
+            raise OSError("release unavailable")
+
+    sandbox = ReleaseAlwaysFails()
+    result = asyncio.run(_cloud_adapter(lambda **_kwargs: sandbox).execute(_request()))
+
+    assert result.status is CodeExecutionStatus.SUCCEEDED
+    assert sandbox.release_attempts == 2
+    assert "release failed after retry execution_id=execution-1" in caplog.text
+
+
 def test_piston_adapter_normalizes_success_response() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://127.0.0.1:2000/api/v2/execute"
@@ -529,7 +568,7 @@ class _FakeTencentSandbox:
             ],
         )
 
-    def kill(self):
+    def kill(self, **_kwargs):
         self.killed = True
 
 

@@ -66,6 +66,10 @@ public class AgentSessionService {
         }
         context.remove("conversation");
         context.remove("conversationHistory");
+        // 已演示主题标记只能由服务端根据历史产物重建，防止前端伪造跳过或重复动画。
+        context.remove("shownDemoTopics");
+        // 无关提问计数只能由 IAM 账号状态提供，防止前端清零或篡改；会话历史不再累计。
+        context.remove("offTopicStrikeCount");
 
         String normalizedSessionId = normalizeSessionId(sessionId);
         if (normalizedSessionId == null) {
@@ -89,7 +93,43 @@ public class AgentSessionService {
                 "previousTurnCount", history.size()
         ));
         context.put("conversationHistory", history);
+        context.put("shownDemoTopics", collectShownDemoTopics(recentRuns));
         return context;
+    }
+
+    /**
+     * 同一会话里已经下发过 ANIMATION 的主题码集合。
+     * 用于教学助手：同主题追问不再重发动效，换主题首次仍完整下发。
+     */
+    private List<String> collectShownDemoTopics(List<AgentRun> recentRuns) {
+        if (recentRuns.isEmpty()) {
+            return List.of();
+        }
+        Map<String, List<AgentArtifact>> artifactsByRun = findArtifactsByRun(recentRuns);
+        List<String> shown = new ArrayList<>();
+        for (AgentRun run : recentRuns) {
+            boolean hasAnimation = artifactsByRun
+                    .getOrDefault(run.getRunId(), List.of())
+                    .stream()
+                    .anyMatch(artifact -> "ANIMATION".equals(artifact.getKind()));
+            if (!hasAnimation) {
+                continue;
+            }
+            String topicCode = readTopicCode(run.getOutputMetadata());
+            if (topicCode != null && !shown.contains(topicCode)) {
+                shown.add(topicCode);
+            }
+        }
+        return shown;
+    }
+
+    private String readTopicCode(String outputMetadata) {
+        JsonNode root = readJson(outputMetadata);
+        if (root == null || !root.hasNonNull("topicCode")) {
+            return null;
+        }
+        String topicCode = root.get("topicCode").asText("").trim();
+        return StringUtils.hasText(topicCode) ? topicCode : null;
     }
 
     /** 查询当前 JWT 用户自己的会话，管理员也不会借此读取其他学生的对话。 */

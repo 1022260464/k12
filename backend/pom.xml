@@ -32,6 +32,7 @@
         <mybatis-spring-boot.version>3.0.5</mybatis-spring-boot.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <minio.version>9.0.1</minio.version>
+        <neo4j.version>5.26.0</neo4j.version>
         <!-- 项目目标仍是 Java 17；1.18.38 同时兼容开发机上的 JDK 24 编译器。 -->
         <lombok.version>1.18.38</lombok.version>
     </properties>
@@ -78,6 +79,11 @@
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.neo4j.driver</groupId>
+                <artifactId>neo4j-java-driver</artifactId>
+                <version>${neo4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -85,6 +85,11 @@
         SELECT COUNT(*) FROM assessment_homework_recipient WHERE homework_id = #{homeworkId}
     </select>
 
+    <select id="countQuestions" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM assessment_homework_question
+        WHERE homework_id = #{homeworkId} AND deleted = 0
+    </select>
+
     <select id="isRecipient" resultType="boolean">
         SELECT EXISTS(
             SELECT 1 FROM assessment_homework_recipient

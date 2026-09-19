@@ -4,6 +4,7 @@ import com.k12.platform.common.contract.iam.StudentValidationRequest;
 import com.k12.platform.common.contract.iam.StudentValidationResponse;
 import com.k12.platform.common.security.K12Authorities;
 import com.k12.platform.iam.mapper.UserMapper;
+import com.k12.platform.iam.dto.StudentDirectoryEntry;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,11 @@ public class StudentDirectoryService {
 
     public StudentDirectoryService(UserMapper userMapper) {
         this.userMapper = userMapper;
+    }
+
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.HOMEWORK_UPDATE + "')")
+    public List<StudentDirectoryEntry> listActiveStudents() {
+        return userMapper.findActiveStudents();
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.HOMEWORK_UPDATE + "')")

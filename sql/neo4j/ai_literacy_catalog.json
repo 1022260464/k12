@@ -1,0 +1,5423 @@
+{
+  "version": 2,
+  "categories": [
+    {
+      "code": "category.ai_overview",
+      "title": "人工智能概论",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.data_literacy",
+      "title": "数据素养",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.computing",
+      "title": "计算思维",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.algorithms",
+      "title": "算法与数据结构",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.programming",
+      "title": "编程基础",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.machine_learning",
+      "title": "机器学习",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.generative_ai",
+      "title": "生成式人工智能",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.computer_vision",
+      "title": "计算机视觉",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.nlp",
+      "title": "自然语言处理",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.ethics_safety",
+      "title": "AI伦理与安全",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.digital_citizenship",
+      "title": "数字公民",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "CATEGORY"
+    },
+    {
+      "code": "category.robotics_iot",
+      "title": "机器人与物联网",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "CATEGORY"
+    }
+  ],
+  "points": [
+    {
+      "code": "ai_overview.what_is_ai",
+      "title": "什么是人工智能",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_history",
+      "title": "人工智能简史",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.weak_strong_ai",
+      "title": "弱人工智能与强人工智能",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_vs_human",
+      "title": "人工智能与人类智能",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_applications",
+      "title": "生活中的人工智能",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_perception",
+      "title": "感知智能入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_reasoning",
+      "title": "推理与决策入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_learning",
+      "title": "学习能力从哪里来",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_limitations",
+      "title": "人工智能的局限",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_jobs",
+      "title": "AI与未来职业",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.turing_test",
+      "title": "图灵测试",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.expert_systems",
+      "title": "专家系统简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.knowledge_representation",
+      "title": "知识表示入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.search_planning",
+      "title": "搜索与规划入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.multi_agent",
+      "title": "多智能体简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.embodied_ai",
+      "title": "具身智能简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_benchmarks",
+      "title": "如何评价AI能力",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_open_source",
+      "title": "开源模型与工具",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_cloud_edge",
+      "title": "云端与端侧AI",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_literacy_mindset",
+      "title": "AI素养心态",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.symbol_connectionism",
+      "title": "符号主义与连接主义",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.general_ai_myths",
+      "title": "关于AI的常见误解",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_in_school",
+      "title": "校园里的AI应用",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_assistive",
+      "title": "AI辅助学习工具",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "ai_overview.ai_creativity",
+      "title": "AI与创造力",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ai_overview",
+      "categoryTitle": "人工智能概论"
+    },
+    {
+      "code": "data_literacy.what_is_data",
+      "title": "什么是数据",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.privacy_basics",
+      "title": "数据与隐私入门",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_types",
+      "title": "数据类型：数字文字图片",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_collection",
+      "title": "数据如何收集",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_vs_info",
+      "title": "数据与信息的区别",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_quality",
+      "title": "数据质量与缺失",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_cleaning",
+      "title": "数据清洗入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_visualization",
+      "title": "数据可视化入门",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.charts_basics",
+      "title": "常见图表怎么读",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.mean_median",
+      "title": "平均数与中位数",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.sampling",
+      "title": "抽样与代表性",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.correlation_causation",
+      "title": "相关不等于因果",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.big_data_basics",
+      "title": "大数据是什么",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.open_data",
+      "title": "开放数据与公共数据",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.personal_data",
+      "title": "个人数据有哪些",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.consent_basics",
+      "title": "知情同意入门",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_security",
+      "title": "数据安全基础",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.anonymization",
+      "title": "脱敏与匿名化",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_lifecycle",
+      "title": "数据生命周期",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.metadata",
+      "title": "元数据是什么",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.database_basics",
+      "title": "数据库入门概念",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.csv_tables",
+      "title": "表格数据与CSV",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.sensor_data",
+      "title": "传感器数据",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.survey_design",
+      "title": "简单问卷设计",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_storytelling",
+      "title": "用数据讲故事",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.bias_in_data",
+      "title": "数据中的偏见",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.statistics_basics",
+      "title": "统计思维入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.probability_basics",
+      "title": "概率直觉",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.data_ethics",
+      "title": "数据伦理",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "data_literacy.gdpr_minors",
+      "title": "未成年人数据保护",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.data_literacy",
+      "categoryTitle": "数据素养"
+    },
+    {
+      "code": "computing.algorithm_basics",
+      "title": "算法入门",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.loop_basics",
+      "title": "循环基础",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.sequence",
+      "title": "顺序结构",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.branching",
+      "title": "分支判断",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.decomposition",
+      "title": "问题分解",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.pattern_recognition",
+      "title": "模式识别思维",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.abstraction",
+      "title": "抽象思维",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.debugging",
+      "title": "调试与查错",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.pseudocode",
+      "title": "伪代码入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.flowcharts",
+      "title": "流程图",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.computational_thinking",
+      "title": "计算思维概述",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.input_output",
+      "title": "输入与输出",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.variables",
+      "title": "变量与赋值",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.boolean_logic",
+      "title": "布尔逻辑",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.nested_loops",
+      "title": "嵌套循环",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.recursion_intro",
+      "title": "递归直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.complexity_intro",
+      "title": "时间复杂度直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.modularity",
+      "title": "模块化思想",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.state_machines",
+      "title": "状态与转换",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.event_driven",
+      "title": "事件驱动思维",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.simulation",
+      "title": "模拟与仿真",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.automation",
+      "title": "自动化是什么",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.binary_basics",
+      "title": "二进制入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.encoding_text",
+      "title": "文字如何编码",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.compression_intro",
+      "title": "压缩直觉",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.networks_basics",
+      "title": "网络基础概念",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.client_server",
+      "title": "客户端与服务器",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.apis_intro",
+      "title": "API是什么",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.version_control_idea",
+      "title": "版本管理思想",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "computing.testing_basics",
+      "title": "测试与验证",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computing",
+      "categoryTitle": "计算思维"
+    },
+    {
+      "code": "sorting.bubble_sort",
+      "title": "冒泡排序",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "sorting.selection_sort",
+      "title": "选择排序",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "sorting.insertion_sort",
+      "title": "插入排序",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.merge_sort",
+      "title": "归并排序入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.quick_sort",
+      "title": "快速排序入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "searching.linear_search",
+      "title": "线性查找",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "searching.binary_search",
+      "title": "二分查找",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.hashing_intro",
+      "title": "哈希查找直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.stack_queue",
+      "title": "栈与队列",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.linked_list",
+      "title": "链表概念",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.trees_intro",
+      "title": "树结构入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.graphs_intro",
+      "title": "图结构入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.bfs_dfs",
+      "title": "广度与深度优先",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.shortest_path",
+      "title": "最短路径直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.greedy_intro",
+      "title": "贪心思想",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.dp_intro",
+      "title": "动态规划直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.divide_conquer",
+      "title": "分治思想",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.sorting_compare",
+      "title": "排序算法比较",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.stable_sort",
+      "title": "稳定性是什么",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.counting_sort",
+      "title": "计数排序直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.heap_intro",
+      "title": "堆与优先队列",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.string_match",
+      "title": "字符串匹配入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.pathfinding_game",
+      "title": "寻路与游戏AI",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.optimization_intro",
+      "title": "优化问题入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.randomized_algo",
+      "title": "随机算法直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.parallel_idea",
+      "title": "并行计算直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.cache_locality",
+      "title": "局部性原理",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.correctness",
+      "title": "算法正确性",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.brute_force",
+      "title": "暴力枚举",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.backtracking",
+      "title": "回溯入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.two_pointers",
+      "title": "双指针思想",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.sliding_window",
+      "title": "滑动窗口",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.prefix_sum",
+      "title": "前缀和",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.bit_tricks",
+      "title": "位运算直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.topo_sort",
+      "title": "拓扑排序直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.union_find",
+      "title": "并查集直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.mst_intro",
+      "title": "最小生成树直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.np_intro",
+      "title": "难解问题直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.algo_in_life",
+      "title": "生活中的算法",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "algorithms.recipe_as_algo",
+      "title": "食谱也是算法",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.algorithms",
+      "categoryTitle": "算法与数据结构"
+    },
+    {
+      "code": "programming.scratch_basics",
+      "title": "图形化编程入门",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.python_intro",
+      "title": "Python入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.functions",
+      "title": "函数与复用",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.lists_arrays",
+      "title": "列表与数组",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.dicts_maps",
+      "title": "字典与映射",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.strings",
+      "title": "字符串处理",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.file_io",
+      "title": "文件读写入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.exceptions",
+      "title": "异常处理入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.oop_intro",
+      "title": "面向对象入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.ide_basics",
+      "title": "编辑器与运行环境",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.comments_docs",
+      "title": "注释与可读性",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.naming",
+      "title": "命名规范",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.libraries",
+      "title": "库与第三方包",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.packages",
+      "title": "模块与包",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.git_basics",
+      "title": "Git基础",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.web_html_css",
+      "title": "网页结构入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.js_basics",
+      "title": "JavaScript入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.sql_intro",
+      "title": "SQL查询入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.gui_basics",
+      "title": "简单图形界面",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.game_loop",
+      "title": "游戏循环",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.sensors_code",
+      "title": "读传感器数据编程",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.turtle_graphics",
+      "title": "海龟绘图",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.conditionals_practice",
+      "title": "条件语句练习",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.loops_practice",
+      "title": "循环练习",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.debugging_tools",
+      "title": "调试工具使用",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.unit_test_idea",
+      "title": "单元测试思想",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.code_review",
+      "title": "代码评审文化",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.security_coding",
+      "title": "安全编码意识",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.performance_basics",
+      "title": "性能意识",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.concurrency_intro",
+      "title": "并发入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.rest_client",
+      "title": "调用网络接口",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.json_data",
+      "title": "JSON数据格式",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.regex_intro",
+      "title": "正则表达式入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.cli_basics",
+      "title": "命令行基础",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "programming.project_structure",
+      "title": "项目结构组织",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.programming",
+      "categoryTitle": "编程基础"
+    },
+    {
+      "code": "machine_learning.features_labels",
+      "title": "特征与标签",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.supervised_learning",
+      "title": "监督学习",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.classification_regression",
+      "title": "分类与回归",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.train_test_split",
+      "title": "训练/测试划分",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.overfitting",
+      "title": "过拟合",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.image_classification",
+      "title": "图像分类",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.data_bias",
+      "title": "数据偏差",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.neural_network_basics",
+      "title": "神经网络入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.unsupervised",
+      "title": "无监督学习入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.clustering",
+      "title": "聚类入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.reinforcement_intro",
+      "title": "强化学习直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.loss_function",
+      "title": "损失函数直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.gradient_descent",
+      "title": "梯度下降直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.metrics_accuracy",
+      "title": "准确率与召回",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.confusion_matrix",
+      "title": "混淆矩阵",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.feature_engineering",
+      "title": "特征工程入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.normalization",
+      "title": "归一化与标准化",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.cross_validation",
+      "title": "交叉验证",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.ensemble_intro",
+      "title": "集成学习直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.decision_tree",
+      "title": "决策树入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.knn_intro",
+      "title": "K近邻入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.linear_model",
+      "title": "线性模型直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.svm_intro",
+      "title": "支持向量机直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.bayes_intro",
+      "title": "朴素贝叶斯直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.dim_reduction",
+      "title": "降维直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.transfer_learning",
+      "title": "迁移学习入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.model_deployment",
+      "title": "模型上线概念",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.labeling_cost",
+      "title": "标注成本",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.active_learning",
+      "title": "主动学习直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.data_augmentation",
+      "title": "数据增强",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.imbalanced_data",
+      "title": "类别不平衡",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.ml_pipeline",
+      "title": "机器学习流水线",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.hyperparams",
+      "title": "超参数是什么",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.underfitting",
+      "title": "欠拟合",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.regularization",
+      "title": "正则化直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.embedding_intro",
+      "title": "向量表示入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.recommenders",
+      "title": "推荐系统入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.anomaly_detection",
+      "title": "异常检测入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.time_series",
+      "title": "时间序列入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.ml_vs_rules",
+      "title": "规则系统与学习系统",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.dataset_split_leak",
+      "title": "数据泄漏",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.baselines",
+      "title": "基线模型",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.error_analysis",
+      "title": "错误分析",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.human_in_loop",
+      "title": "人机协同标注",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "machine_learning.ml_cards",
+      "title": "模型卡片意识",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.machine_learning",
+      "categoryTitle": "机器学习"
+    },
+    {
+      "code": "generative_ai.prompt_basics",
+      "title": "提示词基础",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.hallucination",
+      "title": "大模型幻觉",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.responsible_use",
+      "title": "负责任使用生成式AI",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.copyright_originality",
+      "title": "版权与原创",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.llm_basics",
+      "title": "大语言模型是什么",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.tokens",
+      "title": "Token与上下文窗口",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.temperature",
+      "title": "温度与随机性",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.few_shot",
+      "title": "少样本提示",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.chain_of_thought",
+      "title": "思维链提示",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.system_prompt",
+      "title": "系统提示词",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.rag_basics",
+      "title": "检索增强生成入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.agents_basics",
+      "title": "智能体入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.tool_use",
+      "title": "工具调用",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.multimodal",
+      "title": "多模态生成",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.image_gen",
+      "title": "AI绘画入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.music_gen",
+      "title": "AI音乐入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.code_gen",
+      "title": "AI写代码",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.summarization",
+      "title": "摘要与改写",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.translation_ai",
+      "title": "AI翻译",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.chatbots",
+      "title": "聊天机器人",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.prompt_injection",
+      "title": "提示注入风险",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.jailbreak_risk",
+      "title": "越狱与滥用风险",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.eval_outputs",
+      "title": "如何评价生成结果",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.cite_sources",
+      "title": "要求引用来源",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.role_play_prompt",
+      "title": "角色设定提示",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.structured_output",
+      "title": "结构化输出",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.fine_tuning_idea",
+      "title": "微调是什么",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.pretraining_idea",
+      "title": "预训练是什么",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.alignment",
+      "title": "对齐与价值观",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.rlhf_intro",
+      "title": "人类反馈强化学习",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.watermarking",
+      "title": "生成内容水印",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.deepfake_awareness",
+      "title": "深度伪造识别",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.ai_writing_school",
+      "title": "作业中的AI写作",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.personalization_risk",
+      "title": "个性化与信息茧房",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.cost_energy",
+      "title": "算力与能耗意识",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.open_vs_closed",
+      "title": "开源与闭源模型",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.safety_filters",
+      "title": "安全过滤机制",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.memory_privacy",
+      "title": "对话记忆与隐私",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.prompt_patterns",
+      "title": "常用提示词模式",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "generative_ai.critique_revise",
+      "title": "批评与修订循环",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.generative_ai",
+      "categoryTitle": "生成式人工智能"
+    },
+    {
+      "code": "computer_vision.pixels",
+      "title": "像素与图像",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.color_spaces",
+      "title": "颜色空间入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.filters",
+      "title": "图像滤波直觉",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.edges",
+      "title": "边缘检测直觉",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.object_detection",
+      "title": "目标检测入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.segmentation",
+      "title": "图像分割入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.face_recognition",
+      "title": "人脸识别与隐私",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.ocr",
+      "title": "文字识别OCR",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.pose_estimation",
+      "title": "姿态估计入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.video_basics",
+      "title": "视频理解入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.augmentation_vision",
+      "title": "视觉数据增强",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.cnn_intro",
+      "title": "卷积神经网络直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.cameras",
+      "title": "摄像头与采集",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.lighting",
+      "title": "光照对识别的影响",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.dataset_images",
+      "title": "图像数据集",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.adversarial_images",
+      "title": "对抗样本直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.medical_imaging",
+      "title": "医学影像AI简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.autonomous_vision",
+      "title": "自动驾驶中的视觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.ar_basics",
+      "title": "增强现实入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.cv_ethics",
+      "title": "视觉技术伦理",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.barcode_qr",
+      "title": "条码与二维码",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.image_search",
+      "title": "以图搜图",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.style_transfer",
+      "title": "风格迁移",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.depth_estimation",
+      "title": "深度估计直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "computer_vision.tracking",
+      "title": "目标跟踪入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.computer_vision",
+      "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "nlp.text_tokenize",
+      "title": "分词入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.bag_of_words",
+      "title": "词袋模型直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.word_embeddings",
+      "title": "词向量入门",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.sentiment",
+      "title": "情感分析入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.ner",
+      "title": "命名实体识别",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.machine_translation",
+      "title": "机器翻译原理简介",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.speech_to_text",
+      "title": "语音转文字",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.text_to_speech",
+      "title": "文字转语音",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.topic_modeling",
+      "title": "主题模型直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.qa_systems",
+      "title": "问答系统入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.information_retrieval",
+      "title": "信息检索基础",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.spell_check",
+      "title": "拼写检查",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.grammar_assist",
+      "title": "语法辅助工具",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.hate_speech",
+      "title": "有害内容识别",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.language_bias",
+      "title": "语言中的偏见",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.multilingual",
+      "title": "多语言处理",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.dialogue_systems",
+      "title": "对话系统结构",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.summarization_nlp",
+      "title": "文本摘要技术",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.transformers_intro",
+      "title": "Transformer直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.attention_intro",
+      "title": "注意力机制直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.corpus",
+      "title": "语料库是什么",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.stopwords",
+      "title": "停用词",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.tfidf",
+      "title": "TF-IDF直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.intent_slot",
+      "title": "意图与槽位",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "nlp.chat_eval",
+      "title": "对话质量评价",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.nlp",
+      "categoryTitle": "自然语言处理"
+    },
+    {
+      "code": "ethics_safety.ai_ethics_intro",
+      "title": "AI伦理入门",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.fairness",
+      "title": "公平性",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.transparency",
+      "title": "透明与可解释",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.accountability",
+      "title": "问责机制",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.safety_first",
+      "title": "安全优先原则",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.dual_use",
+      "title": "两用技术风险",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.misinformation",
+      "title": "虚假信息与AI",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.surveillance",
+      "title": "监控与自由",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.algorithmic_discrimination",
+      "title": "算法歧视",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.child_safety",
+      "title": "未成年人保护",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.content_moderation",
+      "title": "内容审核",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.red_teaming",
+      "title": "红队测试简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.incident_response",
+      "title": "安全事件应对",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.value_alignment",
+      "title": "价值对齐",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.environmental_cost",
+      "title": "环境成本",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.labor_impact",
+      "title": "就业影响讨论",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.global_governance",
+      "title": "全球治理简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.standards_compliance",
+      "title": "标准与合规",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.human_oversight",
+      "title": "人类监督",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.refuse_harmful",
+      "title": "拒绝有害请求",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.privacy_by_design",
+      "title": "隐私设计",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.consent_ai",
+      "title": "AI场景知情同意",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.shadow_ai",
+      "title": "影子AI风险",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.model_theft",
+      "title": "模型窃取风险",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "ethics_safety.secure_deployment",
+      "title": "安全部署意识",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.ethics_safety",
+      "categoryTitle": "AI伦理与安全"
+    },
+    {
+      "code": "digital_citizenship.online_identity",
+      "title": "网络身份",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.password_hygiene",
+      "title": "密码与账号安全",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.phishing",
+      "title": "钓鱼与诈骗识别",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.cyberbullying",
+      "title": "网络欺凌",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.digital_footprint",
+      "title": "数字足迹",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.media_literacy",
+      "title": "媒介素养",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.fake_news",
+      "title": "辨别假新闻",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.source_checking",
+      "title": "查证来源",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.screen_time",
+      "title": "屏幕时间管理",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.copyright_basics",
+      "title": "版权基础",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.creative_commons",
+      "title": "知识共享许可",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.netiquette",
+      "title": "网络礼仪",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.collaboration_online",
+      "title": "在线协作",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.digital_wellbeing",
+      "title": "数字健康",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.accessibility",
+      "title": "无障碍意识",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.inclusive_design",
+      "title": "包容性设计",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.community_norms",
+      "title": "社区规范",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.reporting_abuse",
+      "title": "举报不良内容",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.device_permissions",
+      "title": "应用权限管理",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.public_wifi",
+      "title": "公共WiFi风险",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.two_factor_auth",
+      "title": "双因素认证",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.backup_basics",
+      "title": "备份意识",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.software_updates",
+      "title": "及时更新",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.sharing_wisely",
+      "title": "明智分享",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "digital_citizenship.critical_thinking",
+      "title": "批判性思维上网",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.digital_citizenship",
+      "categoryTitle": "数字公民"
+    },
+    {
+      "code": "robotics_iot.robot_basics",
+      "title": "机器人是什么",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.sensors_actuators",
+      "title": "传感器与执行器",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.iot_basics",
+      "title": "物联网入门",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.smart_home",
+      "title": "智能家居",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.drone_basics",
+      "title": "无人机简介",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.slam_intro",
+      "title": "定位与建图直觉",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.path_planning_robot",
+      "title": "机器人路径规划",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.human_robot",
+      "title": "人机协作",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.safety_robots",
+      "title": "机器人安全",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.edge_devices",
+      "title": "边缘设备",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.mqtt_intro",
+      "title": "设备消息协议简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.firmware",
+      "title": "固件概念",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.calibration",
+      "title": "标定意识",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.swarm_robots",
+      "title": "群体机器人简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.wearables",
+      "title": "可穿戴设备",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.industrial_robots",
+      "title": "工业机器人简介",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.soft_robotics",
+      "title": "软体机器人简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.energy_robots",
+      "title": "能源与续航",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.ethics_robots",
+      "title": "机器人伦理",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.makerspace",
+      "title": "创客与动手实践",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.arduino_idea",
+      "title": "开源硬件思想",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.remote_sensing",
+      "title": "遥感与感知网络",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.digital_twin",
+      "title": "数字孪生简介",
+      "stage": "SENIOR_HIGH",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.automation_factory",
+      "title": "工厂自动化",
+      "stage": "JUNIOR_HIGH",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    },
+    {
+      "code": "robotics_iot.assistive_robots",
+      "title": "辅助机器人",
+      "stage": "PRIMARY_UPPER",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "categoryCode": "category.robotics_iot",
+      "categoryTitle": "机器人与物联网"
+    }
+  ],
+  "edges": [
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.what_is_ai",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_history",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.weak_strong_ai",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_vs_human",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_applications",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_perception",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_reasoning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_learning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_limitations",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_jobs",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.turing_test",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.expert_systems",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.knowledge_representation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.search_planning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.multi_agent",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.embodied_ai",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_benchmarks",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_open_source",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_cloud_edge",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_literacy_mindset",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.symbol_connectionism",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.general_ai_myths",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_in_school",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_assistive",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_overview",
+      "to": "ai_overview.ai_creativity",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.what_is_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.privacy_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_types",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_collection",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_vs_info",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_quality",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_cleaning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_visualization",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.charts_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.mean_median",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.sampling",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.correlation_causation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.big_data_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.open_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.personal_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.consent_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_security",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.anonymization",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_lifecycle",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.metadata",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.database_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.csv_tables",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.sensor_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.survey_design",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_storytelling",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.bias_in_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.statistics_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.probability_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.data_ethics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.data_literacy",
+      "to": "data_literacy.gdpr_minors",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.algorithm_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.loop_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.sequence",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.branching",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.decomposition",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.pattern_recognition",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.abstraction",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.debugging",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.pseudocode",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.flowcharts",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.computational_thinking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.input_output",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.variables",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.boolean_logic",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.nested_loops",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.recursion_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.complexity_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.modularity",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.state_machines",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.event_driven",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.simulation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.automation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.binary_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.encoding_text",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.compression_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.networks_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.client_server",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.apis_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.version_control_idea",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computing",
+      "to": "computing.testing_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "sorting.bubble_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "sorting.selection_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "sorting.insertion_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.merge_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.quick_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "searching.linear_search",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "searching.binary_search",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.hashing_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.stack_queue",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.linked_list",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.trees_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.graphs_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.bfs_dfs",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.shortest_path",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.greedy_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.dp_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.divide_conquer",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.sorting_compare",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.stable_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.counting_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.heap_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.string_match",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.pathfinding_game",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.optimization_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.randomized_algo",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.parallel_idea",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.cache_locality",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.correctness",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.brute_force",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.backtracking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.two_pointers",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.sliding_window",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.prefix_sum",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.bit_tricks",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.topo_sort",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.union_find",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.mst_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.np_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.algo_in_life",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.algorithms",
+      "to": "algorithms.recipe_as_algo",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.scratch_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.python_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.functions",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.lists_arrays",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.dicts_maps",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.strings",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.file_io",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.exceptions",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.oop_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.ide_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.comments_docs",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.naming",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.libraries",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.packages",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.git_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.web_html_css",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.js_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.sql_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.gui_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.game_loop",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.sensors_code",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.turtle_graphics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.conditionals_practice",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.loops_practice",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.debugging_tools",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.unit_test_idea",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.code_review",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.security_coding",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.performance_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.concurrency_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.rest_client",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.json_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.regex_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.cli_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.programming",
+      "to": "programming.project_structure",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.features_labels",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.supervised_learning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.classification_regression",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.train_test_split",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.overfitting",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.image_classification",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.data_bias",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.neural_network_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.unsupervised",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.clustering",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.reinforcement_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.loss_function",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.gradient_descent",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.metrics_accuracy",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.confusion_matrix",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.feature_engineering",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.normalization",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.cross_validation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.ensemble_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.decision_tree",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.knn_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.linear_model",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.svm_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.bayes_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.dim_reduction",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.transfer_learning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.model_deployment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.labeling_cost",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.active_learning",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.data_augmentation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.imbalanced_data",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.ml_pipeline",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.hyperparams",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.underfitting",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.regularization",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.embedding_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.recommenders",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.anomaly_detection",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.time_series",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.ml_vs_rules",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.dataset_split_leak",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.baselines",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.error_analysis",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.human_in_loop",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.machine_learning",
+      "to": "machine_learning.ml_cards",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.prompt_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.hallucination",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.responsible_use",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.copyright_originality",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.llm_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.tokens",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.temperature",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.few_shot",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.chain_of_thought",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.system_prompt",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.rag_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.agents_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.tool_use",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.multimodal",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.image_gen",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.music_gen",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.code_gen",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.summarization",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.translation_ai",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.chatbots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.prompt_injection",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.jailbreak_risk",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.eval_outputs",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.cite_sources",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.role_play_prompt",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.structured_output",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.fine_tuning_idea",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.pretraining_idea",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.alignment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.rlhf_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.watermarking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.deepfake_awareness",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.ai_writing_school",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.personalization_risk",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.cost_energy",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.open_vs_closed",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.safety_filters",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.memory_privacy",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.prompt_patterns",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.generative_ai",
+      "to": "generative_ai.critique_revise",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.pixels",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.color_spaces",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.filters",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.edges",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.object_detection",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.segmentation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.face_recognition",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.ocr",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.pose_estimation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.video_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.augmentation_vision",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.cnn_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.cameras",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.lighting",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.dataset_images",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.adversarial_images",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.medical_imaging",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.autonomous_vision",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.ar_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.cv_ethics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.barcode_qr",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.image_search",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.style_transfer",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.depth_estimation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.computer_vision",
+      "to": "computer_vision.tracking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.text_tokenize",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.bag_of_words",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.word_embeddings",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.sentiment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.ner",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.machine_translation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.speech_to_text",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.text_to_speech",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.topic_modeling",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.qa_systems",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.information_retrieval",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.spell_check",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.grammar_assist",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.hate_speech",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.language_bias",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.multilingual",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.dialogue_systems",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.summarization_nlp",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.transformers_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.attention_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.corpus",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.stopwords",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.tfidf",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.intent_slot",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.nlp",
+      "to": "nlp.chat_eval",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.ai_ethics_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.fairness",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.transparency",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.accountability",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.safety_first",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.dual_use",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.misinformation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.surveillance",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.algorithmic_discrimination",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.child_safety",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.content_moderation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.red_teaming",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.incident_response",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.value_alignment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.environmental_cost",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.labor_impact",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.global_governance",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.standards_compliance",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.human_oversight",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.refuse_harmful",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.privacy_by_design",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.consent_ai",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.shadow_ai",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.model_theft",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ethics_safety",
+      "to": "ethics_safety.secure_deployment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.online_identity",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.password_hygiene",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.phishing",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.cyberbullying",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.digital_footprint",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.media_literacy",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.fake_news",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.source_checking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.screen_time",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.copyright_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.creative_commons",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.netiquette",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.collaboration_online",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.digital_wellbeing",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.accessibility",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.inclusive_design",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.community_norms",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.reporting_abuse",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.device_permissions",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.public_wifi",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.two_factor_auth",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.backup_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.software_updates",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.sharing_wisely",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.digital_citizenship",
+      "to": "digital_citizenship.critical_thinking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.robot_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.sensors_actuators",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.iot_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.smart_home",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.drone_basics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.slam_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.path_planning_robot",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.human_robot",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.safety_robots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.edge_devices",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.mqtt_intro",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.firmware",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.calibration",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.swarm_robots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.wearables",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.industrial_robots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.soft_robotics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.energy_robots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.ethics_robots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.makerspace",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.arduino_idea",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.remote_sensing",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.digital_twin",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.automation_factory",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.robotics_iot",
+      "to": "robotics_iot.assistive_robots",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "data_literacy.what_is_data",
+      "to": "computing.algorithm_basics",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "computing.algorithm_basics",
+      "to": "computing.loop_basics",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "computing.loop_basics",
+      "to": "machine_learning.features_labels",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.features_labels",
+      "to": "machine_learning.supervised_learning",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.supervised_learning",
+      "to": "machine_learning.classification_regression",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.supervised_learning",
+      "to": "machine_learning.train_test_split",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.train_test_split",
+      "to": "machine_learning.overfitting",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.supervised_learning",
+      "to": "machine_learning.image_classification",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.features_labels",
+      "to": "machine_learning.data_bias",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.supervised_learning",
+      "to": "machine_learning.neural_network_basics",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "generative_ai.prompt_basics",
+      "to": "generative_ai.hallucination",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "generative_ai.hallucination",
+      "to": "generative_ai.responsible_use",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "generative_ai.responsible_use",
+      "to": "generative_ai.copyright_originality",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "data_literacy.privacy_basics",
+      "to": "generative_ai.responsible_use",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "sorting.bubble_sort",
+      "to": "sorting.selection_sort",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "searching.linear_search",
+      "to": "searching.binary_search",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_overview.what_is_ai",
+      "to": "machine_learning.features_labels",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_overview.what_is_ai",
+      "to": "generative_ai.llm_basics",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "generative_ai.llm_basics",
+      "to": "generative_ai.prompt_basics",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.image_classification",
+      "to": "computer_vision.object_detection",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "nlp.text_tokenize",
+      "to": "nlp.sentiment",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ethics_safety.ai_ethics_intro",
+      "to": "ethics_safety.fairness",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "digital_citizenship.media_literacy",
+      "to": "digital_citizenship.fake_news",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "programming.scratch_basics",
+      "to": "programming.python_intro",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "computing.algorithm_basics",
+      "to": "algorithms.algo_in_life",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "machine_learning.image_classification",
+      "to": "machine_learning.classification_regression",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "machine_learning.data_bias",
+      "to": "generative_ai.responsible_use",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "data_literacy.what_is_data",
+      "to": "data_literacy.privacy_basics",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "generative_ai.hallucination",
+      "to": "ethics_safety.misinformation",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "computer_vision.face_recognition",
+      "to": "ethics_safety.surveillance",
+      "relation": "RELATED_TO"
+    }
+  ]
+}

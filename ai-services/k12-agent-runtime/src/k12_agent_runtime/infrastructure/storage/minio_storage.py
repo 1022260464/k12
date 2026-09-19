@@ -91,6 +91,30 @@ class MinioObjectStorage:
         except Exception as exc:  # noqa: BLE001
             raise ObjectStorageError("object_delete_failed") from exc
 
+    async def read_bytes(self, object_key: str, max_bytes: int) -> bytes:
+        await self._ensure_bucket()
+
+        def read() -> bytes:
+            info = self._client.stat_object(self._bucket, object_key)
+            if info.size > max_bytes:
+                raise ValueError("资料超过入库大小上限")
+            response = self._client.get_object(self._bucket, object_key)
+            try:
+                content = response.read(max_bytes + 1)
+            finally:
+                response.close()
+                response.release_conn()
+            if len(content) > max_bytes:
+                raise ValueError("资料超过入库大小上限")
+            return content
+
+        try:
+            return await asyncio.to_thread(read)
+        except ValueError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise ObjectStorageError("object_read_failed") from exc
+
     async def _ensure_bucket(self) -> None:
         if self._bucket_ready:
             return

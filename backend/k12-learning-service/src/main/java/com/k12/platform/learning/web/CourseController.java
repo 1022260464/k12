@@ -1,12 +1,18 @@
 package com.k12.platform.learning.web;
 
 import com.k12.platform.common.api.ApiResponse;
+import com.k12.platform.learning.dto.ContentImageResponse;
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.CourseResponse;
 import com.k12.platform.learning.dto.CoursePageResponse;
 import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.constraints.Size;
 import com.k12.platform.learning.service.CourseService;
+import com.k12.platform.learning.service.CoursePublicationService;
+import com.k12.platform.learning.service.CourseImportService;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
@@ -29,9 +35,14 @@ import java.util.List;
 public class CourseController {
 
     private final CourseService courseService;
+    private final CoursePublicationService publicationService;
+    private final CourseImportService importService;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, CoursePublicationService publicationService,
+                            CourseImportService importService) {
         this.courseService = courseService;
+        this.publicationService = publicationService;
+        this.importService = importService;
     }
 
     @GetMapping
@@ -83,5 +94,30 @@ public class CourseController {
                     .body(ApiResponse.fail(404, "课程不存在"));
         }
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{id}/publish")
+    public ApiResponse<Void> publish(@PathVariable("id") @Positive Long id) {
+        publicationService.publish(id);
+        return ApiResponse.ok(null);
+    }
+
+    @PostMapping(path = "/{id}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<CourseResponse> uploadCover(
+            @PathVariable("id") @Positive Long id,
+            @RequestPart("file") MultipartFile file) {
+        return ApiResponse.ok(courseService.uploadCover(id, file));
+    }
+
+    @PostMapping(path = "/{id}/content-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<ContentImageResponse> uploadContentImage(
+            @PathVariable("id") @Positive Long id,
+            @RequestPart("file") MultipartFile file) {
+        return ApiResponse.ok(courseService.uploadContentImage(id, file));
+    }
+
+    @PostMapping(path = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<CourseResponse>>> importBatch(@RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(importService.importBatch(file)));
     }
 }

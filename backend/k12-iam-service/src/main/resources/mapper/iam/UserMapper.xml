@@ -101,8 +101,9 @@
     </select>
 
     <select id="findSecurityUserForUpdate" resultType="com.k12.platform.iam.model.SysUser">
-        SELECT id, username, password_hash, nickname, email, status,
-               failed_login_count, locked_until, auth_version, last_login_time,
+        SELECT id, username, password_hash, nickname, email, avatar_url, status,
+               failed_login_count, off_topic_strike_count, abnormal_behavior_count,
+               locked_until, auth_version, last_login_time,
                updated_time, deleted
         FROM sys_user
         WHERE id = #{id} AND deleted = 0
@@ -116,6 +117,7 @@
               AND deleted = 0
               AND status = 1
               AND auth_version = #{authVersion}
+              AND (locked_until IS NULL OR locked_until &lt;= CURRENT_TIMESTAMP(3))
         )
     </select>
 
@@ -165,7 +167,20 @@
           )
     </insert>
 
-    <!-- 作业服务只需要确认学生身份，不返回用户名、邮箱等无关个人信息。 -->
+    <!-- 教师选人目录：仅返回启用学生的最小字段，不暴露邮箱等敏感信息。 -->
+    <select id="findActiveStudents" resultType="com.k12.platform.iam.dto.StudentDirectoryEntry">
+        SELECT DISTINCT u.id, u.username, u.nickname
+        FROM sys_user u
+        JOIN sys_user_role ur ON ur.user_id = u.id
+        JOIN sys_role r ON r.id = ur.role_id
+        WHERE u.deleted = 0
+          AND u.status = 1
+          AND r.status = 1
+          AND r.role_code = 'ROLE_STUDENT'
+        ORDER BY u.id DESC
+        LIMIT 500
+    </select>
+
     <select id="findActiveStudentIds" resultType="java.lang.Long">
         SELECT DISTINCT u.id
         FROM sys_user u

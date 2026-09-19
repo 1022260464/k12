@@ -30,6 +30,8 @@ class CourseServiceTest {
 
     @Mock
     private CourseMapper courseMapper;
+    @Mock
+    private CourseCoverStorage coverStorage;
 
     @BeforeEach
     void authenticate() {
@@ -40,10 +42,14 @@ class CourseServiceTest {
     @AfterEach
     void clearIdentity() { SecurityContextHolder.clearContext(); }
 
+    private CourseService service(CourseMediaUrlResolver resolver) {
+        return new CourseService(courseMapper, resolver, coverStorage);
+    }
+
     @Test
     @DisplayName("创建课程时清理文本并设置默认状态")
     void createCourseNormalizesFields() {
-        CourseService service = new CourseService(courseMapper, objectKey -> null);
+        CourseService service = service(objectKey -> null);
         when(courseMapper.insert(any(Course.class))).thenAnswer(invocation -> {
             Course course = invocation.getArgument(0);
             course.setId(1L);
@@ -66,14 +72,14 @@ class CourseServiceTest {
         assertThat(captor.getValue().getSubject()).isEqualTo("数学");
         assertThat(captor.getValue().getGradeLevel()).isEqualTo("八年级");
         assertThat(captor.getValue().getDescription()).isNull();
-        assertThat(captor.getValue().getStatus()).isEqualTo(1);
+        assertThat(captor.getValue().getStatus()).isEqualTo(0);
         assertThat(captor.getValue().getTeacherId()).isEqualTo(42L);
     }
 
     @Test
     @DisplayName("更新不存在的课程返回空结果")
     void updateMissingCourseReturnsEmpty() {
-        CourseService service = new CourseService(courseMapper, objectKey -> null);
+        CourseService service = service(objectKey -> null);
         when(courseMapper.selectForUpdate(99L)).thenReturn(null);
 
         Optional<CourseResponse> response = service.updateCourse(
@@ -87,10 +93,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("课程响应同时包含稳定对象键和临时访问地址")
     void responseContainsCourseCoverUrl() {
-        CourseService service = new CourseService(
-                courseMapper,
-                objectKey -> "https://minio.example.test/signed/" + objectKey
-        );
+        CourseService service = service(objectKey -> "https://minio.example.test/signed/" + objectKey);
         Course course = new Course();
         course.setId(8L);
         course.setTitle("人工智能启蒙");
@@ -110,7 +113,7 @@ class CourseServiceTest {
     @Test
     @DisplayName("拒绝越过课程素材目录的对象键")
     void rejectsUnsafeCourseCoverObjectKey() {
-        CourseService service = new CourseService(courseMapper, objectKey -> null);
+        CourseService service = service(objectKey -> null);
         CourseRequest request = new CourseRequest(
                 "人工智能启蒙",
                 "人工智能",

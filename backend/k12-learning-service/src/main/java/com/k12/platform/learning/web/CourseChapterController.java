@@ -1,9 +1,12 @@
 package com.k12.platform.learning.web;
 
 import com.k12.platform.common.api.ApiResponse;
+import com.k12.platform.learning.dto.ChapterCoversRequest;
+import com.k12.platform.learning.dto.ChapterCoversResponse;
 import com.k12.platform.learning.dto.ChapterRequest;
 import com.k12.platform.learning.dto.ChapterResponse;
 import com.k12.platform.learning.dto.ChapterSummaryResponse;
+import com.k12.platform.learning.service.ChapterKnowledgeCoverService;
 import com.k12.platform.learning.service.CourseChapterService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -18,8 +21,12 @@ import java.util.List;
 @RequestMapping("/api/v1/learning/courses/{courseId}/chapters")
 public class CourseChapterController {
     private final CourseChapterService service;
+    private final ChapterKnowledgeCoverService coverService;
 
-    public CourseChapterController(CourseChapterService service) { this.service = service; }
+    public CourseChapterController(CourseChapterService service, ChapterKnowledgeCoverService coverService) {
+        this.service = service;
+        this.coverService = coverService;
+    }
 
     @GetMapping
     public ApiResponse<List<ChapterSummaryResponse>> list(@PathVariable("courseId") @Positive Long courseId) {
@@ -49,5 +56,22 @@ public class CourseChapterController {
                                   @PathVariable("chapterId") @Positive Long chapterId) {
         service.delete(courseId, chapterId);
         return ApiResponse.ok(null);
+    }
+
+    @GetMapping("/{chapterId}/covers")
+    public ApiResponse<ChapterCoversResponse> covers(
+            @PathVariable("courseId") @Positive Long courseId,
+            @PathVariable("chapterId") @Positive Long chapterId
+    ) {
+        return ApiResponse.ok(coverService.getCovers(courseId, chapterId));
+    }
+
+    @PutMapping("/{chapterId}/covers")
+    public ApiResponse<ChapterCoversResponse> replaceCovers(
+            @PathVariable("courseId") @Positive Long courseId,
+            @PathVariable("chapterId") @Positive Long chapterId,
+            @Valid @RequestBody ChapterCoversRequest request
+    ) {
+        return ApiResponse.ok(coverService.replaceCovers(courseId, chapterId, request));
     }
 }

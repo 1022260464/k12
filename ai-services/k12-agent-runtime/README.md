@@ -45,8 +45,9 @@ K12_AGENT_LLM_MODEL=qwen-plus
 ```
 
 教学 Agent 通过领域层 `ChatModel` 接口调用模型，基础设施层负责适配千问的 OpenAI 兼容
-接口。模型只生成受结构约束的教学文本，动画步骤仍由本地代码生成。模型未配置、超时、
-网络失败或输出格式错误时自动回退到确定性讲解，因此本地演示不会被外部模型故障阻断。
+接口。冒泡排序等固定主题有确定性的本地保底内容；知识库中的新增主题可以由模型生成受
+Pydantic约束的讲解与步骤JSON，由前端白名单组件渲染，不执行模型生成的代码。模型未配置、
+网络失败或输出格式错误时，固定主题回退到本地内容；新增主题明确提示暂时无法生成。
 
 ## 启动FastAPI
 
@@ -255,10 +256,24 @@ flowchart LR
 当前不依赖外部大模型。后续接入模型时，优先替换计划生成节点，不修改Controller和领域
 协议。
 
-`study-plan` 只用于展示 LangGraph 基础结构。赛题主流程使用 `teaching-assistant`，当前第一版
-支持按学段讲解冒泡排序，从pgvector检索适龄知识供千问参考，并返回安全的动画和课堂小测
-JSON。小测协议为`application/vnd.k12.quiz.v1+json`，题目由前端白名单组件解释，不执行模型
-生成的HTML或脚本；`CLIENT_PRACTICE`得分只用于即时反馈，不写入正式成绩。
+`study-plan` 只用于展示 LangGraph 基础结构。赛题主流程使用 `teaching-assistant`：
+
+- 冒泡排序、选择排序使用确定性条形动画协议`application/vnd.k12.animation.v1+json`
+  （`bubble-sort` / `selection-sort`），并配固定答案小测。
+- 目录概念主题（图像分类、训练集与测试集、神经网络入门、负责任使用生成式AI等）主链路为：
+  千问生成受限 JSON（讲解字段 + `steps`）→ `application/vnd.k12.lesson-steps.v1+json` →
+  用户端 TeachingSteps 播放。无模型时用审定课文拆成确定性步骤兜底，小测仍用固定题库。
+- 知识库中的其他新主题：主题名须出现在检索资料标题或正文中，且结构校验通过后才生成
+  `lesson-steps`；不生成带标准答案的计分题。
+- 用户端只解释白名单 JSON，不执行 HTML、JS、Python 或模型返回的其他代码。
+- 固定主题小测继续使用`application/vnd.k12.quiz.v1+json`，练习结果记录在 Assessment，但不计入
+  正式作业或考试成绩。资料缺失、模型未启用或结构校验失败时不会伪装成其他主题。
+
+新增普通教学主题时，优先写入 `topics.py` 审定课文（即可走目录主链路）；或由教师核对后使用
+`POST /internal/v1/rag/documents/index`入库（至少提供`title`、`content`、`stageCode`，建议固定
+`documentId`便于更新）。确认本地`.env`已启用RAG与千问后，学生即可提问；通用步骤展示无需再改
+React。需要新的交互形态（例如可拖拽的图结构）时，另行定义版本化JSON协议和前端白名单渲染器，
+不直接运行模型代码。
 
 通过 Java Agent Service 调用 `teaching-assistant` 时，Java会使用当前 Bearer JWT 向IAM读取
 学习画像、向Learning读取最近5门课程进度、向Assessment读取最近5条作业结果，并生成

@@ -120,6 +120,13 @@ class AiPracticeAttemptServiceTest {
     }
 
     @Test
+    void findByRunReturnsNullWhenNotSubmittedYet() {
+        when(mapper.findByRunAndStudent("run-missing", 42L)).thenReturn(null);
+
+        assertThat(service.findByRun("run-missing")).isNull();
+    }
+
+    @Test
     void duplicateSubmissionIsIdempotentOnlyForSameAnswers() {
         AiPracticeAttempt existing = new AiPracticeAttempt();
         existing.setId(7L);

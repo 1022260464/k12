@@ -6,6 +6,8 @@ import com.k12.platform.iam.dto.UserUpdateRequest;
 import com.k12.platform.iam.dto.RegisterRequest;
 import com.k12.platform.iam.dto.ChangePasswordRequest;
 import com.k12.platform.iam.dto.ResetPasswordRequest;
+import com.k12.platform.iam.dto.SelfProfileResponse;
+import com.k12.platform.iam.dto.SelfProfileUpdateRequest;
 import com.k12.platform.iam.dto.UpdateUserStatusRequest;
 import com.k12.platform.iam.mapper.UserMapper;
 import com.k12.platform.iam.model.SysUser;
@@ -16,7 +18,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,12 +40,14 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final OperationAuditService operationAuditService;
+    private final UserAvatarStorage avatarStorage;
 
     public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder,
-                       OperationAuditService operationAuditService) {
+                       OperationAuditService operationAuditService, UserAvatarStorage avatarStorage) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.operationAuditService = operationAuditService;
+        this.avatarStorage = avatarStorage;
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.USER_READ + "')")
@@ -197,11 +206,71 @@ public class UserService {
         user.setAuthVersion(nextAuthVersion(user.getAuthVersion()));
         if (request.status() == UpdateUserStatusRequest.UserStatus.ENABLED) {
             user.setFailedLoginCount(0);
+            user.setOffTopicStrikeCount(0);
+            user.setAbnormalBehaviorCount(0);
             user.setLockedUntil(null);
         }
         userMapper.updateById(user);
         operationAuditService.record("USER_STATUS_UPDATE", "USER", userId,
                 "status=" + request.status().name());
+    }
+
+    /** 当前登录用户读取个人资料（含学习档案号 = userId）。 */
+    public SelfProfileResponse getOwnProfile() {
+        Long userId = K12SecurityContext.requireUserId();
+        SysUser user = userMapper.selectById(userId);
+        if (user == null || (user.getDeleted() != null && user.getDeleted() == 1)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在");
+        }
+        return toSelfProfile(user);
+    }
+
+    @Transactional
+    public SelfProfileResponse updateOwnProfile(SelfProfileUpdateRequest request) {
+        Long userId = K12SecurityContext.requireUserId();
+        SysUser user = requireSecurityUser(userId);
+        user.setNickname(request.nickname().trim());
+        String email = request.email() == null ? null : request.email().trim();
+        if (StringUtils.hasText(email) && !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            throw new IllegalArgumentException("邮箱格式不正确");
+        }
+        user.setEmail(StringUtils.hasText(email) ? email : null);
+        user.setUpdatedTime(Instant.now());
+        userMapper.updateById(user);
+        return toSelfProfile(userMapper.selectById(userId));
+    }
+
+    @Transactional
+    public SelfProfileResponse uploadOwnAvatar(MultipartFile file) {
+        Long userId = K12SecurityContext.requireUserId();
+        SysUser user = requireSecurityUser(userId);
+        String previous = user.getAvatarUrl();
+        String objectKey = avatarStorage.upload(userId, file);
+        user.setAvatarUrl(objectKey);
+        user.setUpdatedTime(Instant.now());
+        userMapper.updateById(user);
+        if (StringUtils.hasText(previous) && !previous.equals(objectKey)) {
+            avatarStorage.removeQuietly(previous);
+        }
+        return toSelfProfile(userMapper.selectById(userId));
+    }
+
+    private SelfProfileResponse toSelfProfile(SysUser user) {
+        String objectKey = user.getAvatarUrl();
+        String url = null;
+        if (UserAvatarStorage.isAllowedObjectKey(objectKey)) {
+            url = avatarStorage.resolveUrl(objectKey);
+        } else if (StringUtils.hasText(objectKey) && objectKey.startsWith("http")) {
+            url = objectKey;
+        }
+        return new SelfProfileResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getEmail(),
+                url,
+                UserAvatarStorage.isAllowedObjectKey(objectKey) ? objectKey : null
+        );
     }
 
     private void updatePassword(SysUser user, String rawPassword) {

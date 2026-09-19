@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "courses": [
+    {
+      "title": "最小可发布课程",
+      "subject": "综合实践",
+      "gradeLevel": "高中",
+      "description": "仅 1 章 1 节，适合快速验证导入与发布。",
+      "chapters": [
+        {
+          "title": "唯一章节",
+          "content": "本章介绍课程目标与学习安排，作为图谱章节描述。",
+          "sortOrder": 1,
+          "sections": [
+            {
+              "title": "唯一小节",
+              "content": "这是小节正文，有正文后即可满足发布条件。",
+              "sortOrder": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

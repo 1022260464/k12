@@ -32,8 +32,13 @@ public class SysUser {
     private String passwordHash;
     private String nickname;
     private String email;
+    private String avatarUrl;
     private Integer status;
     private Integer failedLoginCount;
+    /** 账号级无关提问累计（满 3 次触发异常行为）。 */
+    private Integer offTopicStrikeCount;
+    /** 异常行为累计（满 5 次永久封禁）。 */
+    private Integer abnormalBehaviorCount;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Instant lockedUntil;
     private Long authVersion;

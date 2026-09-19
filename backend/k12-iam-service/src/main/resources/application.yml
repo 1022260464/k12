@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: k12-iam-service
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   datasource:
     url: jdbc:mysql://${K12_AUTH_DB_HOST:122.51.54.52}:${K12_AUTH_DB_PORT:3306}/${K12_AUTH_DB_NAME:k12_auth}?useUnicode=true&characterEncoding=utf8&useSSL=${K12_DB_USE_SSL:false}&allowPublicKeyRetrieval=${K12_DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=Asia/Shanghai
     username: ${K12_AUTH_DB_USERNAME:k12}
@@ -52,6 +56,19 @@ k12:
     authentication:
       max-failed-attempts: ${K12_LOGIN_MAX_FAILED_ATTEMPTS:5}
       lock-duration: ${K12_LOGIN_LOCK_DURATION:15m}
+    behavior:
+      off-topic-limit: ${K12_OFF_TOPIC_LIMIT:5}
+      abnormal-behavior-limit: ${K12_ABNORMAL_BEHAVIOR_LIMIT:5}
+      # 本地联调默认 2 分钟；生产设置环境变量 K12_OFF_TOPIC_TEMP_BAN_DURATION=2h
+      temp-ban-duration: ${K12_OFF_TOPIC_TEMP_BAN_DURATION:2m}
+    media:
+      enabled: ${K12_COURSE_MEDIA_ENABLED:false}
+      endpoint: ${K12_MINIO_ENDPOINT:http://127.0.0.1:9000}
+      public-endpoint: ${K12_MINIO_PUBLIC_ENDPOINT:${K12_MINIO_ENDPOINT:http://127.0.0.1:9000}}
+      access-key: ${K12_MINIO_ACCESS_KEY:}
+      secret-key: ${K12_MINIO_SECRET_KEY:}
+      bucket: ${K12_MINIO_BUCKET:k12-agent-artifacts}
+      url-ttl: ${K12_AVATAR_URL_TTL:1h}
 
 management:
   endpoints:
