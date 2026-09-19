@@ -2,6 +2,7 @@ package com.k12.platform.learning.web;
 
 import com.k12.platform.common.security.K12MethodSecurityExceptionHandler;
 import com.k12.platform.learning.dto.ChapterProgressResponse;
+import com.k12.platform.learning.service.ChapterKnowledgeCoverService;
 import com.k12.platform.learning.service.CourseChapterService;
 import com.k12.platform.learning.service.CourseStudyService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** 只测 HTTP 绑定、请求体校验和错误包装；真正的 Service 权限代理由集成测试覆盖。 */
 class CourseControllerTest {
     private CourseChapterService chapters;
+    private ChapterKnowledgeCoverService covers;
     private CourseStudyService study;
     private MockMvc mvc;
     private static final String BASE = "/api/v1/learning/courses/1";
@@ -28,8 +30,11 @@ class CourseControllerTest {
     @BeforeEach
     void setUp() {
         chapters = mock(CourseChapterService.class);
+        covers = mock(ChapterKnowledgeCoverService.class);
         study = mock(CourseStudyService.class);
-        mvc = MockMvcBuilders.standaloneSetup(new CourseChapterController(chapters), new CourseStudyController(study))
+        mvc = MockMvcBuilders.standaloneSetup(
+                        new CourseChapterController(chapters, covers),
+                        new CourseStudyController(study))
                 .setControllerAdvice(new LearningExceptionHandler(), new K12MethodSecurityExceptionHandler()).build();
     }
 
@@ -44,10 +49,12 @@ class CourseControllerTest {
     }
 
     @Test
-    @DisplayName("章节空白标题或负排序值被 HTTP 校验拒绝")
+    @DisplayName("章节空白标题、空导语或负排序值被 HTTP 校验拒绝")
     void invalidChapterRejected() throws Exception {
         for (String body : new String[]{
                 "{\"title\":\" \",\"content\":\"正文\",\"sortOrder\":1}",
+                "{\"title\":\"第一章\",\"content\":\" \",\"sortOrder\":1}",
+                "{\"title\":\"第一章\",\"sortOrder\":1}",
                 "{\"title\":\"第一章\",\"content\":\"正文\",\"sortOrder\":-1}"}) {
             mvc.perform(post(BASE + "/chapters").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(400));
@@ -56,10 +63,10 @@ class CourseControllerTest {
     }
 
     @Test
-    @DisplayName("章节允许不写导语，教学正文可以放在小节")
-    void chapterIntroIsOptional() throws Exception {
+    @DisplayName("章节导语必填；带标题、导语与排序时可创建")
+    void chapterIntroIsRequired() throws Exception {
         mvc.perform(post(BASE + "/chapters").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"第一章\",\"sortOrder\":1}"))
+                        .content("{\"title\":\"第一章\",\"content\":\"本章导语\",\"sortOrder\":1}"))
                 .andExpect(status().isCreated());
         verify(chapters).create(eq(1L), any());
     }
@@ -67,7 +74,9 @@ class CourseControllerTest {
     @Test
     @DisplayName("非法 JSON 与非数字课程编号均返回统一 400")
     void invalidJsonAndIdRejected() throws Exception {
-        mvc.perform(put(BASE + "/chapters/2/progress").contentType(MediaType.APPLICATION_JSON).content("{"))
+        // 故意残缺 JSON：用于验证统一 400；IDEA 语言注入可能对 "{" 报警，可忽略
+        String brokenJson = "{";
+        mvc.perform(put(BASE + "/chapters/2/progress").contentType(MediaType.APPLICATION_JSON).content(brokenJson))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(400));
         mvc.perform(get("/api/v1/learning/courses/abc/enrollment"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value(400));
