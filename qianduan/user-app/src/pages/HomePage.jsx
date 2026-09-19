@@ -12,8 +12,8 @@ export function HomePage({ session, displayName, navigate, requireLogin }) {
         <div className="hero-copy">
           <p className="eyebrow"><Sparkles size={14} /> 个性化学习空间</p>
           <h1>{session ? `${displayName}，继续今天的学习` : "让每一次学习，都有清晰的下一步"}</h1>
-          <p>课程、练习与 AI 助教集中在一个学习空间，根据进度提供适合你的内容。</p>
-          <div className="hero-actions"><button className="button primary" type="button" onClick={() => requireLogin(() => navigate("courses"))}><Play size={17} />开始学习</button><button className="text-button" type="button" onClick={() => navigate("courses")}>浏览全部课程<ArrowRight size={16} /></button></div>
+          <p>课程、练习与 AI 学习台集中在一个学习空间，根据进度提供适合你的内容。</p>
+          <div className="hero-actions"><button className="button primary" type="button" onClick={() => requireLogin(() => navigate("ai-studio"))}><Play size={17} />打开 AI 学习台</button><button className="text-button" type="button" onClick={() => navigate("courses")}>浏览全部课程<ArrowRight size={16} /></button></div>
         </div>
         <div className="hero-image"><img src="/assets/k12-ai-learning-journey.png" alt="学生沿着个性化学习路径前往智能课堂" /></div>
       </section>
@@ -24,6 +24,7 @@ export function HomePage({ session, displayName, navigate, requireLogin }) {
       </section>
 
       <section className="home-section home-shortcuts">
+        <button type="button" onClick={() => requireLogin(() => navigate("ai-studio"))}><span><Sparkles size={20} /></span><div><strong>AI 学习台</strong><p>主题讲解、动画步骤与课堂小测</p></div><ArrowRight size={18} /></button>
         <button type="button" onClick={() => navigate("courses")}><span><Play size={20} /></span><div><strong>继续课程</strong><p>从上次离开的知识点继续学习</p></div><ArrowRight size={18} /></button>
         <button type="button" onClick={() => navigate("tasks")}><span><Clock3 size={20} /></span><div><strong>今日作业</strong><p>查看截止时间和待完成练习</p></div><ArrowRight size={18} /></button>
         <button type="button" onClick={() => navigate("progress")}><span><Target size={20} /></span><div><strong>学习报告</strong><p>了解本周进度和薄弱知识点</p></div><ArrowRight size={18} /></button>

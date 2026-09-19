@@ -24,6 +24,8 @@ class SearchKnowledgeCommand:
     stage_code: str | None = None
     grade: str | None = None
     textbook: str | None = None
+    knowledge_code: str | None = None
+    knowledge_codes: tuple[str, ...] = ()
 
 
 class SearchKnowledgeUseCase:
@@ -60,6 +62,21 @@ class SearchKnowledgeUseCase:
                 logger.warning("RAG cache lookup failed; continue with retrieval", exc_info=True)
 
         embedding_batch = await self._embedder.embed((query,))
+        codes = tuple(
+            code
+            for code in (
+                *(command.knowledge_codes or ()),
+                *((command.knowledge_code,) if command.knowledge_code else ()),
+            )
+            if code
+        )
+        # 去重且保序
+        seen: set[str] = set()
+        unique_codes: list[str] = []
+        for code in codes:
+            if code not in seen:
+                seen.add(code)
+                unique_codes.append(code)
         candidates = await self._repository.search(
             KnowledgeSearchQuery(
                 query_embedding=embedding_batch.vectors[0],
@@ -68,8 +85,22 @@ class SearchKnowledgeUseCase:
                 stage_code=command.stage_code,
                 grade=command.grade,
                 textbook=command.textbook,
+                knowledge_code=command.knowledge_code,
+                knowledge_codes=tuple(unique_codes),
             )
         )
+        # GraphRAG：按知识点无命中时，去掉学段/年级限制再按同一 knowledgeCode 搜一次。
+        # 不再回退到「无 knowledgeCode」的同学段检索，避免旧 demo（冒泡排序等）串进推荐。
+        if not candidates and unique_codes:
+            candidates = await self._repository.search(
+                KnowledgeSearchQuery(
+                    query_embedding=embedding_batch.vectors[0],
+                    embedding_model=embedding_batch.model,
+                    limit=max(command.candidate_count, command.top_k),
+                    knowledge_code=command.knowledge_code,
+                    knowledge_codes=tuple(unique_codes),
+                )
+            )
         ranked = (
             await self._reranker.rerank(query, candidates, command.top_k)
             if candidates
@@ -98,6 +129,8 @@ class SearchKnowledgeUseCase:
                 "stage_code": command.stage_code,
                 "grade": command.grade,
                 "textbook": command.textbook,
+                "knowledge_code": command.knowledge_code,
+                "knowledge_codes": list(command.knowledge_codes or ()),
             },
             ensure_ascii=False,
             sort_keys=True,

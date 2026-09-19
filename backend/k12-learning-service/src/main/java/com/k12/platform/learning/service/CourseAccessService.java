@@ -23,8 +23,8 @@ public class CourseAccessService {
 
     public Course requireCourse(Long id, boolean forUpdate) {
         Course course = forUpdate ? courseMapper.selectForUpdate(id) : courseMapper.selectById(id);
-        if (course == null || !Integer.valueOf(1).equals(course.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "课程不存在或未启用");
+        if (course == null || (!Integer.valueOf(1).equals(course.getStatus()) && !isOwnerOrAdmin(course))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "课程不存在或未发布");
         }
         return course;
     }

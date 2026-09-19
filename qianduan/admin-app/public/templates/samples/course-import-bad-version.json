@@ -1,0 +1,25 @@
+{
+  "version": 9,
+  "courses": [
+    {
+      "title": "这是故意失败的文件",
+      "subject": "测试",
+      "gradeLevel": "初中",
+      "description": "version 必须为 1，用于验证导入会报错。",
+      "chapters": [
+        {
+          "title": "章",
+          "content": "导语",
+          "sortOrder": 1,
+          "sections": [
+            {
+              "title": "节",
+              "content": "正文",
+              "sortOrder": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 package com.k12.platform.assessment.service;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,10 +44,24 @@ public class SubmissionAnswerService {
 
     /** 与提交主事务一起调用，任何一道答案不合法都会回滚整个提交。 */
     public void saveSubmittedAnswers(HomeworkSubmission submission, List<SubmissionAnswerRequest> requests) {
+        persistAnswers(submission, requests, false);
+    }
+
+    /** 退回后重新提交：先清空旧答案再写入新答案。 */
+    public void replaceSubmittedAnswers(HomeworkSubmission submission, List<SubmissionAnswerRequest> requests) {
+        answerMapper.delete(Wrappers.<SubmissionAnswer>lambdaQuery()
+                .eq(SubmissionAnswer::getSubmissionId, submission.getId()));
+        persistAnswers(submission, requests, true);
+    }
+
+    private void persistAnswers(HomeworkSubmission submission, List<SubmissionAnswerRequest> requests, boolean alreadyUpdated) {
         List<HomeworkQuestion> questions = questionMapper.findByHomeworkId(submission.getHomeworkId());
         if (requests == null || requests.isEmpty()) {
             if (!questions.isEmpty()) {
                 throw new IllegalArgumentException("该作业包含结构化题目，必须提交 answers");
+            }
+            if (alreadyUpdated) {
+                submissionMapper.updateById(submission);
             }
             return;
         }

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "type": "SINGLE_CHOICE",
+      "stem": "下面哪项是机器学习的常见应用？",
+      "score": 10,
+      "sortOrder": 1,
+      "options": [
+        { "key": "A", "content": "图像分类", "sortOrder": 1 },
+        { "key": "B", "content": "手工抄写", "sortOrder": 2 }
+      ],
+      "correctAnswers": ["A"],
+      "referenceAnswer": null,
+      "analysis": "图像分类可以由机器学习模型完成。"
+    }
+  ]
+}

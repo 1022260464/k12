@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "type": "SINGLE_CHOICE",
+      "stem": "1+1 等于几？",
+      "score": 5,
+      "sortOrder": 1,
+      "options": [
+        { "key": "A", "content": "1", "sortOrder": 1 },
+        { "key": "B", "content": "2", "sortOrder": 2 }
+      ],
+      "correctAnswers": ["B"],
+      "referenceAnswer": null,
+      "analysis": "基础算术。"
+    },
+    {
+      "type": "SHORT_ANSWER",
+      "stem": "写出你最喜欢的一门课，并说明原因（不少于 20 字）。",
+      "score": 10,
+      "sortOrder": 2,
+      "options": null,
+      "correctAnswers": null,
+      "referenceAnswer": "言之有理即可，例如：我喜欢数学，因为它能锻炼逻辑思维。",
+      "analysis": "开放题，按要点给分。"
+    }
+  ]
+}

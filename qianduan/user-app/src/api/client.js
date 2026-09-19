@@ -6,7 +6,7 @@ export async function api(path, options = {}) {
   const response = await fetch(path, {
     ...requestOptions,
     headers: {
-      "Content-Type": "application/json",
+      ...(requestOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(!publicRequest && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
       ...headers,
     },
@@ -31,6 +31,13 @@ const query = (values) => {
 
 export const profileApi = {
   me: () => api("/api/v1/iam/me"),
+  getSelf: () => api("/api/v1/iam/users/me"),
+  updateSelf: (body) => api("/api/v1/iam/users/me", { method: "PUT", body: JSON.stringify(body) }),
+  uploadAvatar: (file) => {
+    const body = new FormData();
+    body.append("file", file);
+    return api("/api/v1/iam/users/me/avatar", { method: "POST", body });
+  },
   getLearningProfile: () => api("/api/v1/iam/users/me/learning-profile"),
   updateLearningProfile: (body) => api("/api/v1/iam/users/me/learning-profile", { method: "PUT", body: JSON.stringify(body) }),
   changePassword: (body) => api("/api/v1/iam/users/me/password", { method: "PUT", body: JSON.stringify(body) }),
@@ -38,12 +45,16 @@ export const profileApi = {
 };
 
 export const coursesApi = {
+  attachments: (courseId) => api(`/api/v1/learning/courses/${courseId}/attachments`),
+  chapterAttachments: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/attachments`),
   list: () => api("/api/v1/learning/courses"),
   page: (filters = {}) => api(`/api/v1/learning/courses/page?${query(filters)}`),
   history: (limit = 10) => api(`/api/v1/learning/history/me?${query({ limit })}`),
   get: (id) => api(`/api/v1/learning/courses/${id}`),
   chapters: (courseId) => api(`/api/v1/learning/courses/${courseId}/chapters`),
   chapter: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`),
+  sections: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections`),
+  section: (courseId, chapterId, sectionId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`),
   enrollment: (courseId) => api(`/api/v1/learning/courses/${courseId}/enrollment`),
   enroll: (courseId) => api(`/api/v1/learning/courses/${courseId}/enrollment`, { method: "PUT" }),
   withdraw: (courseId) => api(`/api/v1/learning/courses/${courseId}/enrollment`, { method: "DELETE" }),
@@ -51,11 +62,17 @@ export const coursesApi = {
   updateProgress: (courseId, chapterId, progressPercent) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/progress`, { method: "PUT", body: JSON.stringify({ progressPercent }) }),
 };
 
+export const teachingResourcesApi = {
+  publishedDownload: (id) => api(`/api/v1/learning/teaching-resources/published/${id}/download-url`),
+};
+
 export const leaderboardApi = {
   get: (limit = 20) => api(`/api/v1/learning/leaderboard?${query({ limit })}`),
 };
 
 export const homeworksApi = {
+  questionAttachments: (id, questionId) => api(`/api/v1/assessments/homeworks/${id}/questions/${questionId}/attachments`),
+  questionAttachmentUrl: (id, questionId, attachmentId) => api(`/api/v1/assessments/homeworks/${id}/questions/${questionId}/attachments/${attachmentId}/download-url`),
   list: (page = 1, size = 20) => api(`/api/v1/assessments/homeworks?${query({ page, size })}`),
   get: (id) => api(`/api/v1/assessments/homeworks/${id}`),
   questions: (id) => api(`/api/v1/assessments/homeworks/${id}/questions`),
@@ -71,6 +88,14 @@ export const practiceApi = {
   recent: (limit = 5) => api(`/api/v1/assessments/practice-attempts/me?${query({ limit })}`),
   insights: () => api("/api/v1/assessments/practice-attempts/me/insights"),
   mastery: () => api("/api/v1/assessments/practice-attempts/me/mastery"),
+};
+
+export const knowledgeGraphApi = {
+  overview: () => api("/api/v1/learning/knowledge-graph/overview"),
+  recommendNext: (body) => api("/api/v1/learning/knowledge-graph/recommendations/next", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
 };
 
 export const agentsApi = {

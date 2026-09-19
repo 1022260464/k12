@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "courses": [
+    {
+      "title": "人工智能入门",
+      "subject": "人工智能",
+      "gradeLevel": "初中",
+      "description": "课程简介",
+      "chapters": [
+        {
+          "title": "认识人工智能",
+          "content": "## 学习目标\n\n- 了解人工智能的基本概念\n- 能举出生活中的 AI 例子\n\n> 本章导语支持 **Markdown**。",
+          "sortOrder": 1,
+          "sections": [
+            {
+              "title": "人工智能是什么",
+              "content": "人工智能（AI）是让计算机模拟人类智能的技术。\n\n**本节省重点**\n\n1. 感知\n2. 学习\n3. 决策\n\n可使用 `代码`、列表与加粗等 Markdown 写法。",
+              "sortOrder": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

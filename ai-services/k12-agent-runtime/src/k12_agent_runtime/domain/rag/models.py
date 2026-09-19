@@ -75,6 +75,8 @@ class KnowledgeSearchQuery:
     stage_code: str | None = None
     grade: str | None = None
     textbook: str | None = None
+    knowledge_code: str | None = None
+    knowledge_codes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

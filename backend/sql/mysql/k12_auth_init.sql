@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
     avatar_url VARCHAR(512) DEFAULT NULL COMMENT 'Avatar URL',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '1 enabled, 0 disabled, 2 locked',
     failed_login_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Consecutive failed login count',
+    off_topic_strike_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Account off-topic strikes toward temp ban',
+    abnormal_behavior_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Abnormal behavior count toward permanent ban',
     locked_until DATETIME(3) DEFAULT NULL COMMENT 'Temporary login lock expiration',
     auth_version BIGINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Increment to revoke existing JWTs',
     last_login_time DATETIME(3) DEFAULT NULL COMMENT 'Last login time',

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.k12.platform.learning.dto.ChapterRequest;
 import com.k12.platform.learning.dto.CourseRequest;
+import com.k12.platform.learning.dto.SectionRequest;
 import com.k12.platform.learning.config.LeaderboardProperties;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -48,8 +49,8 @@ class CourseLearningIntegrationTest {
     @EnableTransactionManagement
     @EnableMethodSecurity
     @MapperScan("com.k12.platform.learning.mapper")
-    @Import({CourseService.class, CourseAccessService.class, CourseChapterService.class,
-            CourseStudyService.class, LearningHistoryService.class, LearningLeaderboardService.class,
+    @Import({CourseService.class, CourseAccessService.class, CourseChapterService.class, CourseSectionService.class,
+            CoursePublicationService.class, CourseStudyService.class, LearningHistoryService.class, LearningLeaderboardService.class,
             LeaderboardProperties.class})
     static class Config {
         @Bean CourseMediaUrlResolver courseMediaUrlResolver() {
@@ -76,6 +77,8 @@ class CourseLearningIntegrationTest {
 
     @Autowired CourseService courses;
     @Autowired CourseChapterService chapters;
+    @Autowired CourseSectionService sections;
+    @Autowired CoursePublicationService publication;
     @Autowired CourseStudyService study;
     @Autowired LearningHistoryService history;
     @Autowired LearningLeaderboardService leaderboard;
@@ -88,6 +91,7 @@ class CourseLearningIntegrationTest {
         teacher(10L);
         courseId = courses.createCourse(new CourseRequest("数学 " + UUID.randomUUID(), "数学", "八年级", null)).id();
         chapterId = chapters.create(courseId, new ChapterRequest("第一章", "纯文本正文", 1)).id();
+        publication.publish(courseId);
     }
 
     @AfterEach void clearIdentity() { SecurityContextHolder.clearContext(); }
@@ -116,6 +120,24 @@ class CourseLearningIntegrationTest {
     }
 
     @Test
+    @DisplayName("小节正文仅对课程教师和已报名学生可读，其他教师不能修改")
+    void sectionAccessAndOwnership() {
+        Long sectionId = sections.create(courseId, chapterId,
+                new SectionRequest("第一节", "排序的基本概念", 1)).id();
+        student(20L);
+        assertStatus(() -> sections.list(courseId, chapterId), HttpStatus.FORBIDDEN);
+        study.enroll(courseId);
+        assertThat(sections.list(courseId, chapterId)).hasSize(1);
+        assertThat(sections.get(courseId, chapterId, sectionId).content()).isEqualTo("排序的基本概念");
+        teacher(11L);
+        assertStatus(() -> sections.update(courseId, chapterId, sectionId,
+                new SectionRequest("篡改", "内容", 1)), HttpStatus.FORBIDDEN);
+        teacher(10L);
+        sections.delete(courseId, chapterId, sectionId);
+        assertThat(sections.list(courseId, chapterId)).isEmpty();
+    }
+
+    @Test
     @DisplayName("教师功能权限不等于数据权限，不能修改其他教师课程和章节")
     void teacherOwnershipEnforced() {
         teacher(11L);
@@ -131,6 +153,8 @@ class CourseLearningIntegrationTest {
     @DisplayName("学生不能管理章节；章节编号不能跨课程伪造，失败事务不写进度")
     void permissionsAndCrossCourseChapter() {
         Long otherCourse = courses.createCourse(new CourseRequest("其他课程", "数学", "八年级", null)).id();
+        // 旧数据允许已发布课程没有章节；本用例只验证跨课程章节隔离。
+        jdbc.update("UPDATE learning_course SET status=1 WHERE id=?", otherCourse);
         student(20L);
         study.enroll(otherCourse);
         assertThatThrownBy(() -> chapters.create(courseId, new ChapterRequest("篡改", "正文", 1))).isInstanceOf(AccessDeniedException.class);

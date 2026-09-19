@@ -1,0 +1,77 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.k12.platform:k12-iam-service >------------------
+[INFO] Building K12 IAM Service 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.3.5:run (default-cli) > test-compile @ k12-iam-service >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ k12-iam-service ---
+[INFO] Copying 4 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ k12-iam-service ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ k12-iam-service ---
+[INFO] skip non existing resourceDirectory D:\CodeWorkPlace\k12\backend\k12-iam-service\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ k12-iam-service ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.3.5:run (default-cli) < test-compile @ k12-iam-service <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.3.5:run (default-cli) @ k12-iam-service ---
+[INFO] Attaching agents: []
+2026-09-19T17:54:26.980+08:00  INFO 14952 --- [k12-iam-service] [           main] c.a.nacos.client.logging.NacosLogging    : Nacos Logging Adapter Builder: com.alibaba.nacos.logger.adapter.logback12.LogbackNacosLoggingAdapterBuilder
+2026-09-19T17:54:26.987+08:00  INFO 14952 --- [k12-iam-service] [           main] c.a.nacos.client.logging.NacosLogging    : Nacos Logging Adapter Builder: com.alibaba.nacos.logger.adapter.logback14.LogbackNacosLoggingAdapterBuilder
+2026-09-19T17:54:26.988+08:00  INFO 14952 --- [k12-iam-service] [           main] c.a.nacos.client.logging.NacosLogging    : Nacos Logging Adapter: com.alibaba.nacos.logger.adapter.logback14.LogbackNacosLoggingAdapter match ch.qos.logback.classic.Logger success.
+2026-09-19T17:54:26.995+08:00  INFO 14952 --- [k12-iam-service] [           main] c.a.nacos.client.logging.NacosLogging    : Nacos Logging Adapter Builder: com.alibaba.nacos.logger.adapter.log4j2.Log4j2NacosLoggingAdapterBuilder
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-09-19T17:54:27.239+08:00  INFO 14952 --- [k12-iam-service] [           main] c.k.p.iam.K12IamServiceApplication       : Starting K12IamServiceApplication using Java 17.0.19 with PID 14952 (D:\CodeWorkPlace\k12\backend\k12-iam-service\target\classes started by Lenovo in D:\CodeWorkPlace\k12\backend\k12-iam-service)
+2026-09-19T17:54:27.241+08:00  INFO 14952 --- [k12-iam-service] [           main] c.k.p.iam.K12IamServiceApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-09-19T17:54:28.774+08:00  INFO 14952 --- [k12-iam-service] [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=4b8a2dbb-bd18-3589-8f46-4e748bb00c81
+2026-09-19T17:54:29.205+08:00  WARN 14952 --- [k12-iam-service] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.cloud.client.loadbalancer.LoadBalancerAutoConfiguration$DeferringLoadBalancerInterceptorConfig' of type [org.springframework.cloud.client.loadbalancer.LoadBalancerAutoConfiguration$DeferringLoadBalancerInterceptorConfig] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). The currently created BeanPostProcessor [lbRestClientPostProcessor] is declared through a non-static factory method on that class; consider declaring it as static instead.
+2026-09-19T17:54:29.233+08:00  WARN 14952 --- [k12-iam-service] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'deferringLoadBalancerInterceptor' of type [org.springframework.cloud.client.loadbalancer.DeferringLoadBalancerInterceptor] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor [lbRestClientPostProcessor]? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2026-09-19T17:54:29.663+08:00  INFO 14952 --- [k12-iam-service] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2026-09-19T17:54:29.686+08:00  INFO 14952 --- [k12-iam-service] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-19T17:54:29.686+08:00  INFO 14952 --- [k12-iam-service] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.31]
+2026-09-19T17:54:29.888+08:00  INFO 14952 --- [k12-iam-service] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-19T17:54:29.890+08:00  INFO 14952 --- [k12-iam-service] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2601 ms
+2026-09-19T17:54:31.831+08:00  INFO 14952 --- [k12-iam-service] [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@21d8bcbe
+2026-09-19T17:54:32.186+08:00  INFO 14952 --- [k12-iam-service] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-09-19T17:54:32.880+08:00  WARN 14952 --- [k12-iam-service] [           main] iguration$LoadBalancerCaffeineWarnLogger : Spring Cloud LoadBalancer is currently working with the default cache. While this cache implementation is useful for development and tests, it's recommended to use Caffeine cache in production.You can switch to using Caffeine cache, by adding it and org.springframework.cache.caffeine.CaffeineCacheManager to the classpath.
+2026-09-19T17:54:32.995+08:00  INFO 14952 --- [k12-iam-service] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
+2026-09-19T17:54:33.295+08:00  INFO 14952 --- [k12-iam-service] [           main] c.k.p.iam.K12IamServiceApplication       : Started K12IamServiceApplication in 7.027 seconds (process running for 7.467)
+2026-09-19T17:54:39.128+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-19T17:54:39.129+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-19T17:54:39.131+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-09-19T17:54:39.199+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-19T17:54:39.456+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-1] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@48548b8a
+2026-09-19T17:54:39.460+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-19T17:54:58.886+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-3] c.k.p.iam.web.AuthenticationController   : JWT login failed, username=student1, reason=Username or password is incorrect
+2026-09-19T17:54:59.151+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-4] c.k.p.iam.web.AuthenticationController   : JWT login failed, username=student, reason=Username or password is incorrect
+2026-09-19T17:54:59.297+08:00  INFO 14952 --- [k12-iam-service] [nio-8081-exec-5] c.k.p.iam.web.AuthenticationController   : JWT login failed, username=xiaoming, reason=Username or password is incorrect
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  04:50 min
+[INFO] Finished at: 2026-09-19T17:59:12+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.3.5:run (default-cli) on project k12-iam-service: Process terminated with exit code: -1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

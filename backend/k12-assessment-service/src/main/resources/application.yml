@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: k12-assessment-service
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   datasource:
     url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=${K12_DB_USE_SSL:false}&allowPublicKeyRetrieval=${K12_DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=Asia/Shanghai
     username: ${K12_BUSINESS_DB_USERNAME:k12}
@@ -45,6 +49,15 @@ management:
         include: health,info
 
 k12:
+  assessment:
+    attachments:
+      # 未单独配置时，跟随课程媒体开关，避免 Learning 已开 MinIO 而作业附件仍 503
+      enabled: ${K12_ASSESSMENT_ATTACHMENTS_ENABLED:${K12_COURSE_MEDIA_ENABLED:false}}
+      endpoint: ${K12_MINIO_ENDPOINT:http://127.0.0.1:9000}
+      access-key: ${K12_MINIO_ACCESS_KEY:}
+      secret-key: ${K12_MINIO_SECRET_KEY:}
+      bucket: ${K12_MINIO_BUCKET:k12-agent-artifacts}
+      url-ttl: 15m
   clients:
     # 本地直连 IAM；团队环境可改成网关/服务内网地址。
     iam-url: ${K12_IAM_SERVICE_URL:http://localhost:8081}

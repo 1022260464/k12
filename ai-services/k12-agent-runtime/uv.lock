@@ -712,6 +712,7 @@ dependencies = [
     { name = "pgvector" },
     { name = "pydantic-settings" },
     { name = "pymongo" },
+    { name = "pypdf" },
     { name = "redis" },
     { name = "sentence-transformers" },
     { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
@@ -737,6 +738,7 @@ requires-dist = [
     { name = "pgvector", specifier = ">=0.4.1,<1.0.0" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "pymongo", specifier = ">=4.13.0,<5.0.0" },
+    { name = "pypdf", specifier = ">=5.0.0,<7.0.0" },
     { name = "redis", specifier = ">=6.0.0,<8.0.0" },
     { name = "sentence-transformers", specifier = ">=5.1.0,<6.0.0" },
     { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.11.0,<2.12.0" },
@@ -1473,6 +1475,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/6d/ec/c87acb3be5a222b87fae3c38cf389187c923ceaad0c16ade60a858c3b043/pymongo-4.18.1-cp313-cp313-win32.whl", hash = "sha256:4ebb5a6a42a1512a86f774ca517b4b56aacd0ccbde535d787cfd9789c5905e2a", size = 814890, upload-time = "2026-09-10T14:56:10.499Z" },
     { url = "https://files.pythonhosted.org/packages/d4/5c/9b55c1fd4e5ec9d880d6c12dda01ff45ebf384af698d2a61d5411371ed4e/pymongo-4.18.1-cp313-cp313-win_amd64.whl", hash = "sha256:1a78dec1c10eaae298aefc6cd7ad916ca2ceeb51f8ff7946dddbca97adf9ed0c", size = 820480, upload-time = "2026-09-10T14:56:11.967Z" },
     { url = "https://files.pythonhosted.org/packages/11/70/c2efefb8d414489726d68eaab88b2230435aa17a493259af8614bd0c6d7a/pymongo-4.18.1-cp313-cp313-win_arm64.whl", hash = "sha256:aff3582edd807980e0f910cc20b3f588b8c5533556b0aeb3f33d88c7681f9b21", size = 815375, upload-time = "2026-09-10T14:56:13.661Z" },
+]
+
+[[package]]
+name = "pypdf"
+version = "6.19.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1f/ac/63d71aaedb59acbcdef491e6ca6469165e3771c9c74358204818fd9bc5a6/pypdf-6.19.0.tar.gz", hash = "sha256:bbc43aca292369ccc6cbc8a921991ecf2538a3587ab5a116eff06c321d647155", size = 7033266, upload-time = "2026-09-16T09:32:05.946Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/2c/c43c03eaf630435f023f1dc61ec4a4a78951ad5530a62c71cc89bde307b7/pypdf-6.19.0-py3-none-any.whl", hash = "sha256:7e5d6e730e7dae87d560a2cee218b852f6498c8be61966f3cd02ead971e48d14", size = 395480, upload-time = "2026-09-16T09:32:04.087Z" },
 ]
 
 [[package]]

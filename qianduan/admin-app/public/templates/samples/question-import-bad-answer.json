@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "type": "SINGLE_CHOICE",
+      "stem": "故意错误：正确答案不在选项里",
+      "score": 10,
+      "sortOrder": 1,
+      "options": [
+        { "key": "A", "content": "选项甲", "sortOrder": 1 },
+        { "key": "B", "content": "选项乙", "sortOrder": 2 }
+      ],
+      "correctAnswers": ["Z"],
+      "referenceAnswer": null,
+      "analysis": "应导入失败：正确答案必须来自已有选项。"
+    }
+  ]
+}

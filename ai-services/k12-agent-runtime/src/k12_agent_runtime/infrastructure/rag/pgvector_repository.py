@@ -125,14 +125,21 @@ class PgVectorKnowledgeRepository:
                   AND ($3::text IS NULL OR stage_code = $3)
                   AND ($4::text IS NULL OR grade = $4)
                   AND ($5::text IS NULL OR textbook = $5)
+                  AND (
+                    cardinality($6::text[]) = 0
+                    OR COALESCE(metadata->>'knowledgeCode', '') = ANY($6::text[])
+                  )
                 ORDER BY embedding <=> $1
-                LIMIT $6
+                LIMIT $7
                 """,
                 np.asarray(query.query_embedding, dtype=np.float32),
                 query.embedding_model,
                 query.stage_code,
                 query.grade,
                 query.textbook,
+                list(query.knowledge_codes)
+                if query.knowledge_codes
+                else ([query.knowledge_code] if query.knowledge_code else []),
                 query.limit,
             )
         except Exception as exc:  # noqa: BLE001

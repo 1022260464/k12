@@ -11,6 +11,7 @@ public record CourseResponse(
         String coverObjectKey,
         String coverUrl,
         Instant updatedTime,
-        Long teacherId
+        Long teacherId,
+        Integer status
 ) {
 }

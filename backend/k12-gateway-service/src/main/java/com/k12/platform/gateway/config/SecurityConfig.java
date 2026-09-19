@@ -120,10 +120,16 @@ public class SecurityConfig {
                          */
                         .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/me/learning-profile").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.LEARNING_PROFILE_READ)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/me/learning-profile").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.LEARNING_PROFILE_UPDATE)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/me/behavior").authenticated()
+                        .pathMatchers(HttpMethod.POST, "/api/v1/iam/users/me/behavior/off-topic").authenticated()
+                        .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/me").authenticated()
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/me").authenticated()
+                        .pathMatchers(HttpMethod.POST, "/api/v1/iam/users/me/avatar").authenticated()
                         .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/me/password").authenticated()
                         .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/*/password", "/api/v1/iam/users/*/status").hasAuthority(K12Authorities.ROLE_ADMIN)
                         .pathMatchers(HttpMethod.GET, "/api/v1/iam/audits/**").hasAuthority(K12Authorities.ROLE_ADMIN)
                         .pathMatchers(HttpMethod.POST, "/api/v1/iam/users/students/validate").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
+                        .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/students").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_READ)
                         .pathMatchers(HttpMethod.POST, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_CREATE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_UPDATE)
@@ -134,8 +140,10 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.GET, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/progress").access(studyAccess)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/chapters/*/progress").access(studyAccess)
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/enrollment").access(studyAccess)
-                        .pathMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
-                        .pathMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters", "/api/v1/learning/courses/*/chapters/*/sections").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/publish", "/api/v1/learning/courses/*/cover", "/api/v1/learning/courses/*/content-images").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .pathMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/chapters/*/sections/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .pathMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*", "/api/v1/learning/courses/*/chapters/*/sections/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
                         .pathMatchers(HttpMethod.POST, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_CREATE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
@@ -144,6 +152,7 @@ public class SecurityConfig {
                         /* 运行、取消和重试都属于“调用智能体”，必须先于下面的 Agent 配置管理通配规则。 */
                         .pathMatchers(HttpMethod.POST,
                                 "/api/v1/agents/*/runs",
+                                "/api/v1/agents/code-executions",
                                 "/api/v1/agents/runs/*/cancel",
                                 "/api/v1/agents/runs/*/retry"
                         ).hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_INVOKE)
@@ -152,11 +161,14 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/agents/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_DELETE)
                         .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/submit").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_SUBMIT)
                         .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/grade").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/return").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/me/detail").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_READ)
                         .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/*/detail").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .pathMatchers(HttpMethod.PUT, "/api/v1/assessments/homeworks/*/submissions/*/answers/*/grade").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .pathMatchers(HttpMethod.DELETE, "/api/v1/assessments/homeworks/*/questions/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
+                        .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/questions/*/attachments").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
+                        .pathMatchers(HttpMethod.DELETE, "/api/v1/assessments/homeworks/*/questions/*/attachments/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/submissions/*/grade-history").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_GRADE)
                         .pathMatchers(HttpMethod.GET, "/api/v1/assessments/homeworks/*/recipients").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
                         .pathMatchers(HttpMethod.POST, "/api/v1/assessments/homeworks/*/publish", "/api/v1/assessments/homeworks/*/close").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)

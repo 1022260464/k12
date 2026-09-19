@@ -7,6 +7,7 @@ import com.k12.platform.assessment.dto.HomeworkGradeRequest;
 import com.k12.platform.assessment.dto.HomeworkRecipientsRequest;
 import com.k12.platform.assessment.dto.HomeworkRequest;
 import com.k12.platform.assessment.dto.HomeworkResponse;
+import com.k12.platform.assessment.dto.HomeworkReturnRequest;
 import com.k12.platform.assessment.dto.HomeworkSubmissionResponse;
 import com.k12.platform.assessment.dto.HomeworkSubmitRequest;
 import com.k12.platform.assessment.dto.SubmissionPageResponse;
@@ -38,6 +39,10 @@ public class HomeworkService {
     private static final String DRAFT = "DRAFT";
     private static final String PUBLISHED = "PUBLISHED";
     private static final String CLOSED = "CLOSED";
+    private static final String SUBMISSION_SUBMITTED = "SUBMITTED";
+    private static final String SUBMISSION_PENDING = "PENDING_GRADING";
+    private static final String SUBMISSION_GRADED = "GRADED";
+    private static final String SUBMISSION_RETURNED = "RETURNED";
 
     private final HomeworkMapper homeworkMapper;
     private final HomeworkSubmissionMapper submissionMapper;
@@ -149,6 +154,10 @@ public class HomeworkService {
         if (homeworkMapper.countRecipients(homeworkId) == 0) {
             throw new IllegalArgumentException("发布前必须至少设置一个学生接收人");
         }
+        if ((homework.getDescription() == null || homework.getDescription().isBlank())
+                && homeworkMapper.countQuestions(homeworkId) == 0) {
+            throw new IllegalArgumentException("发布前请填写作业说明或至少添加一道题目");
+        }
         homework.setStatus(PUBLISHED);
         homeworkMapper.updateById(homework);
         return toResponse(homeworkMapper.selectById(homeworkId));
@@ -174,13 +183,29 @@ public class HomeworkService {
         if (!isAdmin() && !homeworkMapper.isRecipient(homeworkId, studentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前学生不是该作业接收人");
         }
-        if (submissionMapper.findByHomeworkAndStudent(homeworkId, studentUserId) != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "该作业已经提交，不能重复提交");
-        }
         boolean hasText = request.answerContent() != null && !request.answerContent().isBlank();
         boolean hasStructuredAnswers = request.answers() != null && !request.answers().isEmpty();
         if (!hasText && !hasStructuredAnswers) {
             throw new IllegalArgumentException("answerContent 和 answers 至少填写一项");
+        }
+
+        HomeworkSubmission existing = submissionMapper.findByHomeworkAndStudent(homeworkId, studentUserId);
+        if (existing != null) {
+            if (!SUBMISSION_RETURNED.equals(existing.getStatus())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "该作业已经提交，不能重复提交");
+            }
+            HomeworkSubmission locked = submissionMapper.selectForUpdate(existing.getId());
+            locked.setAnswerContent(hasText ? request.answerContent().trim() : "[STRUCTURED_ANSWERS]");
+            locked.setScore(null);
+            locked.setGradedBy(null);
+            locked.setGradedTime(null);
+            locked.setVersion(locked.getVersion() == null ? 1 : locked.getVersion() + 1);
+            locked.setStatus(SUBMISSION_SUBMITTED);
+            locked.setSubmittedTime(java.time.Instant.now());
+            // 退回原因保留到重新提交前；重提后写入新反馈前先清空，避免与旧退回语混淆
+            locked.setFeedback(null);
+            submissionAnswerService.replaceSubmittedAnswers(locked, request.answers());
+            return toSubmissionResponse(submissionMapper.selectById(locked.getId()));
         }
 
         HomeworkSubmission submission = new HomeworkSubmission();
@@ -188,10 +213,53 @@ public class HomeworkService {
         submission.setStudentUserId(studentUserId);
         submission.setCourseId(homework.getCourseId());
         submission.setAnswerContent(hasText ? request.answerContent().trim() : "[STRUCTURED_ANSWERS]");
-        submission.setStatus("SUBMITTED");
+        submission.setStatus(SUBMISSION_SUBMITTED);
         submission.setVersion(0);
         submissionMapper.insert(submission);
         submissionAnswerService.saveSubmittedAnswers(submission, request.answers());
+        return toSubmissionResponse(submissionMapper.selectById(submission.getId()));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.HOMEWORK_GRADE + "')")
+    public HomeworkSubmissionResponse returnSubmission(Long homeworkId, HomeworkReturnRequest request) {
+        Homework homework = requireLockedHomework(homeworkId);
+        requireOwnerOrAdmin(homework);
+        if (DRAFT.equals(homework.getStatus())) {
+            throw new IllegalArgumentException("草稿作业不能退回");
+        }
+        HomeworkSubmission found = submissionMapper.findByHomeworkAndStudent(homeworkId, request.studentUserId());
+        if (found == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "未找到该学生的提交记录");
+        }
+        HomeworkSubmission submission = submissionMapper.selectForUpdate(found.getId());
+        if (!java.util.Objects.equals(submission.getVersion(), request.expectedVersion())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "提交记录已被其他请求修改，请刷新后重试");
+        }
+        if (SUBMISSION_RETURNED.equals(submission.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该提交已退回，等待学生重新提交");
+        }
+        if (!java.util.Set.of(SUBMISSION_SUBMITTED, SUBMISSION_PENDING, SUBMISSION_GRADED).contains(submission.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "当前状态不可退回");
+        }
+
+        String note = trimToNull(request.feedback());
+        submission.setStatus(SUBMISSION_RETURNED);
+        submission.setFeedback(note == null ? "请按教师意见修改后重新提交" : note);
+        submission.setScore(null);
+        submission.setGradedBy(K12SecurityContext.requireUserId());
+        submission.setGradedTime(java.time.Instant.now());
+        submission.setVersion(submission.getVersion() == null ? 1 : submission.getVersion() + 1);
+        submissionMapper.updateById(submission);
+
+        HomeworkGradeHistory history = new HomeworkGradeHistory();
+        history.setSubmissionId(submission.getId());
+        history.setVersion(submission.getVersion());
+        history.setScore(null);
+        history.setFeedback("退回重做" + (note == null ? "" : "：" + note));
+        history.setGradedBy(submission.getGradedBy());
+        history.setGradedTime(submission.getGradedTime());
+        gradeHistoryMapper.insert(history);
         return toSubmissionResponse(submissionMapper.selectById(submission.getId()));
     }
 

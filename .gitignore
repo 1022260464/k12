@@ -58,3 +58,11 @@ Thumbs.db
 
 # Third-party runtime source and installed Piston language packages
 /deploy/piston-runtime/
+
+# Local scratch / one-off DB checks (never commit; may contain secrets)
+/tmp-db-query/
+/tmp/
+/output/
+
+# Generated demo lecture PDFs (run scripts/generate_formal_material_pdfs.py)
+ai-services/k12-agent-runtime/data/formal_materials/*.pdf

@@ -77,6 +77,20 @@ CREATE TABLE IF NOT EXISTS learning_course_chapter (
     CONSTRAINT fk_chapter_course FOREIGN KEY (course_id) REFERENCES learning_course(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS learning_course_section (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    chapter_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(128) NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_section_chapter_order (chapter_id, deleted, sort_order, id),
+    CONSTRAINT fk_section_chapter FOREIGN KEY (chapter_id) REFERENCES learning_course_chapter(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS learning_course_enrollment (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     course_id BIGINT UNSIGNED NOT NULL,
@@ -245,7 +259,7 @@ CREATE TABLE IF NOT EXISTS assessment_homework_grade_history (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Grade history primary key',
     submission_id BIGINT UNSIGNED NOT NULL COMMENT 'Submission ID',
     version INT UNSIGNED NOT NULL COMMENT 'Submission version after grading',
-    score DECIMAL(5,2) NOT NULL COMMENT 'Score snapshot',
+    score DECIMAL(5,2) NULL DEFAULT NULL COMMENT 'Score snapshot; NULL when returned for redo',
     feedback VARCHAR(2000) DEFAULT NULL COMMENT 'Feedback snapshot',
     graded_by BIGINT UNSIGNED NOT NULL COMMENT 'Logical reference to grader user ID',
     graded_time DATETIME(3) NOT NULL COMMENT 'Grade time snapshot',
@@ -256,7 +270,7 @@ CREATE TABLE IF NOT EXISTS assessment_homework_grade_history (
         FOREIGN KEY (submission_id) REFERENCES assessment_homework_submission (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
-    CONSTRAINT chk_grade_history_score CHECK (score BETWEEN 0 AND 100)
+    CONSTRAINT chk_grade_history_score CHECK (score IS NULL OR (score BETWEEN 0 AND 100))
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
@@ -282,6 +296,21 @@ CREATE TABLE IF NOT EXISTS assessment_homework_question (
     CONSTRAINT chk_assessment_question_score CHECK (score > 0 AND score <= 100)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
   COMMENT = 'Homework questions';
+
+CREATE TABLE IF NOT EXISTS assessment_question_attachment (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    question_id BIGINT UNSIGNED NOT NULL,
+    object_key VARCHAR(500) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    size_bytes BIGINT UNSIGNED NOT NULL,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    deleted TINYINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_question_attachment (question_id, deleted, id),
+    CONSTRAINT fk_question_attachment_question FOREIGN KEY (question_id)
+        REFERENCES assessment_homework_question (id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS assessment_question_option (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Option primary key',

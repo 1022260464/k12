@@ -2,6 +2,7 @@ package com.k12.platform.agent.service;
 
 import com.k12.platform.agent.client.AssessmentLearningResultClient;
 import com.k12.platform.agent.client.IamLearningProfileClient;
+import com.k12.platform.agent.client.KnowledgeGraphClient;
 import com.k12.platform.agent.client.LearningHistoryClient;
 import com.k12.platform.agent.client.dto.CourseLearningSummaryResponse;
 import com.k12.platform.agent.client.dto.LearnerProfileResponse;
@@ -35,6 +36,8 @@ class LearnerContextEnricherTest {
     private LearningHistoryClient learningHistoryClient;
     @Mock
     private AssessmentLearningResultClient learningResultClient;
+    @Mock
+    private KnowledgeGraphClient knowledgeGraphClient;
 
     @Test
     @DisplayName("服务端画像覆盖前端字段，并从低分作业生成安全的薄弱点")
@@ -77,7 +80,7 @@ class LearnerContextEnricherTest {
         ));
 
         LearnerContextEnricher enricher = new LearnerContextEnricher(
-                profileClient, learningHistoryClient, learningResultClient);
+                profileClient, learningHistoryClient, learningResultClient, knowledgeGraphClient);
         Map<String, Object> context = enricher.enrich(
                 "teaching-assistant",
                 42L,
@@ -115,7 +118,7 @@ class LearnerContextEnricherTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> personalization = (Map<String, Object>) context.get("personalization");
         assertThat(personalization)
-                .containsEntry("schemaVersion", "1.0")
+                .containsEntry("schemaVersion", "1.1")
                 .containsEntry("trustedUserId", 42L)
                 .containsEntry("profileStatus", "LOADED")
                 .containsEntry("learningHistoryStatus", "LOADED")
@@ -132,7 +135,7 @@ class LearnerContextEnricherTest {
                 .thenThrow(new IllegalStateException("assessment unavailable"));
 
         LearnerContextEnricher enricher = new LearnerContextEnricher(
-                profileClient, learningHistoryClient, learningResultClient);
+                profileClient, learningHistoryClient, learningResultClient, knowledgeGraphClient);
         Map<String, Object> context = enricher.enrich(
                 "teaching-assistant",
                 42L,
@@ -156,7 +159,7 @@ class LearnerContextEnricherTest {
                 new PracticeAttemptSummaryResponse("排序小测", 10, 20, 1, 2, "相邻比较需要复习")
         )));
         LearnerContextEnricher enricher = new LearnerContextEnricher(
-                profileClient, learningHistoryClient, learningResultClient);
+                profileClient, learningHistoryClient, learningResultClient, knowledgeGraphClient);
 
         Map<String, Object> context = enricher.enrich("teaching-assistant", 42L, Map.of());
 
@@ -176,7 +179,7 @@ class LearnerContextEnricherTest {
                 new KnowledgeMasterySummaryResponse("sorting.bubble_sort", "冒泡排序", 2, 45, 30, "REVIEW")
         )));
         LearnerContextEnricher enricher = new LearnerContextEnricher(
-                profileClient, learningHistoryClient, learningResultClient);
+                profileClient, learningHistoryClient, learningResultClient, knowledgeGraphClient);
 
         Map<String, Object> context = enricher.enrich("teaching-assistant", 42L, Map.of());
 
@@ -187,13 +190,53 @@ class LearnerContextEnricherTest {
                 .containsEntry("knowledgeCode", "sorting.bubble_sort")
                 .containsEntry("masteryPercent", 45)
                 .doesNotContainKeys("studentUserId", "answersJson", "correctOptionId"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> personalization = (Map<String, Object>) context.get("personalization");
+        // 无提问文本时不拿「最弱掌握度」当图谱焦点
+        assertThat(personalization).containsEntry("knowledgeGraphStatus", "SKIPPED");
+    }
+
+    @Test
+    @DisplayName("按学生提问解析图谱焦点，并拉取对应 teaching-context")
+    void enrichesKnowledgeGraphFromInputText() {
+        when(learningResultClient.getCurrentKnowledgeMastery()).thenReturn(ApiResponse.ok(List.of(
+                new KnowledgeMasterySummaryResponse("sorting.bubble_sort", "冒泡排序", 2, 20, 30, "REVIEW")
+        )));
+        when(knowledgeGraphClient.teachingContext(org.mockito.ArgumentMatchers.argThat(req ->
+                req != null && "data_literacy.what_is_data".equals(req.focusCode())
+        ))).thenReturn(ApiResponse.ok(Map.of(
+                "enabled", true,
+                "ready", true,
+                "focusCode", "data_literacy.what_is_data",
+                "focusTitle", "什么是数据",
+                "explains", List.of(Map.of("title", "讲义 · 什么是数据", "documentId", "formal-demo-doc-what-is-data")),
+                "prerequisiteGaps", List.of(),
+                "nextTopics", List.of(),
+                "neighbors", List.of()
+        )));
+        LearnerContextEnricher enricher = new LearnerContextEnricher(
+                profileClient, learningHistoryClient, learningResultClient, knowledgeGraphClient);
+
+        Map<String, Object> context = enricher.enrich(
+                "teaching-assistant", 42L, Map.of(), "什么是数据？举个生活例子");
+
+        assertThat(context.get("focusCode")).isEqualTo("data_literacy.what_is_data");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> graph = (Map<String, Object>) context.get("knowledgeGraph");
+        assertThat(graph)
+                .containsEntry("ready", true)
+                .containsEntry("focusCode", "data_literacy.what_is_data");
+        assertThat(context.get("knownWeakPoints")).isEqualTo(List.of("冒泡排序"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> personalization = (Map<String, Object>) context.get("personalization");
+        assertThat(personalization).containsEntry("knowledgeGraphStatus", "LOADED");
     }
 
     @Test
     @DisplayName("非教学智能体不调用画像和成绩服务")
     void skipsPersonalizationForOtherAgents() {
         LearnerContextEnricher enricher = new LearnerContextEnricher(
-                profileClient, learningHistoryClient, learningResultClient);
+                profileClient, learningHistoryClient, learningResultClient, knowledgeGraphClient);
 
         Map<String, Object> context = enricher.enrich("demo-chart", 42L, Map.of("week", 1));
 

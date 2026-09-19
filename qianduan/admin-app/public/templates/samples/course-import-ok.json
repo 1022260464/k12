@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "courses": [
+    {
+      "title": "Python 入门体验课",
+      "subject": "信息技术",
+      "gradeLevel": "初中",
+      "description": "JSON 导入测试用：含 2 章 3 小节，可直接发布前补封面。",
+      "chapters": [
+        {
+          "title": "第一章 认识 Python",
+          "content": "## 本章导语\n\n了解 Python 是什么，以及为什么适合初学。\n\n- 简单易读\n- 应用广泛",
+          "sortOrder": 1,
+          "sections": [
+            {
+              "title": "1.1 什么是 Python",
+              "content": "Python 是一种**高级编程语言**。\n\n常见用途：\n1. 数据分析\n2. 网页开发\n3. 人工智能入门",
+              "sortOrder": 1
+            },
+            {
+              "title": "1.2 安装与运行",
+              "content": "安装解释器后，可在终端运行：\n\n```\npython --version\n```\n\n看到版本号即表示安装成功。",
+              "sortOrder": 2
+            }
+          ]
+        },
+        {
+          "title": "第二章 第一个程序",
+          "content": "写出第一行输出语句，感受程序执行过程。",
+          "sortOrder": 2,
+          "sections": [
+            {
+              "title": "2.1 Hello World",
+              "content": "在编辑器中输入：\n\n```python\nprint(\"你好，Python\")\n```\n\n运行后应看到输出文字。",
+              "sortOrder": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "生活中的人工智能",
+      "subject": "人工智能",
+      "gradeLevel": "小学",
+      "description": "第二门课：用于测试一次导入多门课程。",
+      "chapters": [
+        {
+          "title": "身边的 AI",
+          "content": "语音助手、推荐系统都是 AI 的应用。",
+          "sortOrder": 1,
+          "sections": [
+            {
+              "title": "举例子",
+              "content": "想一想：家里或学校里哪些设备用到了人工智能？写下 2 个例子。",
+              "sortOrder": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

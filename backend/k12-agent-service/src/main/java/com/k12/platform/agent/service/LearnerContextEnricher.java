@@ -2,8 +2,10 @@ package com.k12.platform.agent.service;
 
 import com.k12.platform.agent.client.AssessmentLearningResultClient;
 import com.k12.platform.agent.client.IamLearningProfileClient;
+import com.k12.platform.agent.client.KnowledgeGraphClient;
 import com.k12.platform.agent.client.LearningHistoryClient;
 import com.k12.platform.agent.client.dto.CourseLearningSummaryResponse;
+import com.k12.platform.agent.client.dto.KnowledgeRecommendRequest;
 import com.k12.platform.agent.client.dto.LearnerProfileResponse;
 import com.k12.platform.agent.client.dto.LearningHistoryResponse;
 import com.k12.platform.agent.client.dto.LearningResultPageResponse;
@@ -43,18 +45,30 @@ public class LearnerContextEnricher {
     private final IamLearningProfileClient profileClient;
     private final LearningHistoryClient learningHistoryClient;
     private final AssessmentLearningResultClient learningResultClient;
+    private final KnowledgeGraphClient knowledgeGraphClient;
 
     public LearnerContextEnricher(
             IamLearningProfileClient profileClient,
             LearningHistoryClient learningHistoryClient,
-            AssessmentLearningResultClient learningResultClient
+            AssessmentLearningResultClient learningResultClient,
+            KnowledgeGraphClient knowledgeGraphClient
     ) {
         this.profileClient = profileClient;
         this.learningHistoryClient = learningHistoryClient;
         this.learningResultClient = learningResultClient;
+        this.knowledgeGraphClient = knowledgeGraphClient;
     }
 
     public Map<String, Object> enrich(String agentCode, Long userId, Map<String, Object> requestContext) {
+        return enrich(agentCode, userId, requestContext, null);
+    }
+
+    /**
+     * @param inputText 本轮学生提问；用于在 Runtime 定题前选定图谱 focus，避免落到「掌握度最弱」的无关知识点。
+     */
+    public Map<String, Object> enrich(
+            String agentCode, Long userId, Map<String, Object> requestContext, String inputText
+    ) {
         Map<String, Object> context = requestContext == null
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(requestContext);
@@ -63,13 +77,14 @@ public class LearnerContextEnricher {
         }
 
         Map<String, Object> personalization = new LinkedHashMap<>();
-        personalization.put("schemaVersion", "1.0");
+        personalization.put("schemaVersion", "1.1");
         personalization.put("trustedUserId", userId);
         personalization.put("profileStatus", enrichProfile(context, userId));
         personalization.put("learningHistoryStatus", enrichLearningHistory(context));
         personalization.put("performanceStatus", enrichPerformance(context));
         personalization.put("practiceStatus", enrichPractice(context));
         personalization.put("masteryStatus", enrichMastery(context));
+        personalization.put("knowledgeGraphStatus", enrichKnowledgeGraph(context, inputText));
         context.put("personalization", personalization);
         return context;
     }
@@ -236,6 +251,58 @@ public class LearnerContextEnricher {
             log.warn("读取知识点掌握度失败，教学 Agent 将降级，error={}", exception.getClass().getSimpleName());
             return "UNAVAILABLE";
         }
+    }
+
+    private String enrichKnowledgeGraph(Map<String, Object> context, String inputText) {
+        context.put("knowledgeGraph", Map.of("enabled", false, "ready", false));
+        String focusCode = resolveFocusCode(context, inputText);
+        if (!StringUtils.hasText(focusCode)) {
+            return "SKIPPED";
+        }
+        // 写入推断焦点，供 Runtime 与前端观测；不以掌握度最弱点冒充本轮主题。
+        context.put("focusCode", focusCode);
+        try {
+            List<KnowledgeRecommendRequest.MasteryHint> mastery = new ArrayList<>();
+            Object raw = context.get("knowledgeMastery");
+            if (raw instanceof List<?> list) {
+                for (Object item : list) {
+                    if (!(item instanceof Map<?, ?> map)) continue;
+                    Object code = map.get("knowledgeCode");
+                    Object percent = map.get("masteryPercent");
+                    if (code instanceof String text && StringUtils.hasText(text) && percent instanceof Number number) {
+                        mastery.add(new KnowledgeRecommendRequest.MasteryHint(text, number.intValue()));
+                    }
+                }
+            }
+            ApiResponse<Map<String, Object>> response = knowledgeGraphClient.teachingContext(
+                    new KnowledgeRecommendRequest(focusCode, mastery));
+            Map<String, Object> graph = requireSuccess(response);
+            if (graph == null) {
+                return "UNAVAILABLE";
+            }
+            context.put("knowledgeGraph", graph);
+            // 先修缺口只放在 knowledgeGraph 导航区，不再混入 knownWeakPoints，
+            // 避免「本轮重点关注」被其它主题的练习/掌握度文案刷屏。
+            return Boolean.TRUE.equals(graph.get("ready")) ? "LOADED" : "UNAVAILABLE";
+        } catch (RuntimeException exception) {
+            log.warn("读取知识图谱失败，教学 Agent 将降级，error={}", exception.getClass().getSimpleName());
+            return "UNAVAILABLE";
+        }
+    }
+
+    static String resolveFocusCode(Map<String, Object> context, String inputText) {
+        for (String key : List.of("topicCode", "knowledgeCode", "focusCode")) {
+            Object value = context.get(key);
+            if (value instanceof String text && StringUtils.hasText(text)) {
+                return text.trim();
+            }
+        }
+        String matched = TopicFocusMatcher.match(inputText);
+        if (StringUtils.hasText(matched)) {
+            return matched;
+        }
+        // 不再回退到「掌握度最低」：那会把排序薄弱点带到「什么是数据」等提问上。
+        return null;
     }
 
     private Map<String, Object> toSafePractice(PracticeAttemptSummaryResponse attempt) {

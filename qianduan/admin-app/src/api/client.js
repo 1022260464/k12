@@ -25,7 +25,7 @@ export async function api(path, options = {}) {
   const response = await fetch(path, {
     ...fetchOptions,
     headers: {
-      "Content-Type": "application/json",
+      ...(fetchOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(!publicRequest && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
       ...options.headers,
     },
@@ -78,6 +78,7 @@ export const usersApi = {
     method: "POST",
     body: JSON.stringify({ userIds }),
   }),
+  students: () => api("/api/v1/iam/users/students"),
 };
 
 export const rolesApi = {
@@ -89,10 +90,14 @@ export const rolesApi = {
 };
 
 export const coursesApi = {
+  importBatch: (file) => { const body = new FormData(); body.append("file", file); return api("/api/v1/learning/courses/import", { method: "POST", body }); },
   list: () => api("/api/v1/learning/courses"),
   page: (filters = {}) => api(`/api/v1/learning/courses/page?${query(filters)}`),
   get: (id) => api(`/api/v1/learning/courses/${id}`),
   create: (body) => api("/api/v1/learning/courses", { method: "POST", body: JSON.stringify(body) }),
+  uploadCover: (id, file) => { const body = new FormData(); body.append("file", file); return api(`/api/v1/learning/courses/${id}/cover`, { method: "POST", body }); },
+  uploadContentImage: (id, file) => { const body = new FormData(); body.append("file", file); return api(`/api/v1/learning/courses/${id}/content-images`, { method: "POST", body }); },
+  publish: (id) => api(`/api/v1/learning/courses/${id}/publish`, { method: "POST" }),
   update: (id, body) => api(`/api/v1/learning/courses/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   remove: (id) => api(`/api/v1/learning/courses/${id}`, { method: "DELETE" }),
   chapters: (courseId) => api(`/api/v1/learning/courses/${courseId}/chapters`),
@@ -100,6 +105,52 @@ export const coursesApi = {
   createChapter: (courseId, body) => api(`/api/v1/learning/courses/${courseId}/chapters`, { method: "POST", body: JSON.stringify(body) }),
   updateChapter: (courseId, chapterId, body) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`, { method: "PUT", body: JSON.stringify(body) }),
   removeChapter: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`, { method: "DELETE" }),
+  chapterCovers: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/covers`),
+  replaceChapterCovers: (courseId, chapterId, knowledgeCodes) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/covers`, {
+    method: "PUT",
+    body: JSON.stringify({ knowledgeCodes }),
+  }),
+  sections: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections`),
+  section: (courseId, chapterId, sectionId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`),
+  createSection: (courseId, chapterId, body) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections`, { method: "POST", body: JSON.stringify(body) }),
+  updateSection: (courseId, chapterId, sectionId, body) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`, { method: "PUT", body: JSON.stringify(body) }),
+  removeSection: (courseId, chapterId, sectionId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`, { method: "DELETE" }),
+  attachments: (courseId) => api(`/api/v1/learning/courses/${courseId}/attachments`),
+  chapterAttachments: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/attachments`),
+};
+
+export const teachingResourcesApi = {
+  page: (filters = {}) => api(`/api/v1/learning/teaching-resources?${query(filters)}`),
+  get: (id) => api(`/api/v1/learning/teaching-resources/${id}`),
+  upload: (metadata, file) => {
+    const body = new FormData();
+    body.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+    body.append("file", file);
+    return api("/api/v1/learning/teaching-resources", { method: "POST", body });
+  },
+  update: (id, metadata) => api(`/api/v1/learning/teaching-resources/${id}`, { method: "PUT", body: JSON.stringify(metadata) }),
+  submit: (id) => api(`/api/v1/learning/teaching-resources/${id}/submit`, { method: "POST" }),
+  approve: (id, note) => api(`/api/v1/learning/teaching-resources/${id}/approve`, { method: "POST", body: JSON.stringify({ note }) }),
+  reject: (id, note) => api(`/api/v1/learning/teaching-resources/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) }),
+  publish: (id) => api(`/api/v1/learning/teaching-resources/${id}/publish`, { method: "POST" }),
+  index: (id) => api(`/api/v1/learning/teaching-resources/${id}/index`, { method: "POST" }),
+  syncGraph: (id) => api(`/api/v1/learning/teaching-resources/${id}/sync-graph`, { method: "POST" }),
+  withdraw: (id) => api(`/api/v1/learning/teaching-resources/${id}/withdraw`, { method: "POST" }),
+  download: (id) => api(`/api/v1/learning/teaching-resources/${id}/download-url`),
+  events: (id) => api(`/api/v1/learning/teaching-resources/${id}/events`),
+  reopen: (id) => api(`/api/v1/learning/teaching-resources/${id}/reopen`, { method: "POST" }),
+};
+
+export const knowledgeGraphApi = {
+  status: () => api("/api/v1/learning/knowledge-graph/status"),
+  overview: () => api("/api/v1/learning/knowledge-graph/overview"),
+  points: (filters = {}) => api(`/api/v1/learning/knowledge-graph/points?${query(filters)}`),
+  suggestCovers: (body) => api("/api/v1/learning/knowledge-graph/suggest-covers", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
+  seed: () => api("/api/v1/learning/knowledge-graph/admin/seed", { method: "POST" }),
+  neighbors: (code) => api(`/api/v1/learning/knowledge-graph/points/${encodeURIComponent(code)}/neighbors`),
 };
 
 export const agentsApi = {
@@ -117,6 +168,12 @@ export const agentsApi = {
 };
 
 export const homeworksApi = {
+  importQuestions: (id, file) => { const body = new FormData(); body.append("file", file); return api(`/api/v1/assessments/homeworks/${id}/questions/import`, { method: "POST", body }); },
+  questionAttachments: (id, questionId) => api(`/api/v1/assessments/homeworks/${id}/questions/${questionId}/attachments`),
+  attachmentSummary: (id) => api(`/api/v1/assessments/homeworks/${id}/attachments/summary`),
+  uploadQuestionAttachment: (id, questionId, file) => { const body = new FormData(); body.append("file", file); return api(`/api/v1/assessments/homeworks/${id}/questions/${questionId}/attachments`, { method: "POST", body }); },
+  deleteQuestionAttachment: (id, questionId, attachmentId) => api(`/api/v1/assessments/homeworks/${id}/questions/${questionId}/attachments/${attachmentId}`, { method: "DELETE" }),
+  questionAttachmentUrl: (id, questionId, attachmentId) => api(`/api/v1/assessments/homeworks/${id}/questions/${questionId}/attachments/${attachmentId}/download-url`),
   list: (page = 1, size = 50) => api(`/api/v1/assessments/homeworks?${query({ page, size })}`),
   get: (id) => api(`/api/v1/assessments/homeworks/${id}`),
   create: (body) => api("/api/v1/assessments/homeworks", { method: "POST", body: JSON.stringify(body) }),
@@ -129,6 +186,7 @@ export const homeworksApi = {
   submissions: (id, page = 1, size = 20) => api(`/api/v1/assessments/homeworks/${id}/submissions?${query({ page, size })}`),
   submissionDetail: (id, studentId) => api(`/api/v1/assessments/homeworks/${id}/submissions/${studentId}/detail`),
   grade: (id, body) => api(`/api/v1/assessments/homeworks/${id}/grade`, { method: "POST", body: JSON.stringify(body) }),
+  returnSubmission: (id, body) => api(`/api/v1/assessments/homeworks/${id}/return`, { method: "POST", body: JSON.stringify(body) }),
   gradeHistory: (id, studentId) => api(`/api/v1/assessments/homeworks/${id}/submissions/${studentId}/grade-history`),
   questions: (id) => api(`/api/v1/assessments/homeworks/${id}/questions`),
   createQuestion: (id, body) => api(`/api/v1/assessments/homeworks/${id}/questions`, { method: "POST", body: JSON.stringify(body) }),

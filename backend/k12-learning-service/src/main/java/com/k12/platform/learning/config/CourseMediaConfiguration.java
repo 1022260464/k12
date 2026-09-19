@@ -28,7 +28,7 @@ public class CourseMediaConfiguration {
             throw new IllegalStateException("启用课程MinIO素材后必须配置访问密钥");
         }
         MinioClient client = MinioClient.builder()
-                .endpoint(properties.getEndpoint())
+                .endpoint(properties.resolvePublicEndpoint())
                 .credentials(properties.getAccessKey(), properties.getSecretKey())
                 .build();
         int expirySeconds = Math.toIntExact(properties.getUrlTtl().toSeconds());

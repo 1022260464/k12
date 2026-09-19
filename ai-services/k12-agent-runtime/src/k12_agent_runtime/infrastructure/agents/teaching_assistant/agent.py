@@ -41,33 +41,43 @@ class TeachingAssistantAgent:
 
     @property
     def description(self) -> str:
-        return "根据学段调整 AI 通识讲解方式，并生成安全的交互动画产物。"
+        return "按学段讲解 AI 通识主题，并展示结构化步骤或固定答案的练习。"
 
     async def invoke(self, run_input: AgentRunInput) -> AgentRunResult:
         initial_state: TeachingAssistantState = {"run_input": run_input}
         final_state = await self._graph.ainvoke(initial_state)
 
-        artifacts = (
-            AgentArtifact(
-                artifact_id=str(uuid4()),
-                kind=AgentArtifactKind.ANIMATION,
-                mime_type="application/vnd.k12.animation.v1+json",
-                title=final_state["animation_payload"]["title"],
-                payload=final_state["animation_payload"],
-            ),
-            AgentArtifact(
-                artifact_id=str(uuid4()),
-                kind=AgentArtifactKind.GAME,
-                mime_type="application/vnd.k12.quiz.v1+json",
-                title=final_state["quiz_payload"]["title"],
-                payload=final_state["quiz_payload"],
-            ),
-        )
+        artifacts: list[AgentArtifact] = []
+        if animation := final_state.get("animation_payload"):
+            mime_type = (
+                "application/vnd.k12.lesson-steps.v1+json"
+                if animation.get("animationType") == "lesson-steps"
+                else "application/vnd.k12.animation.v1+json"
+            )
+            artifacts.append(
+                AgentArtifact(
+                    artifact_id=str(uuid4()),
+                    kind=AgentArtifactKind.ANIMATION,
+                    mime_type=mime_type,
+                    title=animation["title"],
+                    payload=animation,
+                )
+            )
+        if quiz := final_state.get("quiz_payload"):
+            artifacts.append(
+                AgentArtifact(
+                    artifact_id=str(uuid4()),
+                    kind=AgentArtifactKind.GAME,
+                    mime_type="application/vnd.k12.quiz.v1+json",
+                    title=quiz["title"],
+                    payload=quiz,
+                )
+            )
         return AgentRunResult(
             run_id=run_input.run_id,
             agent_code=self.code,
             status=AgentRunStatus.SUCCEEDED,
             output_text=final_state["output_text"],
-            artifacts=artifacts,
+            artifacts=tuple(artifacts),
             metadata=final_state["metadata"],
         )

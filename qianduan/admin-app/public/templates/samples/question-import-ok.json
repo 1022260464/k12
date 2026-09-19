@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "type": "SINGLE_CHOICE",
+      "stem": "下列哪一项属于编程语言？",
+      "score": 10,
+      "sortOrder": 1,
+      "options": [
+        { "key": "A", "content": "Python", "sortOrder": 1 },
+        { "key": "B", "content": "Excel 表格", "sortOrder": 2 },
+        { "key": "C", "content": "Word 文档", "sortOrder": 3 },
+        { "key": "D", "content": "计算器", "sortOrder": 4 }
+      ],
+      "correctAnswers": ["A"],
+      "referenceAnswer": null,
+      "analysis": "Python 是编程语言，其余不是。"
+    },
+    {
+      "type": "MULTIPLE_CHOICE",
+      "stem": "以下哪些是良好的学习习惯？（多选）",
+      "score": 15,
+      "sortOrder": 2,
+      "options": [
+        { "key": "A", "content": "先理解再练习", "sortOrder": 1 },
+        { "key": "B", "content": "只看答案不思考", "sortOrder": 2 },
+        { "key": "C", "content": "及时复习错题", "sortOrder": 3 },
+        { "key": "D", "content": "完全依赖抄袭", "sortOrder": 4 }
+      ],
+      "correctAnswers": ["A", "C"],
+      "referenceAnswer": null,
+      "analysis": "理解练习与复习错题有助于掌握知识。"
+    },
+    {
+      "type": "TRUE_FALSE",
+      "stem": "变量可以用来保存程序运行过程中的数据。",
+      "score": 5,
+      "sortOrder": 3,
+      "options": null,
+      "correctAnswers": ["TRUE"],
+      "referenceAnswer": null,
+      "analysis": "变量的作用就是存储数据。"
+    },
+    {
+      "type": "SHORT_ANSWER",
+      "stem": "请用一句话说明什么是算法。",
+      "score": 20,
+      "sortOrder": 4,
+      "options": null,
+      "correctAnswers": null,
+      "referenceAnswer": "算法是解决问题的有限步骤或规则。",
+      "analysis": "强调步骤清晰、可执行、有穷。"
+    }
+  ]
+}

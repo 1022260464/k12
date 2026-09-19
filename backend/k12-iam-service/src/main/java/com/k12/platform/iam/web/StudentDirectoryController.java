@@ -5,6 +5,9 @@ import com.k12.platform.common.contract.iam.StudentValidationRequest;
 import com.k12.platform.common.contract.iam.StudentValidationResponse;
 import com.k12.platform.iam.service.StudentDirectoryService;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import com.k12.platform.iam.dto.StudentDirectoryEntry;
+import java.util.List;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +20,11 @@ public class StudentDirectoryController {
 
     public StudentDirectoryController(StudentDirectoryService studentDirectoryService) {
         this.studentDirectoryService = studentDirectoryService;
+    }
+
+    @GetMapping
+    public ApiResponse<List<StudentDirectoryEntry>> listActiveStudents() {
+        return ApiResponse.ok(studentDirectoryService.listActiveStudents());
     }
 
     @PostMapping("/validate")

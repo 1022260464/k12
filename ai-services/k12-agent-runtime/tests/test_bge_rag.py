@@ -37,6 +37,16 @@ def test_bge_embedder_returns_domain_batch() -> None:
     assert result.vectors == ((1.0, 0.0), (0.6, 0.8))
 
 
+def test_is_cuda_oom_detects_torch_error() -> None:
+    from k12_agent_runtime.infrastructure.rag.bge import _is_cuda_oom
+
+    class OutOfMemoryError(RuntimeError):
+        pass
+
+    assert _is_cuda_oom(OutOfMemoryError("CUDA out of memory. Tried to allocate 20.00 MiB"))
+    assert not _is_cuda_oom(ValueError("Unrecognized processing class"))
+
+
 def test_bge_reranker_sorts_and_limits_candidates() -> None:
     def score(_query: str, texts: tuple[str, ...]) -> list[float]:
         assert len(texts) == 3

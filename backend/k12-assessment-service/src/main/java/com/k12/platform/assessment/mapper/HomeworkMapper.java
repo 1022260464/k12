@@ -35,6 +35,8 @@ public interface HomeworkMapper extends BaseMapper<Homework> {
 
     long countRecipients(@Param("homeworkId") Long homeworkId);
 
+    long countQuestions(@Param("homeworkId") Long homeworkId);
+
     boolean isRecipient(@Param("homeworkId") Long homeworkId, @Param("studentUserId") Long studentUserId);
 
     long countSubmissions(@Param("homeworkId") Long homeworkId);

@@ -5,6 +5,7 @@ import com.k12.platform.assessment.dto.HomeworkGradeRequest;
 import com.k12.platform.assessment.dto.HomeworkRecipientsRequest;
 import com.k12.platform.assessment.dto.HomeworkRequest;
 import com.k12.platform.assessment.dto.HomeworkResponse;
+import com.k12.platform.assessment.dto.HomeworkReturnRequest;
 import com.k12.platform.assessment.dto.HomeworkSubmissionResponse;
 import com.k12.platform.assessment.dto.HomeworkSubmitRequest;
 import com.k12.platform.assessment.mapper.HomeworkGradeHistoryMapper;
@@ -165,12 +166,26 @@ class HomeworkServiceTest {
         Homework homework = homework("DRAFT", TEACHER_ID);
         when(homeworkMapper.selectForUpdate(HOMEWORK_ID)).thenReturn(homework);
         when(homeworkMapper.countRecipients(HOMEWORK_ID)).thenReturn(1L);
+        when(homeworkMapper.countQuestions(HOMEWORK_ID)).thenReturn(1L);
         when(homeworkMapper.selectById(HOMEWORK_ID)).thenAnswer(invocation -> homework);
 
         HomeworkResponse response = homeworkService.publish(HOMEWORK_ID);
 
         assertThat(response.status()).isEqualTo("PUBLISHED");
         verify(homeworkMapper).updateById(homework);
+    }
+
+    @Test
+    @DisplayName("无说明且无题目的草稿不能发布")
+    void shouldRejectEmptyHomework() {
+        when(homeworkMapper.selectForUpdate(HOMEWORK_ID)).thenReturn(homework("DRAFT", TEACHER_ID));
+        when(homeworkMapper.countRecipients(HOMEWORK_ID)).thenReturn(1L);
+        when(homeworkMapper.countQuestions(HOMEWORK_ID)).thenReturn(0L);
+
+        assertThatThrownBy(() -> homeworkService.publish(HOMEWORK_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("作业说明或至少添加一道题目");
+        verify(homeworkMapper, never()).updateById(any(Homework.class));
     }
 
     @Test
@@ -263,6 +278,38 @@ class HomeworkServiceTest {
         assertThat(response.score()).isEqualByComparingTo("95.50");
         assertThat(historyCaptor.getValue().getVersion()).isEqualTo(1);
         assertThat(historyCaptor.getValue().getGradedBy()).isEqualTo(TEACHER_ID);
+    }
+
+    @Test
+    @DisplayName("退回重做时清空分数并写入 score 为 null 的历史")
+    void shouldReturnSubmissionAndCreateHistoryWithoutScore() {
+        authenticate(TEACHER_ID, "teacher10", K12Authorities.HOMEWORK_GRADE);
+        when(homeworkMapper.selectForUpdate(HOMEWORK_ID)).thenReturn(homework("PUBLISHED", TEACHER_ID));
+        HomeworkSubmission original = submission(40L, 1);
+        original.setScore(new BigDecimal("88"));
+        when(submissionMapper.findByHomeworkAndStudent(HOMEWORK_ID, STUDENT_ID)).thenReturn(original);
+        when(submissionMapper.selectForUpdate(40L)).thenReturn(original);
+        when(submissionMapper.selectById(40L)).thenAnswer(invocation -> {
+            HomeworkSubmission current = submission(40L, 2);
+            current.setStatus("RETURNED");
+            current.setFeedback("请补充步骤");
+            current.setScore(null);
+            current.setGradedBy(TEACHER_ID);
+            return current;
+        });
+
+        HomeworkSubmissionResponse response = homeworkService.returnSubmission(
+                HOMEWORK_ID,
+                new HomeworkReturnRequest(STUDENT_ID, "请补充步骤", 1)
+        );
+
+        ArgumentCaptor<HomeworkGradeHistory> historyCaptor = ArgumentCaptor.forClass(HomeworkGradeHistory.class);
+        verify(gradeHistoryMapper).insert(historyCaptor.capture());
+        assertThat(response.status()).isEqualTo("RETURNED");
+        assertThat(response.score()).isNull();
+        assertThat(historyCaptor.getValue().getScore()).isNull();
+        assertThat(historyCaptor.getValue().getFeedback()).contains("退回重做");
+        assertThat(historyCaptor.getValue().getVersion()).isEqualTo(2);
     }
 
     @Test

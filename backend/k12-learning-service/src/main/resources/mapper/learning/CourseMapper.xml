@@ -7,7 +7,8 @@
     <!-- 固定排序和绑定参数，不接收前端 SQL 字段名；LOCATE 将 % 和 _ 作为普通文本。 -->
     <select id="search" resultType="com.k12.platform.learning.model.Course">
         SELECT * FROM learning_course
-        WHERE deleted = 0 AND status = 1
+        WHERE deleted = 0
+        <if test="teacherId == null">AND status = 1</if>
         <if test="keyword != null">AND LOCATE(#{keyword}, title) &gt; 0</if>
         <if test="subject != null">AND subject = #{subject}</if>
         <if test="gradeLevel != null">AND grade_level = #{gradeLevel}</if>

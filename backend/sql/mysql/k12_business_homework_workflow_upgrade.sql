@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS assessment_homework_grade_history (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     submission_id BIGINT UNSIGNED NOT NULL,
     version INT UNSIGNED NOT NULL,
-    score DECIMAL(5,2) NOT NULL,
+    score DECIMAL(5,2) NULL DEFAULT NULL,
     feedback VARCHAR(2000) DEFAULT NULL,
     graded_by BIGINT UNSIGNED NOT NULL,
     graded_time DATETIME(3) NOT NULL,
@@ -79,5 +79,5 @@ CREATE TABLE IF NOT EXISTS assessment_homework_grade_history (
     KEY idx_grade_history_graded_by (graded_by, graded_time),
     CONSTRAINT fk_grade_history_submission FOREIGN KEY (submission_id)
         REFERENCES assessment_homework_submission (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT chk_grade_history_score CHECK (score BETWEEN 0 AND 100)
+    CONSTRAINT chk_grade_history_score CHECK (score IS NULL OR (score BETWEEN 0 AND 100))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
