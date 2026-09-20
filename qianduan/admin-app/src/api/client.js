@@ -1,3 +1,9 @@
+import {
+  clearKnowledgeGraphOverviewCache,
+  readKnowledgeGraphOverviewCache,
+  writeKnowledgeGraphOverviewCache,
+} from "../utils/knowledgeGraphCache.js";
+
 const SESSION_KEY = "k12-admin-session";
 
 export function getSession() {
@@ -106,10 +112,14 @@ export const coursesApi = {
   updateChapter: (courseId, chapterId, body) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`, { method: "PUT", body: JSON.stringify(body) }),
   removeChapter: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`, { method: "DELETE" }),
   chapterCovers: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/covers`),
-  replaceChapterCovers: (courseId, chapterId, knowledgeCodes) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/covers`, {
-    method: "PUT",
-    body: JSON.stringify({ knowledgeCodes }),
-  }),
+  replaceChapterCovers: async (courseId, chapterId, knowledgeCodes) => {
+    const result = await api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/covers`, {
+      method: "PUT",
+      body: JSON.stringify({ knowledgeCodes }),
+    });
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
   sections: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections`),
   section: (courseId, chapterId, sectionId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`),
   createSection: (courseId, chapterId, body) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections`, { method: "POST", body: JSON.stringify(body) }),
@@ -143,13 +153,75 @@ export const teachingResourcesApi = {
 
 export const knowledgeGraphApi = {
   status: () => api("/api/v1/learning/knowledge-graph/status"),
-  overview: () => api("/api/v1/learning/knowledge-graph/overview"),
+  overview: async ({ force = false } = {}) => {
+    if (!force) {
+      const cached = readKnowledgeGraphOverviewCache();
+      if (cached) return cached;
+    } else {
+      clearKnowledgeGraphOverviewCache();
+    }
+    const data = await api(`/api/v1/learning/knowledge-graph/overview${force ? "?refresh=true" : ""}`);
+    writeKnowledgeGraphOverviewCache(data);
+    return data;
+  },
   points: (filters = {}) => api(`/api/v1/learning/knowledge-graph/points?${query(filters)}`),
   suggestCovers: (body) => api("/api/v1/learning/knowledge-graph/suggest-covers", {
     method: "POST",
     body: JSON.stringify(body),
   }),
-  seed: () => api("/api/v1/learning/knowledge-graph/admin/seed", { method: "POST" }),
+  seed: async () => {
+    const result = await api("/api/v1/learning/knowledge-graph/admin/seed", { method: "POST" });
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  catalogInfo: () => api("/api/v1/learning/knowledge-graph/admin/catalog"),
+  reloadCatalog: async () => {
+    const result = await api("/api/v1/learning/knowledge-graph/admin/catalog/reload", { method: "POST" });
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  syncCatalog: async ({ reload = true } = {}) => {
+    const result = await api(
+      `/api/v1/learning/knowledge-graph/admin/catalog/sync?reload=${reload ? "true" : "false"}`,
+      { method: "POST" },
+    );
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  purgeDirty: async () => {
+    const result = await api("/api/v1/learning/knowledge-graph/admin/purge-dirty", { method: "POST" });
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  dirtyStatus: () => api("/api/v1/learning/knowledge-graph/admin/dirty-status"),
+  createPoint: async (body) => {
+    const result = await api("/api/v1/learning/knowledge-graph/admin/points", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  updatePoint: async (code, body) => {
+    const result = await api(`/api/v1/learning/knowledge-graph/admin/points/${encodeURIComponent(code)}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  deletePoint: async (code, { force = false } = {}) => {
+    const result = await api(
+      `/api/v1/learning/knowledge-graph/admin/points/${encodeURIComponent(code)}?force=${force ? "true" : "false"}`,
+      { method: "DELETE" },
+    );
+    clearKnowledgeGraphOverviewCache();
+    return result;
+  },
+  reviewAlignment: (body) => api("/api/v1/learning/knowledge-graph/admin/review-alignment", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
   neighbors: (code) => api(`/api/v1/learning/knowledge-graph/points/${encodeURIComponent(code)}/neighbors`),
 };
 
@@ -198,6 +270,17 @@ export const homeworksApi = {
 export const auditsApi = {
   logins: (page = 1, size = 20) => api(`/api/v1/iam/audits/logins?${query({ page, size })}`),
   operations: (page = 1, size = 20) => api(`/api/v1/iam/audits/operations?${query({ page, size })}`),
+};
+
+export const profileApi = {
+  getSelf: () => api("/api/v1/iam/users/me"),
+  updateSelf: (body) => api("/api/v1/iam/users/me", { method: "PUT", body: JSON.stringify(body) }),
+  uploadAvatar: (file) => {
+    const body = new FormData();
+    body.append("file", file);
+    return api("/api/v1/iam/users/me/avatar", { method: "POST", body });
+  },
+  changePassword: (body) => api("/api/v1/iam/users/me/password", { method: "PUT", body: JSON.stringify(body) }),
 };
 
 export const healthApi = {

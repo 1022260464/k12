@@ -28,7 +28,7 @@ export function LoginPage({ onLogin }) {
   return (
     <main className="login-page">
       <section className="login-context">
-        <a className="brand" href="/"><span className="brand-mark">eg</span><span>EduGraph AI</span></a>
+        <a className="brand" href="/"><span className="brand-mark"><img src="/assets/brand-face-doodle.png" alt="" /></span><span>EduGraph AI</span></a>
         <div className="context-copy"><p className="eyebrow">K12 PLATFORM CONSOLE</p><h1>教师工作台与平台管理入口</h1><p>教师维护课程、作业与教学资料；管理员另行管理账号、角色与安全审计。</p></div>
         <div className="security-note"><ShieldCheck size={22} /><div><strong>基于 JWT 与 RBAC</strong><span>登录身份、角色和接口权限由后端统一校验</span></div></div>
       </section>

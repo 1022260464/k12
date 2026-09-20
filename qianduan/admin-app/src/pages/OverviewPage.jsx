@@ -1,13 +1,23 @@
 import { Activity, Bot, BookOpen, ClipboardCheck, Network, RefreshCw, Server, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { agentsApi, coursesApi, healthApi, homeworksApi, knowledgeGraphApi, usersApi } from "../api/client.js";
+import { readKnowledgeGraphOverviewCache } from "../utils/knowledgeGraphCache.js";
 
 export function OverviewPage({ notify, onNavigate }) {
-  const [counts, setCounts] = useState({ users: 0, courses: 0, agents: 0, homeworks: 0, kgPoints: 0, kgEdges: 0, kgCovers: 0 });
+  const cachedGraph = readKnowledgeGraphOverviewCache();
+  const [counts, setCounts] = useState({
+    users: 0,
+    courses: 0,
+    agents: 0,
+    homeworks: 0,
+    kgPoints: cachedGraph?.points?.length || 0,
+    kgEdges: cachedGraph?.edges?.length || 0,
+    kgCovers: cachedGraph?.chapterCovers?.length || 0,
+  });
   const [services, setServices] = useState([]);
-  const [graphReady, setGraphReady] = useState(false);
+  const [graphReady, setGraphReady] = useState(Boolean(cachedGraph?.status?.ready));
   const [fastLoading, setFastLoading] = useState(true);
-  const [graphLoading, setGraphLoading] = useState(true);
+  const [graphLoading, setGraphLoading] = useState(!cachedGraph);
 
   async function loadFast() {
     setFastLoading(true);
@@ -38,7 +48,7 @@ export function OverviewPage({ notify, onNavigate }) {
   }
 
   async function loadGraph() {
-    setGraphLoading(true);
+    if (!cachedGraph) setGraphLoading(true);
     try {
       const graphData = await knowledgeGraphApi.overview();
       setCounts((prev) => ({
@@ -105,11 +115,11 @@ export function OverviewPage({ notify, onNavigate }) {
         <span className="teacher-stat-icon"><Network size={22} /></span>
         <div className="teacher-stat-copy">
           <strong>
-            {graphLoading ? "知识图谱加载中…" : (graphReady ? "Neo4j 图谱已连通" : "知识图谱")}
+            {graphLoading ? "知识图谱加载中…" : (graphReady ? "知识图谱已连通" : "知识图谱")}
           </strong>
-          <small>力导向关系图 · 学段/类别统计 · 章节 COVERS 覆盖率</small>
+          <small>查看关系图、章节覆盖与教学闭环进度</small>
           <div className="teacher-kg-metrics">
-            <span>节点 {graphLoading ? "加载中" : counts.kgPoints}</span>
+            <span>主题 {graphLoading ? "加载中" : counts.kgPoints}</span>
             <span>关系 {graphLoading ? "加载中" : counts.kgEdges}</span>
             <span>章节覆盖 {graphLoading ? "加载中" : counts.kgCovers}</span>
           </div>

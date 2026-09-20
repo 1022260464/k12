@@ -12,7 +12,7 @@ const navigation = [
   ["progress", "学习报告"],
 ];
 
-export function SiteHeader({ page, session, displayName, avatarUrl, navigate, onLogin, onRegister, onLogout }) {
+export function SiteHeader({ page, session, displayName, avatarUrl, navigate, onOpenProfile, onLogin, onRegister, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
   function go(nextPage) { navigate(nextPage); setMenuOpen(false); }
   const initial = (displayName || "同").slice(0, 1).toUpperCase();
@@ -20,7 +20,7 @@ export function SiteHeader({ page, session, displayName, avatarUrl, navigate, on
   return (
     <header className="site-header">
       <button className="brand brand-button" type="button" onClick={() => go("home")} aria-label="返回学习首页">
-        <span className="brand-mark">eg</span><span>EduGraph AI</span>
+        <span className="brand-mark"><img src="/assets/brand-face-doodle.png" alt="" /></span><span>EduGraph AI</span>
       </button>
       <nav className={menuOpen ? "open" : ""} aria-label="主导航">
         {navigation.map(([id, label]) => (
@@ -36,11 +36,11 @@ export function SiteHeader({ page, session, displayName, avatarUrl, navigate, on
               className="avatar-button"
               type="button"
               title="个人设置与学习档案"
-              onClick={() => go("profile")}
+              onClick={() => { onOpenProfile?.(); setMenuOpen(false); }}
             >
               {avatarUrl ? <img className="avatar-img" src={avatarUrl} alt="" /> : <span className="avatar">{initial}</span>}
             </button>
-            <button className="user-name-button" type="button" title="个人设置" onClick={() => go("profile")}>
+            <button className="user-name-button" type="button" title="个人设置" onClick={() => { onOpenProfile?.(); setMenuOpen(false); }}>
               {displayName}
             </button>
             <button className="icon-button" type="button" title="退出登录" onClick={onLogout}><LogOut size={17} /></button>

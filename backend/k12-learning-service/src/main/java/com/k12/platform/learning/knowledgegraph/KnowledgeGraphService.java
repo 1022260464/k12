@@ -1,6 +1,8 @@
 package com.k12.platform.learning.knowledgegraph;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.k12.platform.learning.config.Neo4jProperties;
+import com.k12.platform.learning.dto.KnowledgeCatalogInfoResponse;
 import com.k12.platform.learning.dto.KnowledgeChapterCoverSummary;
 import com.k12.platform.learning.dto.KnowledgeCoverSuggestion;
 import com.k12.platform.learning.dto.KnowledgeEdgeResponse;
@@ -11,13 +13,19 @@ import com.k12.platform.learning.dto.KnowledgeNeighborResponse;
 import com.k12.platform.learning.dto.KnowledgeNextTopicResponse;
 import com.k12.platform.learning.dto.KnowledgePointResponse;
 import com.k12.platform.learning.dto.KnowledgeRecommendRequest;
+import com.k12.platform.learning.dto.KnowledgeGraphPurgeResult;
 import com.k12.platform.learning.mapper.CourseMapper;
+import com.k12.platform.learning.mapper.TeachingResourceMapper;
 import com.k12.platform.learning.model.Course;
+import com.k12.platform.learning.model.CourseChapter;
+import com.k12.platform.learning.model.TeachingResource;
+import com.k12.platform.learning.service.KnowledgeGraphOverviewCache;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.TransactionContext;
 import org.neo4j.driver.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +39,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -40,6 +49,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Neo4j 知识关系层：先修/相邻查询、薄弱先修缺口、下一主题推荐、资料 EXPLAINS 同步。
@@ -53,15 +63,24 @@ public class KnowledgeGraphService {
     private final Neo4jProperties properties;
     private final ObjectProvider<Driver> driverProvider;
     private final CourseMapper courseMapper;
+    private final TeachingResourceMapper teachingResourceMapper;
+    private final KnowledgeGraphOverviewCache overviewCache;
+    private final KnowledgeCatalogStore catalogStore;
 
     public KnowledgeGraphService(
             Neo4jProperties properties,
             ObjectProvider<Driver> driverProvider,
-            CourseMapper courseMapper
+            CourseMapper courseMapper,
+            TeachingResourceMapper teachingResourceMapper,
+            ObjectProvider<KnowledgeGraphOverviewCache> overviewCache,
+            KnowledgeCatalogStore catalogStore
     ) {
         this.properties = properties;
         this.driverProvider = driverProvider;
         this.courseMapper = courseMapper;
+        this.teachingResourceMapper = teachingResourceMapper;
+        this.overviewCache = overviewCache.getIfAvailable();
+        this.catalogStore = catalogStore;
     }
 
     public KnowledgeGraphStatusResponse status() {
@@ -90,13 +109,203 @@ public class KnowledgeGraphService {
             return session.executeRead(tx -> {
                 Result result = tx.run("""
                         MATCH (p:KnowledgePoint {code:$code})
-                        RETURN p.code AS code, p.title AS title, p.stage AS stage,
-                               p.difficulty AS difficulty, p.reviewStatus AS reviewStatus
+                        RETURN p.code AS code, p.title AS title, p.stage AS stage, p.stages AS stages,
+                               p.difficulty AS difficulty, p.reviewStatus AS reviewStatus,
+                               p.categoryCode AS categoryCode, p.categoryTitle AS categoryTitle,
+                               coalesce(p.kind, 'TOPIC') AS kind
                         """, Values.parameters("code", code));
                 if (!result.hasNext()) return Optional.empty();
                 return Optional.of(toPoint(result.single()));
             });
         }
+    }
+
+    /** 管理员新建或更新知识点节点；可选挂到分类 HAS_CHILD，并可同步先修/相关边。 */
+    public KnowledgePointResponse upsertPoint(
+            String code,
+            String title,
+            List<String> stages,
+            String stage,
+            Integer difficulty,
+            String categoryCode,
+            String categoryTitle,
+            String kind,
+            String parentCode,
+            List<String> prerequisiteCodes,
+            List<String> relatedCodes
+    ) {
+        if (!ready()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "知识图谱未就绪，无法写入知识点");
+        }
+        String trimmedCode = code == null ? "" : code.trim();
+        String trimmedTitle = title == null ? "" : title.trim();
+        if (!StringUtils.hasText(trimmedCode) || !StringUtils.hasText(trimmedTitle)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "知识点编码与标题不能为空");
+        }
+        List<String> resolvedStages = KnowledgePointResponse.normalizeStages(stages, stage);
+        if (resolvedStages.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请至少选择一个适用学段");
+        }
+        String stageDisplay = KnowledgePointResponse.joinStages(resolvedStages);
+        String resolvedKind = StringUtils.hasText(kind) ? kind.trim() : "TOPIC";
+        String parent = StringUtils.hasText(parentCode) ? parentCode.trim() : null;
+        // 分类编码在目录里多为 category.xxx；前端若只传 xxx，尝试补全。
+        if (parent != null && !parent.startsWith("category.") && !parent.contains(".")) {
+            parent = "category." + parent;
+        }
+        final String resolvedParent = parent;
+        final List<String> prereqList = normalizeRelationCodes(prerequisiteCodes, trimmedCode);
+        final List<String> relatedList = normalizeRelationCodes(relatedCodes, trimmedCode);
+        final boolean syncRelations = prerequisiteCodes != null || relatedCodes != null;
+        try (Session session = open(requireDriver())) {
+            session.executeWrite(tx -> {
+                tx.run("""
+                        MERGE (p:KnowledgePoint {code:$code})
+                        SET p.title = $title,
+                            p.stage = $stage,
+                            p.stages = $stages,
+                            p.difficulty = $difficulty,
+                            p.categoryCode = $categoryCode,
+                            p.categoryTitle = $categoryTitle,
+                            p.kind = $kind,
+                            p.reviewStatus = coalesce(p.reviewStatus, 'APPROVED'),
+                            p.updatedAt = datetime()
+                        """, Values.parameters(
+                        "code", trimmedCode,
+                        "title", trimmedTitle,
+                        "stage", stageDisplay,
+                        "stages", resolvedStages,
+                        "difficulty", difficulty,
+                        "categoryCode", StringUtils.hasText(categoryCode) ? categoryCode.trim() : null,
+                        "categoryTitle", StringUtils.hasText(categoryTitle) ? categoryTitle.trim() : null,
+                        "kind", resolvedKind
+                ));
+                // 分类变更时先清掉旧的「同属一类」边，避免详情已未分类但仍显示旧大类。
+                tx.run("""
+                        MATCH (parent)-[r:HAS_CHILD]->(child:KnowledgePoint {code:$code})
+                        WHERE coalesce(parent.kind, 'TOPIC') = 'CATEGORY'
+                           OR parent.code STARTS WITH 'category.'
+                        DELETE r
+                        """, Values.parameters("code", trimmedCode));
+                if (resolvedParent != null && !resolvedParent.equals(trimmedCode)) {
+                    tx.run("""
+                            MATCH (parent:KnowledgePoint {code:$parent})
+                            MATCH (child:KnowledgePoint {code:$code})
+                            MERGE (parent)-[r:HAS_CHILD]->(child)
+                            SET r.source = 'admin', r.updatedAt = datetime()
+                            """, Values.parameters("parent", resolvedParent, "code", trimmedCode));
+                }
+                if (syncRelations) {
+                    syncTopicRelations(tx, trimmedCode, prereqList, relatedList);
+                }
+                return null;
+            });
+        }
+        invalidateOverviewCache();
+        return findPoint(trimmedCode).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "知识点写入后未能读取"));
+    }
+
+    private static List<String> normalizeRelationCodes(List<String> codes, String selfCode) {
+        if (codes == null) return List.of();
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        for (String raw : codes) {
+            if (!StringUtils.hasText(raw)) continue;
+            String code = raw.trim();
+            if (code.equals(selfCode)) continue;
+            unique.add(code);
+        }
+        return List.copyOf(unique);
+    }
+
+    /**
+     * 同步本节点与其它知识点的先修/相关边（不含分类 HAS_CHILD）。
+     * 先修：(pre)-[:PREREQUISITE_OF]->(本节点)；相关：(本节点)-[:RELATED_TO]->(other)。
+     */
+    private static void syncTopicRelations(
+            TransactionContext tx,
+            String code,
+            List<String> prerequisiteCodes,
+            List<String> relatedCodes
+    ) {
+        tx.run("""
+                MATCH (pre:KnowledgePoint)-[r:PREREQUISITE_OF]->(p:KnowledgePoint {code:$code})
+                WHERE coalesce(pre.kind, 'TOPIC') <> 'CATEGORY'
+                  AND NOT pre.code STARTS WITH 'category.'
+                DELETE r
+                """, Values.parameters("code", code));
+        tx.run("""
+                MATCH (p:KnowledgePoint {code:$code})-[r:RELATED_TO]-(n:KnowledgePoint)
+                WHERE coalesce(n.kind, 'TOPIC') <> 'CATEGORY'
+                  AND NOT n.code STARTS WITH 'category.'
+                DELETE r
+                """, Values.parameters("code", code));
+
+        for (String preCode : prerequisiteCodes) {
+            Result matched = tx.run("""
+                    MATCH (pre:KnowledgePoint {code:$pre})
+                    MATCH (p:KnowledgePoint {code:$code})
+                    WHERE coalesce(pre.kind, 'TOPIC') <> 'CATEGORY'
+                    MERGE (pre)-[r:PREREQUISITE_OF]->(p)
+                    SET r.source = 'admin', r.updatedAt = datetime()
+                    RETURN pre.code AS code
+                    """, Values.parameters("pre", preCode, "code", code));
+            if (!matched.hasNext()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "先修知识点不存在：" + preCode);
+            }
+        }
+        for (String relatedCode : relatedCodes) {
+            Result matched = tx.run("""
+                    MATCH (p:KnowledgePoint {code:$code})
+                    MATCH (n:KnowledgePoint {code:$other})
+                    WHERE coalesce(n.kind, 'TOPIC') <> 'CATEGORY'
+                    MERGE (p)-[r:RELATED_TO]->(n)
+                    SET r.source = 'admin', r.updatedAt = datetime()
+                    RETURN n.code AS code
+                    """, Values.parameters("code", code, "other", relatedCode));
+            if (!matched.hasNext()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "相关知识点不存在：" + relatedCode);
+            }
+        }
+    }
+
+    /**
+     * 管理员删除知识点。若仍被章节 COVERS 或资料 EXPLAINS 引用且未 force，则拒绝。
+     */
+    public void deletePoint(String code, boolean force) {
+        if (!ready()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "知识图谱未就绪，无法删除知识点");
+        }
+        String trimmed = code == null ? "" : code.trim();
+        if (!StringUtils.hasText(trimmed)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "知识点编码不能为空");
+        }
+        try (Session session = open(requireDriver())) {
+            session.executeWrite(tx -> {
+                Result refs = tx.run("""
+                        OPTIONAL MATCH (p:KnowledgePoint {code:$code})
+                        OPTIONAL MATCH (:CourseChapterRef)-[c:COVERS]->(p)
+                        OPTIONAL MATCH (:KnowledgeDocumentRef)-[e:EXPLAINS]->(p)
+                        RETURN p IS NOT NULL AS exists, count(c) AS covers, count(e) AS explains
+                        """, Values.parameters("code", trimmed));
+                Record row = refs.single();
+                if (!row.get("exists").asBoolean()) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "知识点不存在");
+                }
+                long covers = row.get("covers").asLong();
+                long explains = row.get("explains").asLong();
+                if (!force && (covers > 0 || explains > 0)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "该知识点仍被 " + covers + " 个章节 / " + explains + " 份资料引用，确认后可强制删除");
+                }
+                tx.run("""
+                        MATCH (p:KnowledgePoint {code:$code})
+                        DETACH DELETE p
+                        """, Values.parameters("code", trimmed));
+                return null;
+            });
+        }
+        invalidateOverviewCache();
     }
 
     /** 知识点目录：供章节绑定勾选；可按关键词 / 学段过滤。Neo4j 不可用时回退内置种子目录。 */
@@ -110,11 +319,14 @@ public class KnowledgeGraphService {
                     Result result = tx.run("""
                             MATCH (p:KnowledgePoint)
                             WHERE coalesce(p.kind, 'TOPIC') <> 'CATEGORY'
-                              AND ($stage IS NULL OR p.stage = $stage)
+                              AND ($stage IS NULL
+                                   OR $stage IN coalesce(p.stages, [])
+                                   OR p.stage = $stage
+                                   OR (p.stages IS NULL AND p.stage CONTAINS $stage))
                               AND ($q = '' OR toLower(p.code) CONTAINS $q
                                    OR toLower(coalesce(p.title, '')) CONTAINS $q
                                    OR toLower(coalesce(p.categoryTitle, '')) CONTAINS $q)
-                            RETURN p.code AS code, p.title AS title, p.stage AS stage,
+                            RETURN p.code AS code, p.title AS title, p.stage AS stage, p.stages AS stages,
                                    p.difficulty AS difficulty, p.reviewStatus AS reviewStatus,
                                    p.categoryCode AS categoryCode, p.categoryTitle AS categoryTitle,
                                    coalesce(p.kind, 'TOPIC') AS kind
@@ -134,7 +346,7 @@ public class KnowledgeGraphService {
                 log.warn("读取 Neo4j 知识点目录失败，回退内置目录: {}", error.getMessage());
             }
         }
-        return BuiltinKnowledgeCatalog.filter(query, stage, capped);
+        return catalogStore.filter(query, stage, capped);
     }
 
     public List<KnowledgePointResponse> listChapterCovers(long courseId, long chapterId) {
@@ -144,7 +356,7 @@ public class KnowledgeGraphService {
             return session.executeRead(tx -> {
                 Result result = tx.run("""
                         MATCH (c:CourseChapterRef {refKey:$refKey})-[:COVERS]->(p:KnowledgePoint)
-                        RETURN p.code AS code, p.title AS title, p.stage AS stage,
+                        RETURN p.code AS code, p.title AS title, p.stage AS stage, p.stages AS stages,
                                p.difficulty AS difficulty, p.reviewStatus AS reviewStatus
                         ORDER BY p.code
                         """, Values.parameters("refKey", refKey));
@@ -158,16 +370,19 @@ public class KnowledgeGraphService {
     }
 
     /**
-     * 保存/更新章节时同步到图谱：标题 + 导语纯文本作为章节描述（AI 建议与检索的依据）。
-     * Neo4j 未启用时静默跳过，不阻断章节保存。
+     * 保存/更新章节时同步到图谱：标题 + 导语纯文本作为章节描述。
+     * 仅已发布课程写入/更新图节点，避免草稿课污染检索；草稿绑定请走 replaceChapterCovers（会标 published=false）。
      */
     public void syncChapterRef(long courseId, long chapterId, String title, String descriptionHtmlOrText) {
         if (!ready()) return;
+        Course course = courseMapper.selectById(courseId);
+        if (course == null || !Integer.valueOf(1).equals(course.getStatus())) {
+            return;
+        }
         String refKey = chapterRefKey(courseId, chapterId);
         String description = truncate(collapseWhitespace(stripHtml(descriptionHtmlOrText)), 2000);
         String safeTitle = StringUtils.hasText(title) ? title.trim() : ("章节-" + chapterId);
-        Course course = courseMapper.selectById(courseId);
-        final String courseTitle = course != null ? course.getTitle() : null;
+        final String courseTitle = course.getTitle();
         try (Session session = open(requireDriver())) {
             session.executeWrite(tx -> {
                 tx.run("""
@@ -177,6 +392,7 @@ public class KnowledgeGraphService {
                             c.title = $title,
                             c.courseTitle = coalesce($courseTitle, c.courseTitle),
                             c.description = $description,
+                            c.published = true,
                             c.updatedAt = datetime()
                         """, Values.parameters(
                         "refKey", refKey,
@@ -195,8 +411,8 @@ public class KnowledgeGraphService {
     }
 
     /**
-     * 全量替换章节 COVERS；仅写入目录中已存在的 code。
-     * 空列表表示清空绑定。写入前会按内置目录补齐缺失的 KnowledgePoint 节点。
+     * 全量替换章节 COVERS；只允许绑定官方目录中已有的 code。
+     * 空列表表示清空绑定。草稿课写入 published=false（仅供发布前准备，不参与检索）。
      */
     public List<KnowledgePointResponse> replaceChapterCovers(
             long courseId, long chapterId, String chapterTitle, String descriptionHtmlOrText,
@@ -207,11 +423,13 @@ public class KnowledgeGraphService {
                     "Neo4j 未启用，无法保存知识点绑定。请设置 K12_NEO4J_ENABLED=true 并重启 Learning 服务");
         }
         Set<String> codes = normalizeCodes(knowledgeCodes);
+        requireCatalogCodes(codes);
         ensureKnowledgePoints(codes);
         String refKey = chapterRefKey(courseId, chapterId);
         String description = truncate(collapseWhitespace(stripHtml(descriptionHtmlOrText)), 2000);
         Course course = courseMapper.selectById(courseId);
         final String courseTitle = course != null ? course.getTitle() : null;
+        final boolean published = course != null && Integer.valueOf(1).equals(course.getStatus());
         try (Session session = open(requireDriver())) {
             session.executeWrite(tx -> {
                 tx.run("""
@@ -221,6 +439,7 @@ public class KnowledgeGraphService {
                             c.title = coalesce($title, c.title),
                             c.courseTitle = coalesce($courseTitle, c.courseTitle),
                             c.description = $description,
+                            c.published = $published,
                             c.updatedAt = datetime()
                         WITH c
                         OPTIONAL MATCH (c)-[r:COVERS]->(:KnowledgePoint)
@@ -231,7 +450,8 @@ public class KnowledgeGraphService {
                         "chapterId", chapterId,
                         "title", chapterTitle,
                         "courseTitle", courseTitle,
-                        "description", description
+                        "description", description,
+                        "published", published
                 ));
                 if (!codes.isEmpty()) {
                     tx.run("""
@@ -245,24 +465,203 @@ public class KnowledgeGraphService {
                 return null;
             });
         }
+        invalidateOverviewCache();
         return listChapterCovers(courseId, chapterId);
     }
 
-    /** 把待绑定编码 MERGE 成 KnowledgePoint，优先使用内置目录元数据。 */
+    /** 课程发布后：将该课全部章节引用标为可检索。 */
+    public void markCourseChapterRefsPublished(long courseId) {
+        if (!ready() || courseId < 1) {
+            return;
+        }
+        Course course = courseMapper.selectById(courseId);
+        final String courseTitle = course != null ? course.getTitle() : null;
+        try (Session session = open(requireDriver())) {
+            session.executeWrite(tx -> {
+                tx.run("""
+                        MATCH (c:CourseChapterRef)
+                        WHERE c.courseId = $courseId
+                        SET c.published = true,
+                            c.courseTitle = coalesce($courseTitle, c.courseTitle),
+                            c.updatedAt = datetime()
+                        """, Values.parameters("courseId", courseId, "courseTitle", courseTitle));
+                return null;
+            });
+            invalidateOverviewCache();
+        } catch (RuntimeException error) {
+            log.warn("标记课程章节已发布失败 courseId={}, err={}", courseId, error.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "发布成功但同步图谱可见性失败：" + error.getMessage());
+        }
+    }
+
+    /**
+     * 清理图谱脏数据：删除未发布/已删课程的章节引用，以及非「已发布且已入库」资料的讲解节点。
+     * 保留 courseId≤0 的 formal-demo 示例节点。
+     */
+    public KnowledgeGraphPurgeResult purgeDirtyGraphRefs() {
+        if (!ready()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Neo4j 未启用，无法清理图谱");
+        }
+        Set<Long> publishedCourseIds = publishedCourseIds();
+        Set<String> liveDocumentIds = liveTeachingDocumentIds();
+
+        int removedChapters;
+        int removedDocs;
+        try (Session session = open(requireDriver())) {
+            removedChapters = session.executeWrite(tx -> {
+                Result result = tx.run("""
+                        MATCH (c:CourseChapterRef)
+                        WHERE coalesce(c.courseId, 0) > 0
+                          AND NOT c.courseId IN $publishedIds
+                        WITH c, c.refKey AS refKey
+                        DETACH DELETE c
+                        RETURN count(refKey) AS removed
+                        """, Values.parameters("publishedIds", publishedCourseIds.isEmpty()
+                        ? List.of(-1L)
+                        : List.copyOf(publishedCourseIds)));
+                return result.hasNext() ? (int) result.single().get("removed").asLong() : 0;
+            });
+            removedDocs = session.executeWrite(tx -> {
+                Result result = tx.run("""
+                        MATCH (d:KnowledgeDocumentRef)
+                        WHERE d.documentId STARTS WITH 'teaching-resource-'
+                          AND NOT d.documentId IN $liveIds
+                        WITH d, d.documentId AS documentId
+                        DETACH DELETE d
+                        RETURN count(documentId) AS removed
+                        """, Values.parameters("liveIds", liveDocumentIds.isEmpty()
+                        ? List.of("__none__")
+                        : List.copyOf(liveDocumentIds)));
+                return result.hasNext() ? (int) result.single().get("removed").asLong() : 0;
+            });
+            // 补齐仍保留节点的 published 标记，避免旧数据缺字段
+            if (!publishedCourseIds.isEmpty()) {
+                session.executeWrite(tx -> {
+                    tx.run("""
+                            MATCH (c:CourseChapterRef)
+                            WHERE c.courseId IN $publishedIds
+                            SET c.published = true
+                            """, Values.parameters("publishedIds", List.copyOf(publishedCourseIds)));
+                    return null;
+                });
+            }
+        } catch (RuntimeException error) {
+            log.warn("清理图谱脏数据失败: {}", error.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "清理图谱失败：" + error.getMessage());
+        }
+        invalidateOverviewCache();
+        DirtyGraphCounts remaining = countDirtyGraphRefs(publishedCourseIds, liveDocumentIds);
+        String message;
+        if (remaining.isClean()) {
+            message = String.format(
+                    "已清理脏数据：删除 %d 个失效章节引用、%d 个无效资料节点。复查：图谱中已无未发布脏数据。",
+                    removedChapters, removedDocs);
+        } else {
+            message = String.format(
+                    "已清理：删除章节 %d、资料 %d；仍残留章节 %d、资料 %d，请再试一次或检查 Neo4j 连通。",
+                    removedChapters, removedDocs, remaining.chapterRefs(), remaining.documentRefs());
+        }
+        return new KnowledgeGraphPurgeResult(
+                removedChapters,
+                removedDocs,
+                remaining.chapterRefs(),
+                remaining.documentRefs(),
+                message
+        );
+    }
+
+    /** 只统计、不删除：用于复查是否还有未发布/失效图引用。 */
+    public KnowledgeGraphPurgeResult inspectDirtyGraphRefs() {
+        if (!ready()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Neo4j 未启用，无法检查图谱");
+        }
+        DirtyGraphCounts dirty = countDirtyGraphRefs(publishedCourseIds(), liveTeachingDocumentIds());
+        String message = dirty.isClean()
+                ? "复查通过：未发现未发布课程章节引用或无效资料讲解节点。"
+                : String.format("仍有脏数据：未发布/失效章节引用 %d，无效资料节点 %d。",
+                dirty.chapterRefs(), dirty.documentRefs());
+        return new KnowledgeGraphPurgeResult(0, 0, dirty.chapterRefs(), dirty.documentRefs(), message);
+    }
+
+    private record DirtyGraphCounts(int chapterRefs, int documentRefs) {
+        boolean isClean() {
+            return chapterRefs <= 0 && documentRefs <= 0;
+        }
+    }
+
+    private Set<Long> publishedCourseIds() {
+        return courseMapper.selectList(Wrappers.lambdaQuery(Course.class)
+                        .eq(Course::getStatus, 1)
+                        .select(Course::getId))
+                .stream()
+                .map(Course::getId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<String> liveTeachingDocumentIds() {
+        return teachingResourceMapper.selectList(Wrappers.lambdaQuery(TeachingResource.class)
+                        .eq(TeachingResource::getStatus, "PUBLISHED")
+                        .eq(TeachingResource::getRagIndexStatus, "INDEXED")
+                        .select(TeachingResource::getId))
+                .stream()
+                .map(TeachingResource::getId)
+                .filter(id -> id != null && id > 0)
+                .map(id -> "teaching-resource-" + id)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private DirtyGraphCounts countDirtyGraphRefs(Set<Long> publishedCourseIds, Set<String> liveDocumentIds) {
+        try (Session session = open(requireDriver())) {
+            int dirtyChapters = session.executeRead(tx -> {
+                Result result = tx.run("""
+                        MATCH (c:CourseChapterRef)
+                        WHERE coalesce(c.courseId, 0) > 0
+                          AND NOT c.courseId IN $publishedIds
+                        RETURN count(c) AS dirty
+                        """, Values.parameters("publishedIds", publishedCourseIds.isEmpty()
+                        ? List.of(-1L)
+                        : List.copyOf(publishedCourseIds)));
+                return result.hasNext() ? (int) result.single().get("dirty").asLong() : 0;
+            });
+            int dirtyDocs = session.executeRead(tx -> {
+                Result result = tx.run("""
+                        MATCH (d:KnowledgeDocumentRef)
+                        WHERE d.documentId STARTS WITH 'teaching-resource-'
+                          AND NOT d.documentId IN $liveIds
+                        RETURN count(d) AS dirty
+                        """, Values.parameters("liveIds", liveDocumentIds.isEmpty()
+                        ? List.of("__none__")
+                        : List.copyOf(liveDocumentIds)));
+                return result.hasNext() ? (int) result.single().get("dirty").asLong() : 0;
+            });
+            return new DirtyGraphCounts(dirtyChapters, dirtyDocs);
+        } catch (RuntimeException error) {
+            log.warn("统计图谱脏数据失败: {}", error.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "检查图谱失败：" + error.getMessage());
+        }
+    }
+
+    /** 把待绑定编码 MERGE 成 KnowledgePoint，仅使用官方目录元数据（调用前须先 requireCatalogCodes）。 */
     void ensureKnowledgePoints(Set<String> codes) {
         if (codes == null || codes.isEmpty() || !ready()) return;
         List<Map<String, Object>> rows = new ArrayList<>();
         for (String code : codes) {
             if (!StringUtils.hasText(code)) continue;
-            KnowledgePointResponse meta = BuiltinKnowledgeCatalog.find(code.trim());
+            KnowledgePointResponse meta = catalogStore.find(code.trim());
+            if (meta == null) {
+                continue;
+            }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("code", code.trim());
-            row.put("title", meta != null ? meta.title() : code.trim());
-            row.put("stage", meta != null ? meta.stage() : null);
-            row.put("difficulty", meta != null ? meta.difficulty() : null);
-            row.put("categoryCode", meta != null ? meta.categoryCode() : null);
-            row.put("categoryTitle", meta != null ? meta.categoryTitle() : null);
-            row.put("kind", meta != null && StringUtils.hasText(meta.kind()) ? meta.kind() : "TOPIC");
+            row.put("title", meta.title());
+            row.put("stage", meta.stage());
+            row.put("stages", meta.resolvedStages());
+            row.put("difficulty", meta.difficulty());
+            row.put("categoryCode", meta.categoryCode());
+            row.put("categoryTitle", meta.categoryTitle());
+            row.put("kind", StringUtils.hasText(meta.kind()) ? meta.kind() : "TOPIC");
             rows.add(row);
         }
         if (rows.isEmpty()) return;
@@ -273,6 +672,10 @@ public class KnowledgeGraphService {
                         MERGE (p:KnowledgePoint {code:row.code})
                         SET p.title = coalesce(row.title, p.title),
                             p.stage = coalesce(row.stage, p.stage),
+                            p.stages = CASE
+                              WHEN row.stages IS NOT NULL AND size(row.stages) > 0 THEN row.stages
+                              ELSE coalesce(p.stages, CASE WHEN row.stage IS NULL THEN [] ELSE [row.stage] END)
+                            END,
                             p.difficulty = coalesce(row.difficulty, p.difficulty),
                             p.categoryCode = coalesce(row.categoryCode, p.categoryCode),
                             p.categoryTitle = coalesce(row.categoryTitle, p.categoryTitle),
@@ -285,15 +688,55 @@ public class KnowledgeGraphService {
         }
     }
 
-    /** 同步完整内置目录（大类 + 子知识点 + HAS_CHILD/先修边）。 */
-    public void syncExpandedCatalog() {
-        if (!ready()) return;
+    public KnowledgeCatalogInfoResponse catalogInfo() {
+        return catalogStore.info();
+    }
+
+    public KnowledgeCatalogInfoResponse.ReloadResult reloadCatalog() {
+        KnowledgeCatalogInfoResponse info = catalogStore.reload();
+        invalidateOverviewCache();
+        return new KnowledgeCatalogInfoResponse.ReloadResult(
+                info,
+                true,
+                "目录已重新读入。要让图谱里的点也跟着变，请再点「写进图谱」。"
+        );
+    }
+
+    /**
+     * 先可选重载 JSON，再按目录 MERGE 覆盖 Neo4j 已有节点。
+     * @param reloadFirst true 时先从配置 location 重新读入，避免改文件后仍用旧内存快照。
+     */
+    public KnowledgeCatalogInfoResponse.SyncResult syncCatalogToGraph(boolean reloadFirst) {
+        if (reloadFirst) {
+            catalogStore.reload();
+        }
+        if (!ready()) {
+            return new KnowledgeCatalogInfoResponse.SyncResult(
+                    catalogStore.info(),
+                    0,
+                    false,
+                    "图谱服务还没连上：目录已读进系统，但还没法写进图里。"
+            );
+        }
+        int updated = syncExpandedCatalog();
+        return new KnowledgeCatalogInfoResponse.SyncResult(
+                catalogStore.info(),
+                updated,
+                true,
+                "已把清单写进图谱（共 " + updated + " 个节点）。注意：清单里有的编号，会盖掉你在页面上改过的同名点。"
+        );
+    }
+
+    /** 同步完整内置目录（大类 + 子知识点 + HAS_CHILD/先修边）。已存在节点会按目录覆盖更新。 */
+    public int syncExpandedCatalog() {
+        if (!ready()) return 0;
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (KnowledgePointResponse point : BuiltinKnowledgeCatalog.allNodes()) {
+        for (KnowledgePointResponse point : catalogStore.allNodes()) {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("code", point.code());
             row.put("title", point.title());
             row.put("stage", point.stage());
+            row.put("stages", point.resolvedStages());
             row.put("difficulty", point.difficulty());
             row.put("categoryCode", point.categoryCode());
             row.put("categoryTitle", point.categoryTitle());
@@ -301,7 +744,7 @@ public class KnowledgeGraphService {
             rows.add(row);
         }
         List<Map<String, Object>> edgeRows = new ArrayList<>();
-        for (KnowledgeEdgeResponse edge : BuiltinKnowledgeCatalog.seedEdges()) {
+        for (KnowledgeEdgeResponse edge : catalogStore.edges()) {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("from", edge.fromCode());
             row.put("to", edge.toCode());
@@ -315,6 +758,10 @@ public class KnowledgeGraphService {
                         MERGE (p:KnowledgePoint {code:row.code})
                         SET p.title = row.title,
                             p.stage = row.stage,
+                            p.stages = CASE
+                              WHEN row.stages IS NOT NULL AND size(row.stages) > 0 THEN row.stages
+                              ELSE CASE WHEN row.stage IS NULL THEN [] ELSE [row.stage] END
+                            END,
                             p.difficulty = row.difficulty,
                             p.categoryCode = row.categoryCode,
                             p.categoryTitle = row.categoryTitle,
@@ -339,8 +786,12 @@ public class KnowledgeGraphService {
                 return null;
             });
             log.info("已同步扩展知识目录：nodes={}, edges={}", rows.size(), edgeRows.size());
+            invalidateOverviewCache();
+            return rows.size();
         } catch (RuntimeException error) {
             log.warn("同步扩展知识目录失败: {}", error.getMessage());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "同步知识目录失败: " + error.getMessage(), error);
         }
     }
 
@@ -354,6 +805,7 @@ public class KnowledgeGraphService {
                 Result result = tx.run("""
                         MATCH (c:CourseChapterRef)-[:COVERS]->(p:KnowledgePoint {code:$code})
                         WHERE coalesce(c.courseId, 0) > 0
+                          AND coalesce(c.published, true) = true
                         RETURN c.courseId AS courseId, c.chapterId AS chapterId,
                                c.title AS title, c.description AS description,
                                c.courseTitle AS courseTitle, c.refKey AS refKey
@@ -381,20 +833,22 @@ public class KnowledgeGraphService {
                 }
                 return list;
             });
+            List<Map<String, Object>> published = new ArrayList<>();
             for (Map<String, Object> row : rows) {
                 Object rawId = row.get("courseId");
                 if (!(rawId instanceof Number number)) {
                     continue;
                 }
-                if (StringUtils.hasText((String) row.get("courseTitle"))) {
+                Course course = courseMapper.selectById(number.longValue());
+                if (course == null || !Integer.valueOf(1).equals(course.getStatus())) {
                     continue;
                 }
-                Course course = courseMapper.selectById(number.longValue());
-                if (course != null && StringUtils.hasText(course.getTitle())) {
+                if (!StringUtils.hasText((String) row.get("courseTitle")) && StringUtils.hasText(course.getTitle())) {
                     row.put("courseTitle", course.getTitle());
                 }
+                published.add(row);
             }
-            return rows;
+            return published;
         } catch (RuntimeException error) {
             log.warn("读取 COVERS 章节失败 code={}, err={}", knowledgeCode, error.getMessage());
             return List.of();
@@ -412,9 +866,30 @@ public class KnowledgeGraphService {
                         """, Values.parameters("refKey", refKey));
                 return null;
             });
+            invalidateOverviewCache();
         } catch (RuntimeException error) {
             log.warn("删除章节图节点失败 courseId={}, chapterId={}, err={}",
                     courseId, chapterId, error.getMessage());
+        }
+    }
+
+    /** 删除整门课程时，清掉该课全部章节图引用。 */
+    public void removeCourseChapterRefs(long courseId) {
+        if (!ready() || courseId < 1) {
+            return;
+        }
+        try (Session session = open(requireDriver())) {
+            session.executeWrite(tx -> {
+                tx.run("""
+                        MATCH (c:CourseChapterRef)
+                        WHERE c.courseId = $courseId
+                        DETACH DELETE c
+                        """, Values.parameters("courseId", courseId));
+                return null;
+            });
+            invalidateOverviewCache();
+        } catch (RuntimeException error) {
+            log.warn("删除课程图节点失败 courseId={}, err={}", courseId, error.getMessage());
         }
     }
 
@@ -529,21 +1004,29 @@ public class KnowledgeGraphService {
         try (Session session = open(requireDriver())) {
             return session.executeRead(tx -> {
                 Result result = tx.run("""
-                        MATCH (p:KnowledgePoint {code:$code})-[r:PREREQUISITE_OF|RELATED_TO]-(n:KnowledgePoint)
-                        RETURN n.code AS code, n.title AS title, type(r) AS relation,
-                               CASE WHEN startNode(r)=p THEN 'OUT' ELSE 'IN' END AS direction
+                        MATCH (p:KnowledgePoint {code:$code})-[r:PREREQUISITE_OF|RELATED_TO|HAS_CHILD]-(n:KnowledgePoint)
+                        WITH n,
+                             type(r) AS relation,
+                             CASE WHEN startNode(r)=p THEN 'OUT' ELSE 'IN' END AS direction
+                        RETURN DISTINCT n.code AS code, n.title AS title, relation, direction
                         ORDER BY relation, code
                         """, Values.parameters("code", code));
                 List<KnowledgeNeighborResponse> rows = new ArrayList<>();
+                LinkedHashMap<String, KnowledgeNeighborResponse> unique = new LinkedHashMap<>();
                 while (result.hasNext()) {
                     Record record = result.next();
-                    rows.add(new KnowledgeNeighborResponse(
-                            record.get("code").asString(),
+                    String neighborCode = record.get("code").asString();
+                    String relation = record.get("relation").asString();
+                    String direction = record.get("direction").asString();
+                    String key = neighborCode + "|" + relation + "|" + direction;
+                    unique.putIfAbsent(key, new KnowledgeNeighborResponse(
+                            neighborCode,
                             record.get("title").asString(null),
-                            record.get("relation").asString(),
-                            record.get("direction").asString()
+                            relation,
+                            direction
                     ));
                 }
+                rows.addAll(unique.values());
                 return rows;
             });
         }
@@ -569,7 +1052,7 @@ public class KnowledgeGraphService {
                         String title = record.get("title").asString(null);
                         gaps.add(new KnowledgeGapResponse(
                                 preCode,
-                                StringUtils.hasText(title) ? title : BuiltinKnowledgeCatalog.titleForCode(preCode),
+                                StringUtils.hasText(title) ? title : catalogStore.titleForCode(preCode),
                                 percent,
                                 true
                         ));
@@ -619,7 +1102,7 @@ public class KnowledgeGraphService {
                             missingCodes.add(preCode);
                             String displayTitle = StringUtils.hasText(preTitle)
                                     ? preTitle
-                                    : BuiltinKnowledgeCatalog.titleForCode(preCode);
+                                    : catalogStore.titleForCode(preCode);
                             missingTitles.add(displayTitle);
                         }
                     }
@@ -630,13 +1113,85 @@ public class KnowledgeGraphService {
                             nextCode,
                             Optional.ofNullable(record.get("title").asString(null))
                                     .filter(StringUtils::hasText)
-                                    .orElseGet(() -> BuiltinKnowledgeCatalog.titleForCode(nextCode)),
+                                    .orElseGet(() -> catalogStore.titleForCode(nextCode)),
                             reason,
                             missingCodes
                     ));
                 }
                 return rows;
             });
+        }
+    }
+
+    /** 官方知识点目录是否包含该编码（不依赖 Neo4j 是否已同步）。 */
+    public boolean isCatalogCode(String code) {
+        return StringUtils.hasText(code) && catalogStore.find(code.trim()) != null;
+    }
+
+    /** 校验编码全部在官方目录中；未知编码直接拒绝，避免往图谱里造「野点」。 */
+    public void requireCatalogCodes(Collection<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return;
+        }
+        List<String> unknown = codes.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .filter(code -> catalogStore.find(code) == null)
+                .distinct()
+                .toList();
+        if (!unknown.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "知识点不在官方目录中：" + String.join("、", unknown));
+        }
+    }
+
+    public void requireCatalogCode(String code) {
+        if (!StringUtils.hasText(code)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请填写主知识点编码");
+        }
+        requireCatalogCodes(List.of(code.trim()));
+    }
+
+    /**
+     * 发布前：每章必须已绑定至少一个目录内知识点。
+     * 图谱未启用时跳过（本地可无 Neo4j 发课）；已启用但连不上则拒绝发布，避免未校验就上线。
+     */
+    public void assertChaptersCoveredForPublish(long courseId, List<CourseChapter> chapters) {
+        if (!properties.isEnabled()) {
+            return;
+        }
+        if (!ready()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "知识图谱未就绪，无法校验章节知识点绑定，请稍后重试");
+        }
+        if (chapters == null || chapters.isEmpty()) {
+            return;
+        }
+        List<String> unbound = new ArrayList<>();
+        List<String> invalid = new ArrayList<>();
+        for (CourseChapter chapter : chapters) {
+            if (chapter == null || chapter.getId() == null) {
+                continue;
+            }
+            String label = StringUtils.hasText(chapter.getTitle()) ? chapter.getTitle() : ("章节#" + chapter.getId());
+            List<KnowledgePointResponse> covers = listChapterCovers(courseId, chapter.getId());
+            if (covers.isEmpty()) {
+                unbound.add(label);
+                continue;
+            }
+            for (KnowledgePointResponse point : covers) {
+                if (point == null || !isCatalogCode(point.code())) {
+                    invalid.add(label + "→" + (point == null ? "?" : point.code()));
+                }
+            }
+        }
+        if (!unbound.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "以下章节尚未绑定知识点，请先在章节管理中绑定后再发布：" + String.join("、", unbound));
+        }
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "以下章节绑定了目录外知识点，请改绑后再发布：" + String.join("、", invalid));
         }
     }
 
@@ -647,6 +1202,7 @@ public class KnowledgeGraphService {
         if (!ready() || !StringUtils.hasText(documentId) || !StringUtils.hasText(knowledgeCode)) {
             return;
         }
+        requireCatalogCode(knowledgeCode);
         ensureKnowledgePoints(Set.of(knowledgeCode.trim()));
         String safeDescription = truncate(collapseWhitespace(stripHtml(description)), 2000);
         try (Session session = open(requireDriver())) {
@@ -668,9 +1224,14 @@ public class KnowledgeGraphService {
                 ));
                 return null;
             });
+            invalidateOverviewCache();
+        } catch (ResponseStatusException error) {
+            throw error;
         } catch (RuntimeException error) {
             log.warn("同步资料 EXPLAINS 失败 documentId={}, code={}, err={}",
                     documentId, knowledgeCode, error.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "同步知识图谱失败：" + error.getMessage());
         }
     }
 
@@ -689,12 +1250,85 @@ public class KnowledgeGraphService {
                         """, Values.parameters("documentId", documentId));
                 return null;
             });
+            invalidateOverviewCache();
         } catch (RuntimeException error) {
             log.warn("删除资料图节点失败 documentId={}, err={}", documentId, error.getMessage());
         }
     }
 
     public KnowledgeGraphOverviewResponse overview() {
+        return overview(false);
+    }
+
+    public KnowledgeGraphOverviewResponse overview(boolean refresh) {
+        if (refresh) {
+            invalidateOverviewCache();
+        } else if (overviewCache != null) {
+            try {
+                Optional<KnowledgeGraphOverviewResponse> cached = overviewCache.read();
+                if (cached.isPresent()) {
+                    KnowledgeGraphOverviewResponse sanitized = sanitizeOverviewChapterCovers(cached.get());
+                    if (sanitized != cached.get() && overviewCache != null) {
+                        try {
+                            overviewCache.replace(sanitized);
+                        } catch (RuntimeException ignored) {
+                            // 下次回源即可
+                        }
+                    }
+                    return sanitized;
+                }
+            } catch (RuntimeException error) {
+                log.warn("知识图谱 overview 缓存读取失败，回源 Neo4j: {}", error.getMessage());
+            }
+        }
+        KnowledgeGraphOverviewResponse response = buildOverview();
+        if (overviewCache != null) {
+            try {
+                overviewCache.replace(response);
+            } catch (RuntimeException error) {
+                log.warn("知识图谱 overview 缓存写入失败: {}", error.getMessage());
+            }
+        }
+        return response;
+    }
+
+    /** 缓存命中时再滤一遍，避免旧缓存把未发布课程带回来。 */
+    private KnowledgeGraphOverviewResponse sanitizeOverviewChapterCovers(KnowledgeGraphOverviewResponse overview) {
+        if (overview == null) {
+            return null;
+        }
+        List<KnowledgeChapterCoverSummary> filtered = keepPublishedCourseCovers(overview.chapterCovers()).stream()
+                .filter(cover -> cover.knowledgeCodes() != null && !cover.knowledgeCodes().isEmpty())
+                .toList();
+        List<KnowledgeChapterCoverSummary> current = overview.chapterCovers() == null
+                ? List.of()
+                : overview.chapterCovers();
+        if (filtered.size() == current.size() && filtered.equals(current)) {
+            return overview;
+        }
+        KnowledgeGraphOverviewResponse.TeachingLoopStatus loop = overview.teachingLoop();
+        boolean hasCovers = !filtered.isEmpty();
+        KnowledgeGraphOverviewResponse.TeachingLoopStatus nextLoop = loop == null
+                ? null
+                : new KnowledgeGraphOverviewResponse.TeachingLoopStatus(
+                        loop.graphReady(),
+                        loop.hasKnowledgePoints(),
+                        loop.hasPrerequisiteEdges(),
+                        hasCovers,
+                        loop.hasExplains(),
+                        loop.summary()
+                );
+        return new KnowledgeGraphOverviewResponse(
+                overview.status(),
+                overview.points(),
+                overview.edges(),
+                filtered,
+                overview.explainsCount(),
+                nextLoop
+        );
+    }
+
+    private KnowledgeGraphOverviewResponse buildOverview() {
         KnowledgeGraphStatusResponse graphStatus = status();
         List<KnowledgePointResponse> points = listPoints(null, null, 500);
         List<KnowledgeEdgeResponse> edges;
@@ -705,10 +1339,10 @@ public class KnowledgeGraphService {
             chapters = listChapterCoverSummaries();
             explains = countExplains();
             if (edges.isEmpty() && !points.isEmpty()) {
-                edges = BuiltinKnowledgeCatalog.seedEdges();
+                edges = catalogStore.edges();
             }
         } else {
-            edges = BuiltinKnowledgeCatalog.seedEdges();
+            edges = catalogStore.edges();
             chapters = List.of();
             explains = 0;
         }
@@ -744,12 +1378,23 @@ public class KnowledgeGraphService {
         );
     }
 
+    private void invalidateOverviewCache() {
+        if (overviewCache == null) {
+            return;
+        }
+        try {
+            overviewCache.invalidate();
+        } catch (RuntimeException error) {
+            log.warn("知识图谱 overview 缓存失效失败: {}", error.getMessage());
+        }
+    }
+
     public List<KnowledgeEdgeResponse> listEdges() {
-        if (!ready()) return BuiltinKnowledgeCatalog.seedEdges();
+        if (!ready()) return catalogStore.edges();
         try (Session session = open(requireDriver())) {
             return session.executeRead(tx -> {
                 Result result = tx.run("""
-                        MATCH (a:KnowledgePoint)-[r:PREREQUISITE_OF|RELATED_TO]->(b:KnowledgePoint)
+                        MATCH (a:KnowledgePoint)-[r:PREREQUISITE_OF|RELATED_TO|HAS_CHILD]->(b:KnowledgePoint)
                         RETURN a.code AS fromCode, b.code AS toCode, type(r) AS relation
                         ORDER BY relation, fromCode, toCode
                         """);
@@ -766,23 +1411,26 @@ public class KnowledgeGraphService {
             });
         } catch (RuntimeException error) {
             log.warn("读取图谱关系失败，回退种子边: {}", error.getMessage());
-            return BuiltinKnowledgeCatalog.seedEdges();
+            return catalogStore.edges();
         }
     }
 
     public List<KnowledgeChapterCoverSummary> listChapterCoverSummaries() {
         if (!ready()) return List.of();
         try (Session session = open(requireDriver())) {
-            return session.executeRead(tx -> {
+            List<KnowledgeChapterCoverSummary> rows = session.executeRead(tx -> {
                 Result result = tx.run("""
                         MATCH (c:CourseChapterRef)
+                        WHERE coalesce(c.courseId, 0) > 0
+                          AND coalesce(c.published, true) = true
                         OPTIONAL MATCH (c)-[:COVERS]->(p:KnowledgePoint)
                         RETURN c.courseId AS courseId, c.chapterId AS chapterId,
+                               c.courseTitle AS courseTitle,
                                c.title AS title, c.description AS description,
                                collect(p.code) AS codes
                         ORDER BY courseId, chapterId
                         """);
-                List<KnowledgeChapterCoverSummary> rows = new ArrayList<>();
+                List<KnowledgeChapterCoverSummary> list = new ArrayList<>();
                 while (result.hasNext()) {
                     Record record = result.next();
                     if (record.get("courseId").isNull() || record.get("chapterId").isNull()) continue;
@@ -790,20 +1438,66 @@ public class KnowledgeGraphService {
                             ? List.of()
                             : record.get("codes").asList(value -> value.isNull() ? null : value.asString())
                             .stream().filter(StringUtils::hasText).toList();
-                    rows.add(new KnowledgeChapterCoverSummary(
+                    list.add(new KnowledgeChapterCoverSummary(
                             record.get("courseId").asLong(),
                             record.get("chapterId").asLong(),
+                            record.get("courseTitle").asString(null),
                             record.get("title").asString(null),
                             record.get("description").asString(null),
                             codes
                     ));
                 }
-                return rows;
+                return list;
             });
+            // 只保留「已发布课程 + 确实有绑定」的章节
+            return keepPublishedCourseCovers(rows).stream()
+                    .filter(cover -> cover.knowledgeCodes() != null && !cover.knowledgeCodes().isEmpty())
+                    .toList();
         } catch (RuntimeException error) {
             log.warn("读取章节覆盖失败: {}", error.getMessage());
             return List.of();
         }
+    }
+
+    /** overview / 管理端「已绑章节」只展示已发布课程，避免草稿课混进审查列表。 */
+    private List<KnowledgeChapterCoverSummary> keepPublishedCourseCovers(List<KnowledgeChapterCoverSummary> covers) {
+        if (covers == null || covers.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> courseIds = covers.stream()
+                .map(KnowledgeChapterCoverSummary::courseId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (courseIds.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Course> publishedById = courseMapper.selectList(Wrappers.lambdaQuery(Course.class)
+                        .in(Course::getId, courseIds)
+                        .eq(Course::getStatus, 1))
+                .stream()
+                .collect(Collectors.toMap(Course::getId, course -> course, (a, b) -> a, LinkedHashMap::new));
+        if (publishedById.isEmpty()) {
+            return List.of();
+        }
+        List<KnowledgeChapterCoverSummary> published = new ArrayList<>();
+        for (KnowledgeChapterCoverSummary cover : covers) {
+            Course course = publishedById.get(cover.courseId());
+            if (course == null) {
+                continue;
+            }
+            String courseTitle = StringUtils.hasText(course.getTitle())
+                    ? course.getTitle()
+                    : cover.courseTitle();
+            published.add(new KnowledgeChapterCoverSummary(
+                    cover.courseId(),
+                    cover.chapterId(),
+                    courseTitle,
+                    cover.title(),
+                    cover.description(),
+                    cover.knowledgeCodes()
+            ));
+        }
+        return published;
     }
 
     public int countExplains() {
@@ -835,7 +1529,10 @@ public class KnowledgeGraphService {
         findPoint(focusCode).ifPresentOrElse(
                 point -> {
                     payload.put("focusTitle", point.title());
+                    // 节点可覆盖多个学段；讲解难度/用语由学习者档案 schoolStage 决定，勿仅看图谱学段。
+                    payload.put("focusStages", point.resolvedStages());
                     payload.put("focusStage", point.stage());
+                    payload.put("stageResolution", "learner_profile");
                 },
                 () -> payload.put("focusTitle", null)
         );
@@ -847,7 +1544,7 @@ public class KnowledgeGraphService {
                         .toList())));
         payload.put("explains", listExplainsForFocus(focusCode));
         LinkedHashMap<String, Map<String, Object>> covered = new LinkedHashMap<>();
-        for (String code : BuiltinKnowledgeCatalog.relatedExplainCodes(focusCode)) {
+        for (String code : catalogStore.relatedExplainCodes(focusCode)) {
             for (Map<String, Object> chapter : listChaptersCovering(code)) {
                 Object refKey = chapter.get("refKey");
                 String key = refKey != null ? String.valueOf(refKey)
@@ -865,7 +1562,7 @@ public class KnowledgeGraphService {
             return List.of();
         }
         LinkedHashMap<String, Map<String, Object>> byDocument = new LinkedHashMap<>();
-        for (String code : BuiltinKnowledgeCatalog.relatedExplainCodes(focusCode)) {
+        for (String code : catalogStore.relatedExplainCodes(focusCode)) {
             for (Map<String, Object> row : listExplains(code)) {
                 Object documentId = row.get("documentId");
                 if (documentId == null) {
@@ -878,31 +1575,77 @@ public class KnowledgeGraphService {
         return new ArrayList<>(byDocument.values());
     }
 
-    /** 某知识点下的讲解资料（GraphRAG 候选入口）。 */
+    /** 某知识点下的讲解资料（GraphRAG 候选入口）；仅返回仍有效的已入库资料。 */
     public List<Map<String, Object>> listExplains(String knowledgeCode) {
         if (!ready() || !StringUtils.hasText(knowledgeCode)) return List.of();
         try (Session session = open(requireDriver())) {
-            return session.executeRead(tx -> {
+            List<Map<String, Object>> rows = session.executeRead(tx -> {
                 Result result = tx.run("""
                         MATCH (d:KnowledgeDocumentRef)-[:EXPLAINS]->(p:KnowledgePoint {code:$code})
                         RETURN d.documentId AS documentId, d.title AS title, d.description AS description
                         ORDER BY d.updatedAt DESC
-                        LIMIT 20
+                        LIMIT 40
                         """, Values.parameters("code", knowledgeCode.trim()));
-                List<Map<String, Object>> rows = new ArrayList<>();
+                List<Map<String, Object>> list = new ArrayList<>();
                 while (result.hasNext()) {
                     Record record = result.next();
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("documentId", record.get("documentId").asString(null));
                     row.put("title", record.get("title").asString(null));
                     row.put("description", record.get("description").asString(null));
-                    rows.add(row);
+                    list.add(row);
                 }
-                return rows;
+                return list;
             });
+            return keepLiveExplainDocuments(rows);
         } catch (RuntimeException error) {
             log.warn("读取 EXPLAINS 失败 code={}, err={}", knowledgeCode, error.getMessage());
             return List.of();
+        }
+    }
+
+    private List<Map<String, Object>> keepLiveExplainDocuments(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        List<Map<String, Object>> live = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            String documentId = row.get("documentId") == null ? null : String.valueOf(row.get("documentId"));
+            if (!StringUtils.hasText(documentId)) {
+                continue;
+            }
+            if (documentId.startsWith("formal-demo-")) {
+                live.add(row);
+                if (live.size() >= 20) break;
+                continue;
+            }
+            if (!documentId.startsWith("teaching-resource-")) {
+                continue;
+            }
+            Long resourceId = parseTeachingResourceId(documentId);
+            if (resourceId == null) {
+                continue;
+            }
+            TeachingResource resource = teachingResourceMapper.selectById(resourceId);
+            if (resource == null
+                    || !"PUBLISHED".equals(resource.getStatus())
+                    || !"INDEXED".equals(resource.getRagIndexStatus())) {
+                continue;
+            }
+            live.add(row);
+            if (live.size() >= 20) break;
+        }
+        return live;
+    }
+
+    private Long parseTeachingResourceId(String documentId) {
+        if (!StringUtils.hasText(documentId) || !documentId.startsWith("teaching-resource-")) {
+            return null;
+        }
+        try {
+            return Long.parseLong(documentId.substring("teaching-resource-".length()));
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 
@@ -917,7 +1660,11 @@ public class KnowledgeGraphService {
             runClasspathCypher(driver, "neo4j/002_seed_ai_literacy.cypher");
             runClasspathCypher(driver, "neo4j/003_seed_demo_teaching_loop.cypher");
             runClasspathCypher(driver, "neo4j/004_cleanup_formal_demo_docs.cypher");
-            syncExpandedCatalog();
+            try {
+                syncExpandedCatalog();
+            } catch (RuntimeException syncError) {
+                log.warn("启动时同步知识目录失败（Cypher 种子已执行）: {}", syncError.getMessage());
+            }
             log.info("Neo4j 约束、AI 通识种子图与正式演示闭环已应用");
         } catch (Exception error) {
             log.warn("Neo4j 种子初始化失败（教学将降级为无图导航）: {}", error.getMessage());
@@ -930,14 +1677,18 @@ public class KnowledgeGraphService {
         }
         Driver driver = requireDriver();
         try {
+            // 1) 基础数据：约束、少量示例点、示例章节/资料绑定，让闭环能先跑起来
             runClasspathCypher(driver, "neo4j/001_constraints.cypher");
             runClasspathCypher(driver, "neo4j/002_seed_ai_literacy.cypher");
             runClasspathCypher(driver, "neo4j/003_seed_demo_teaching_loop.cypher");
             runClasspathCypher(driver, "neo4j/004_cleanup_formal_demo_docs.cypher");
+            // 2) 重新读最新清单，再整份写进图（会盖掉上面基础脚本里同编号的属性）
+            catalogStore.reload();
             syncExpandedCatalog();
         } catch (IOException error) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "读取 Cypher 失败", error);
         }
+        invalidateOverviewCache();
     }
 
     private void runClasspathCypher(Driver driver, String classpath) throws IOException {
@@ -988,13 +1739,17 @@ public class KnowledgeGraphService {
         return driver.session(SessionConfig.forDatabase(database));
     }
 
-    private static KnowledgePointResponse toPoint(Record record) {
+    private KnowledgePointResponse toPoint(Record record) {
         Integer difficulty = record.get("difficulty").isNull() ? null : record.get("difficulty").asInt();
         String code = record.get("code").asString();
         String categoryCode = optionalString(record, "categoryCode");
         String categoryTitle = optionalString(record, "categoryTitle");
         String kind = optionalString(record, "kind");
-        KnowledgePointResponse builtin = BuiltinKnowledgeCatalog.find(code);
+        String stage = record.keys().contains("stage") && !record.get("stage").isNull()
+                ? record.get("stage").asString(null)
+                : null;
+        List<String> stages = readStringList(record, "stages");
+        KnowledgePointResponse builtin = catalogStore.find(code);
         if (builtin != null) {
             if (!StringUtils.hasText(categoryCode)) {
                 categoryCode = builtin.categoryCode();
@@ -1005,17 +1760,39 @@ public class KnowledgeGraphService {
             if (!StringUtils.hasText(kind)) {
                 kind = builtin.kind();
             }
+            if (stages.isEmpty() && !StringUtils.hasText(stage)) {
+                stages = builtin.resolvedStages();
+                stage = builtin.stage();
+            }
         }
         return new KnowledgePointResponse(
                 code,
                 record.get("title").asString(null),
-                record.get("stage").asString(null),
+                stage,
                 difficulty,
                 record.get("reviewStatus").asString(null),
                 categoryCode,
                 categoryTitle,
-                kind != null ? kind : "TOPIC"
+                kind != null ? kind : "TOPIC",
+                stages.isEmpty() ? null : stages
         );
+    }
+
+    private static List<String> readStringList(Record record, String key) {
+        if (!record.keys().contains(key) || record.get(key).isNull()) {
+            return List.of();
+        }
+        try {
+            return record.get(key).asList(value -> {
+                if (value == null || value.isNull()) {
+                    return null;
+                }
+                String text = value.asString(null);
+                return StringUtils.hasText(text) ? text.trim() : null;
+            }).stream().filter(StringUtils::hasText).distinct().toList();
+        } catch (RuntimeException ignored) {
+            return List.of();
+        }
     }
 
     private static String optionalString(Record record, String key) {

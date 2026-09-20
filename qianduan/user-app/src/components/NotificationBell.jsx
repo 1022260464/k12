@@ -30,12 +30,12 @@ function formatTime(value) {
 }
 
 function buildNotifications(homeworks, results) {
-  const titleById = new Map((homeworks || []).map((item) => [String(item.id), item.title || `作业 #${item.id}`]));
+  const titleById = new Map((homeworks || []).map((item) => [String(item.id), item.title || "一项作业"]));
   const submissionByHomework = new Map((results || []).map((item) => [String(item.homeworkId), item]));
   const items = [];
 
   for (const result of results || []) {
-    const title = titleById.get(String(result.homeworkId)) || `作业 #${result.homeworkId}`;
+    const title = titleById.get(String(result.homeworkId)) || "一项作业";
     const when = result.gradedTime || result.updatedTime || result.submittedTime;
     if (result.status === "RETURNED") {
       const tip = result.feedback
@@ -73,7 +73,7 @@ function buildNotifications(homeworks, results) {
       id: `todo-${homework.id}-${homework.updatedTime || ""}`,
       kind: "todo",
       title: "新作业待完成",
-      body: `「${homework.title || `作业 #${homework.id}`}」等待你完成。`,
+      body: `「${homework.title || "一项作业"}」等待你完成。`,
       time: homework.updatedTime,
       href: `tasks/${homework.id}`,
     });

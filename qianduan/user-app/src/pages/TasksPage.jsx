@@ -1,6 +1,8 @@
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, FileText, LoaderCircle, RotateCcw } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, ClipboardList, Clock3, FileText, LoaderCircle, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { homeworksApi } from "../api/client.js";
+
+const TASKS_DOODLE = "/assets/tasks-face-doodle.png";
 
 export function TasksPage({ session, requireLogin, navigate }) {
   const [tab, setTab] = useState("全部");
@@ -78,8 +80,11 @@ export function TasksPage({ session, requireLogin, navigate }) {
   return (
     <div className="page inner-page">
       <header className="page-title">
-        <p className="eyebrow">作业练习</p>
-        <h1>安排好今天的学习任务</h1>
+        <p className="eyebrow"><ClipboardList size={14} /> 作业练习</p>
+        <h1 className="page-title-with-doodle">
+          <span>安排好今天的学习任务</span>
+          <img className="page-title-doodle page-title-doodle-face" src={TASKS_DOODLE} alt="" width={96} height={96} />
+        </h1>
         <p>提交后显示「已提交」，教师批改完成显示「已完成」；退回后可重新提交。</p>
       </header>
       <section className="task-summary">
@@ -143,13 +148,13 @@ function taskStatusTone(task, submission) {
 
 function taskProgressLabel(task, submission) {
   if (task.status === "CLOSED" && submission?.status !== "GRADED") return "已结束";
-  if (!submission) return task.status === "PUBLISHED" ? "待完成" : (task.status === "CLOSED" ? "已结束" : task.status);
+  if (!submission) return task.status === "PUBLISHED" ? "待完成" : (task.status === "CLOSED" ? "已结束" : "待查看");
   return ({
     SUBMITTED: "已提交",
     PENDING_GRADING: "已提交",
     GRADED: submission.score != null ? `已完成 · ${submission.score} 分` : "已完成",
     RETURNED: "可重新提交",
-  })[submission.status] || submission.status;
+  })[submission.status] || "处理中";
 }
 
 function formatDate(value) {

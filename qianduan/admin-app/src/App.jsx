@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { Bot, BookOpen, ClipboardCheck, FileCheck2, LayoutDashboard, LogOut, Menu, Network, PanelLeftClose, ScrollText, Settings, ShieldCheck, Users, X } from "lucide-react";
-import { clearSession, getSession, rolesApi } from "./api/client.js";
+import { useEffect, useRef, useState } from "react";
+import { Bot, BookOpen, ChevronDown, ClipboardCheck, FileCheck2, LayoutDashboard, LogOut, Menu, Network, PanelLeftClose, ScrollText, Settings, ShieldCheck, UserRound, Users, X } from "lucide-react";
+import { clearSession, getSession, profileApi, rolesApi } from "./api/client.js";
 import { AdminNotificationBell } from "./components/AdminNotificationBell.jsx";
+import { ProfileModal } from "./components/ProfileModal.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { RoleManagement } from "./pages/RoleManagement.jsx";
 import { UserManagement } from "./pages/UserManagement.jsx";
@@ -12,6 +13,8 @@ import { PlaceholderPage } from "./pages/PlaceholderPage.jsx";
 import { ResourceManagement } from "./pages/ResourceManagement.jsx";
 import { TeachingResourceManagement } from "./pages/TeachingResourceManagement.jsx";
 import { KnowledgeGraphPage } from "./pages/KnowledgeGraphPage.jsx";
+
+const BRAND_ICON = "/assets/brand-face-doodle.png";
 
 const navigation = [
   { id: "overview", label: "工作台", icon: LayoutDashboard },
@@ -32,9 +35,16 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [roles, setRoles] = useState([]);
   const [toast, setToast] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const menuRef = useRef(null);
   const isAdmin = session?.authorities?.includes("ROLE_ADMIN");
   const visibleNavigation = navigation.filter((item) => isAdmin || (!item.adminOnly && (!item.permission || session?.authorities?.includes(item.permission))));
   const currentPage = visibleNavigation.some((item) => item.id === page) ? page : "overview";
+  const displayName = profile?.nickname || profile?.username || session?.username || "用户";
+  const initial = displayName.slice(0, 1).toUpperCase();
+  const pageLabel = visibleNavigation.find((item) => item.id === currentPage)?.label;
 
   function notify(message, type = "success") {
     setToast({ message, type });
@@ -52,9 +62,51 @@ export function App() {
     });
   }, [session, isAdmin]);
 
+  useEffect(() => {
+    if (!session) {
+      setProfile(null);
+      setShowProfile(false);
+      return undefined;
+    }
+    let alive = true;
+    profileApi.getSelf()
+      .then((self) => {
+        if (alive) setProfile(self);
+      })
+      .catch((error) => {
+        if (error.status === 401) setSession(null);
+      });
+    return () => { alive = false; };
+  }, [session]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    function onPointerDown(event) {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+    }
+    function onKeyDown(event) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
   function handleLogout() {
     clearSession();
+    setMenuOpen(false);
+    setShowProfile(false);
+    setProfile(null);
     setSession(null);
+  }
+
+  function openProfile() {
+    setShowProfile(true);
+    setMenuOpen(false);
+    setSidebarOpen(false);
   }
 
   function renderPage() {
@@ -73,16 +125,97 @@ export function App() {
   return (
     <main className="admin-shell">
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-brand"><a className="brand" href="/"><span className="brand-mark">eg</span><span>{isAdmin ? "平台管理中心" : "教师工作台"}</span></a><button className="icon-button sidebar-close" type="button" title="关闭导航" onClick={() => setSidebarOpen(false)}><PanelLeftClose size={19} /></button></div>
-        <nav className="side-nav" aria-label="管理端导航">{visibleNavigation.map(({ icon: Icon, ...item }) => <button className={currentPage === item.id ? "active" : ""} type="button" key={item.id} title={item.label} onClick={() => { setPage(item.id); setSidebarOpen(false); }}><Icon size={19} /><span>{item.label}</span></button>)}</nav>
-        <div className="sidebar-user"><span className="admin-avatar">{session.username?.slice(0,1).toUpperCase()}</span><div><strong>{session.username}</strong><small>{isAdmin ? "系统管理员" : "教师"}</small></div><button className="icon-button dark" type="button" title="退出登录" onClick={handleLogout}><LogOut size={18} /></button></div>
+        <div className="sidebar-brand">
+          <a className="brand" href="/">
+            <span className="brand-mark"><img src={BRAND_ICON} alt="" /></span>
+            <span>{isAdmin ? "平台管理中心" : "教师工作台"}</span>
+          </a>
+          <button className="icon-button sidebar-close" type="button" title="关闭导航" onClick={() => setSidebarOpen(false)}>
+            <PanelLeftClose size={19} />
+          </button>
+        </div>
+        <nav className="side-nav" aria-label="管理端导航">
+          {visibleNavigation.map(({ icon: Icon, ...item }) => (
+            <button
+              className={currentPage === item.id ? "active" : ""}
+              type="button"
+              key={item.id}
+              title={item.label}
+              onClick={() => { setPage(item.id); setSidebarOpen(false); }}
+            >
+              <Icon size={19} /><span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-user">
+          <button className="sidebar-user-main" type="button" onClick={openProfile} title="个人中心">
+            <span className="admin-avatar">
+              {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}
+            </span>
+            <div>
+              <strong>{displayName}</strong>
+              <small>{isAdmin ? "系统管理员" : "教师"}</small>
+            </div>
+          </button>
+          <button className="icon-button dark" type="button" title="退出登录" onClick={handleLogout}>
+            <LogOut size={18} />
+          </button>
+        </div>
       </aside>
       <div className="admin-main">
-        <header className="topbar"><button className="icon-button top-menu" type="button" title="打开导航" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div className="breadcrumb"><span>{isAdmin ? "管理中心" : "教学工作台"}</span><strong>/</strong><span>{visibleNavigation.find((item) => item.id === currentPage)?.label}</span></div><div className="top-actions"><span className="environment"><i />开发环境</span><AdminNotificationBell isAdmin={isAdmin} onNavigate={setPage} /><span className="top-avatar">{session.username?.slice(0,1).toUpperCase()}</span></div></header>
+        <header className="topbar">
+          <button className="icon-button top-menu" type="button" title="打开导航" onClick={() => setSidebarOpen(true)}>
+            <Menu size={20} />
+          </button>
+          <div className="breadcrumb">
+            <span>{isAdmin ? "管理中心" : "教学工作台"}</span>
+            <strong>/</strong>
+            <span>{pageLabel}</span>
+          </div>
+          <div className="top-actions">
+            <span className="environment"><i />开发环境</span>
+            <AdminNotificationBell isAdmin={isAdmin} onNavigate={setPage} />
+            <div className={`top-user-menu ${menuOpen ? "open" : ""}`} ref={menuRef}>
+              <button
+                className="top-user-button"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                title="账号菜单"
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <span className="top-avatar">
+                  {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}
+                </span>
+                <span className="top-user-name">{displayName}</span>
+                <ChevronDown size={16} />
+              </button>
+              {menuOpen && (
+                <div className="top-user-dropdown" role="menu">
+                  <button type="button" role="menuitem" onClick={openProfile}>
+                    <UserRound size={16} />个人中心
+                  </button>
+                  <button type="button" role="menuitem" onClick={handleLogout}>
+                    <LogOut size={16} />退出登录
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
         {renderPage()}
       </div>
       {sidebarOpen && <button className="sidebar-scrim" type="button" aria-label="关闭导航" onClick={() => setSidebarOpen(false)}><X /></button>}
       {toast && <div className={`toast ${toast.type}`} role="status">{toast.message}</div>}
+      {showProfile && (
+        <ProfileModal
+          session={session}
+          isAdmin={isAdmin}
+          notify={notify}
+          onClose={() => setShowProfile(false)}
+          onProfileUpdated={setProfile}
+        />
+      )}
     </main>
   );
 }

@@ -6,11 +6,13 @@ import com.k12.platform.learning.dto.ChapterRequest;
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.SectionRequest;
 import com.k12.platform.learning.config.LeaderboardProperties;
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -55,6 +57,10 @@ class CourseLearningIntegrationTest {
     static class Config {
         @Bean CourseMediaUrlResolver courseMediaUrlResolver() {
             return objectKey -> null;
+        }
+
+        @Bean KnowledgeGraphService knowledgeGraphService() {
+            return Mockito.mock(KnowledgeGraphService.class);
         }
 
         @Bean DataSource dataSource() {

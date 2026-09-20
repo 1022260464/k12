@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, homeworksApi, knowledgeGraphApi, teachingResourcesApi } from "../api/client.js";
+import { readKnowledgeGraphOverviewCache } from "../utils/knowledgeGraphCache.js";
 
 const HOMEWORK_STATUS = { DRAFT: "草稿", PUBLISHED: "已发布", CLOSED: "已关闭" };
 const MATERIAL_STATUS = {
@@ -23,12 +24,13 @@ const MATERIAL_STATUS = {
 };
 
 export function TeacherOverviewPage({ onNavigate, notify }) {
+  const cachedGraph = readKnowledgeGraphOverviewCache();
   const [courses, setCourses] = useState([]);
   const [homeworks, setHomeworks] = useState([]);
   const [materials, setMaterials] = useState([]);
-  const [graphOverview, setGraphOverview] = useState(null);
+  const [graphOverview, setGraphOverview] = useState(cachedGraph);
   const [loading, setLoading] = useState(true);
-  const [graphLoading, setGraphLoading] = useState(true);
+  const [graphLoading, setGraphLoading] = useState(!cachedGraph);
 
   async function loadFast() {
     setLoading(true);
@@ -49,7 +51,7 @@ export function TeacherOverviewPage({ onNavigate, notify }) {
   }
 
   async function loadGraph() {
-    setGraphLoading(true);
+    if (!cachedGraph) setGraphLoading(true);
     try {
       const graph = await knowledgeGraphApi.overview();
       setGraphOverview(graph);
@@ -125,12 +127,12 @@ export function TeacherOverviewPage({ onNavigate, notify }) {
           <strong>
             {graphLoading ? "知识图谱加载中…" : (graphStats.ready ? "知识图谱已连通" : "知识图谱")}
           </strong>
-          <small>查看力导向关系图、章节覆盖与教学闭环</small>
+          <small>查看知识点关系、章节覆盖与教学闭环</small>
           <div className="teacher-kg-metrics">
             <span>知识点 {graphLoading ? "加载中" : graphStats.points}</span>
             <span>关系 {graphLoading ? "加载中" : graphStats.edges}</span>
             <span>已绑章节 {graphLoading ? "加载中" : `${graphStats.coversBound}/${graphStats.chapters}`}</span>
-            <span>讲解边 {graphLoading ? "加载中" : graphStats.explains}</span>
+            <span>讲解资料 {graphLoading ? "加载中" : graphStats.explains}</span>
           </div>
         </div>
         <span className="teacher-stat-go" aria-hidden="true"><ArrowRight size={16} /></span>
@@ -207,7 +209,7 @@ export function TeacherOverviewPage({ onNavigate, notify }) {
       <section className="data-panel teacher-overview-tips">
         <header><strong>快捷说明</strong></header>
         <div className="teacher-tip-list">
-          <p><BookOpen size={16} /><span>课程可手工新建或 JSON 导入；发布后才能布置作业并关联教学资料。</span></p>
+          <p><BookOpen size={16} /><span>课程可手工新建或批量导入；发布后才能布置作业并关联教学资料。</span></p>
           <p><ClipboardCheck size={16} /><span>作业草稿中可批量导入题目、上传附件，并勾选接收学生后发布。</span></p>
           <p><FileCheck2 size={16} /><span>教学资料上传后需审核发布，学生才能在课程页下载附件。</span></p>
         </div>

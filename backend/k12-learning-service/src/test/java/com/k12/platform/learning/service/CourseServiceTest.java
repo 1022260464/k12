@@ -2,12 +2,14 @@ package com.k12.platform.learning.service;
 
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.CourseResponse;
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import com.k12.platform.learning.mapper.CourseMapper;
 import com.k12.platform.learning.model.Course;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -32,18 +34,27 @@ class CourseServiceTest {
     private CourseMapper courseMapper;
     @Mock
     private CourseCoverStorage coverStorage;
+    @Mock
+    private KnowledgeGraphService knowledgeGraphService;
+    @Mock
+    private ObjectProvider<PublishedCourseListCache> publishedCourseListCache;
+    @Mock
+    private ObjectProvider<CourseMediaUrlCache> mediaUrlCache;
 
     @BeforeEach
     void authenticate() {
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
                 Jwt.withTokenValue("test").header("alg", "none").subject("teacher").claim("userId", "42").build(), List.of()));
+        when(publishedCourseListCache.getIfAvailable()).thenReturn(null);
+        when(mediaUrlCache.getIfAvailable()).thenReturn(null);
     }
 
     @AfterEach
     void clearIdentity() { SecurityContextHolder.clearContext(); }
 
     private CourseService service(CourseMediaUrlResolver resolver) {
-        return new CourseService(courseMapper, resolver, coverStorage);
+        return new CourseService(courseMapper, resolver, coverStorage, knowledgeGraphService,
+                publishedCourseListCache, mediaUrlCache);
     }
 
     @Test

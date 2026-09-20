@@ -118,6 +118,7 @@ public class LearnerContextEnricher {
             }
 
             String stage = toAgentStage(profile.schoolStage());
+            // 教学难度只认学习档案学段；知识图谱节点可标注多个适用学段，不作难度依据。
             if (stage != null) {
                 context.put("stage", stage);
             }

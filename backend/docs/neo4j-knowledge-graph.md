@@ -7,8 +7,62 @@
 | 存储 | 存什么 | 不存什么 |
 | --- | --- | --- |
 | Neo4j | 知识点先修/关联、章节/资料映射 | 正文、成绩、账号 |
+| **知识目录 JSON** | 权威知识点元数据与目录边（版本化文件） | 运行时掌握度 |
 | pgvector | 可引用正文切片 | 先修图 |
 | MySQL | 作业/小测/掌握度 | 向量与图关系主存 |
+
+## 知识目录从哪来？（白话）
+
+系统里有一份「知识点清单」文件：
+
+`backend/k12-learning-service/src/main/resources/knowledge/ai_literacy_catalog.json`
+
+- 服务启动时读进内存
+- 管理端「写进图谱」时，按这份清单去改 Neo4j 里的点
+- 也可用外部文件（改完不用重新打包）：
+
+```text
+K12_KNOWLEDGE_CATALOG_LOCATION=file:D:/data/k12/ai_literacy_catalog.json
+```
+
+`sql/neo4j/` 下同名文件只是备份，服务不读。
+
+**日常改名单：** 改 JSON →「重新读清单」→「写进图谱」  
+**新环境第一次：** 点「一键初始化」（= 基础数据 + 重新读清单 + 写进图谱，不只是合并前两个按钮）
+
+页面上单独改某个点，不会写回 JSON；以后再「写进图谱」，清单里有的编号仍会盖掉页面改动。
+
+更细的说明：`k12-learning-service/src/main/resources/knowledge/README.md`。
+
+## 知识目录从哪来？（工程约定）
+
+**权威源（SSOT）**
+
+`backend/k12-learning-service/src/main/resources/knowledge/ai_literacy_catalog.json`
+
+- 由 `KnowledgeCatalogStore` 在启动时加载到内存
+- 可用环境变量覆盖为外部文件（热更后点「重新读清单」即可，无需重打包）：
+
+```text
+K12_KNOWLEDGE_CATALOG_LOCATION=file:D:/data/k12/ai_literacy_catalog.json
+```
+
+默认：
+
+```text
+K12_KNOWLEDGE_CATALOG_LOCATION=classpath:knowledge/ai_literacy_catalog.json
+```
+
+仓库里的 `sql/neo4j/ai_literacy_catalog.json` 只是运维镜像，**服务进程不读它**。
+
+**与 Cypher 小种子的关系**
+
+| 层 | 内容 | 规模 |
+| --- | --- | --- |
+| `002_seed_ai_literacy.cypher` 等 | 基础数据：少量示例点 + 示例章节/资料闭环 | 十余点级 |
+| JSON 目录 +「写进图谱」 | 全量分类 / 知识点 / 目录边 | 数百点 |
+
+启动或「一键初始化」：先跑 Cypher，再按 JSON 覆盖同步到 Neo4j。
 
 ## 本机/联调配置
 
@@ -21,6 +75,8 @@ K12_NEO4J_USERNAME=neo4j
 K12_NEO4J_PASSWORD=<your-password>
 K12_NEO4J_DATABASE=neo4j
 K12_NEO4J_SEED_ON_STARTUP=true
+# 可选：外部目录文件
+# K12_KNOWLEDGE_CATALOG_LOCATION=file:/path/to/ai_literacy_catalog.json
 ```
 
 浏览器管理台：`http://122.51.54.52:7474`
@@ -30,15 +86,19 @@ K12_NEO4J_SEED_ON_STARTUP=true
 - `backend/sql/neo4j/001_constraints.cypher`
 - `backend/sql/neo4j/002_seed_ai_literacy.cypher`
 - `backend/sql/neo4j/003_seed_demo_teaching_loop.cypher`（正式演示：章节 COVERS + 资料 EXPLAINS）
-- 同步副本：`k12-learning-service/src/main/resources/neo4j/`
+- `backend/sql/neo4j/004_cleanup_formal_demo_docs.cypher`
+- 运行时副本：`k12-learning-service/src/main/resources/neo4j/`
 
-也可管理员调用：
+## 管理端三个按钮 / API
 
-```http
-POST /api/v1/learning/knowledge-graph/admin/seed
-```
+| 按钮 | API | 白话 |
+| --- | --- | --- |
+| 重新读清单 | `POST /admin/catalog/reload` | 重新读清单文件，图先不动 |
+| 写进图谱 | `POST /admin/catalog/sync?reload=true` | 按清单改图上的点 |
+| 一键初始化 | `POST /admin/seed` | 基础数据 + 重新读清单 + 写进图谱 |
+| （查看） | `GET /admin/catalog` | 看当前读的是哪份、有多少点 |
 
-会依次应用 001 → 002 → 003。
+均需管理员。前缀：`/api/v1/learning/knowledge-graph`。
 
 ## 正式演示数据（推荐）
 
@@ -57,7 +117,7 @@ POST /api/v1/learning/knowledge-graph/admin/seed
 2. Learning 服务 `K12_NEO4J_SEED_ON_STARTUP=true` 重启，或调用 `admin/seed`
 3. 可选向量：`uv run python scripts/seed_demo_knowledge.py --data-file=data/formal_ai_literacy_knowledge.json`
 
-管理端「知识图谱」总览应能看到：知识点、先修边、章节覆盖、讲解（EXPLAINS）均 > 0。
+管理端「知识图谱」应能看到：知识点、先修边、章节覆盖、讲解资料都有数据；页眉「知识点清单」一行显示版本和文件路径。
 
 ## 闭环链路
 
@@ -66,7 +126,7 @@ POST /api/v1/learning/knowledge-graph/admin/seed
 3. 小测回写 `assessment_ai_knowledge_mastery`
 4. 教学资料入库成功且带 `knowledgeCode` 时，写入 `(KnowledgeDocumentRef)-[:EXPLAINS]->(KnowledgePoint)`
 
-知识点勾选目录：`GET .../points` 在 Neo4j 未启用或为空时，会回退内置 AI 通识种子目录（约 16 项），管理端始终能看到多选勾选框。真正保存 `COVERS` 仍需 `K12_NEO4J_ENABLED=true` 且连通。
+知识点勾选目录：`GET .../points` 优先读 Neo4j；未启用或为空时回退内存中的 JSON 目录（数百知识点）。真正保存 `COVERS` 仍需 `K12_NEO4J_ENABLED=true` 且连通。
 
 ## 查询 API（需登录）
 
@@ -84,10 +144,13 @@ POST /api/v1/learning/knowledge-graph/admin/seed
 ### 章节绑定工作流
 
 1. **先写章节导语（必填）**：保存章节时同步到 `CourseChapterRef.title` + `description`（导语纯文本）。
-2. 管理端加载知识点目录（种子图约十余个 AI 通识点）；Neo4j 不可用时回退内置目录勾选。
+2. 管理端加载知识点目录（JSON/Neo4j）；Neo4j 不可用时回退内存目录勾选。
 3. 点「AI 建议」：主要依据**章节导语**；优先大模型，失败则本地匹配。建议不落库。
-4. 教师勾选/取消后点「保存知识点绑定」：先落库导语，再写 `(CourseChapterRef)-[:COVERS]->(KnowledgePoint)`。
+4. 教师勾选/取消后点「保存知识点绑定」：先落库导语，再写 `(CourseChapterRef)-[:COVERS]->(KnowledgePoint)`。**只允许官方目录内的 code**，不会在图谱里造野点。
+5. **发布课程前**：校验每章至少绑定一个目录内知识点；未绑定或绑定非法 code 会拒绝发布。发布成功后将该课图节点标为 `published=true`。
+6. **教学资料**：发布 / 入库 / 同步图谱前须填写目录内 `knowledgeCode` 与简介；`EXPLAINS` 同样拒绝目录外编码。
+7. **清理脏数据**：`POST .../admin/purge-dirty`（管理端「清理脏数据」）删除未发布/已删课程的 `CourseChapterRef`，以及非「已发布且已入库」的 `teaching-resource-*` 讲解节点；正式演示节点保留。检索侧也会过滤未发布课与无效资料。
 
-管理端侧栏「知识图谱」：`GET .../knowledge-graph/overview` 提供节点/边/章节覆盖与教学闭环进度可视化。
+管理端侧栏「知识图谱」：`GET .../knowledge-graph/overview` 提供节点/边/章节覆盖与教学闭环进度可视化（已绑章节仅含已发布课程）。
 
-未启用 Neo4j 时章节导语仍必填并落 MySQL；`COVERS` 绑定会提示需开启图谱。
+未启用 Neo4j 时章节导语仍必填并落 MySQL；`COVERS` 绑定会提示需开启图谱。图谱未启用时课程发布跳过 COVERS 校验。

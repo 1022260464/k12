@@ -36,6 +36,17 @@ public class TeachingResourceIndexService {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public TeachingResourceResponse index(long id) {
+        TeachingResource resource = mapper.selectById(id);
+        if (resource == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "资料不存在");
+        }
+        if (!StringUtils.hasText(resource.getKnowledgeCode())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "入库前请填写主知识点编码");
+        }
+        if (!StringUtils.hasText(resource.getDescription())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "入库前请填写资料简介（将写入知识图谱）");
+        }
+        knowledgeGraphService.requireCatalogCode(resource.getKnowledgeCode());
         long actorId = K12SecurityContext.requireUserId();
         TeachingResourceResponse response = state.beginIndex(id, actorId);
         try {
@@ -50,7 +61,7 @@ public class TeachingResourceIndexService {
     /**
      * 已入库资料：仅按当前 knowledgeCode + 简介同步图谱 EXPLAINS，无需重新抽向量。
      */
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:update')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public TeachingResourceResponse syncGraph(long id) {
         TeachingResource resource = mapper.selectById(id);
         if (resource == null) {
@@ -68,6 +79,7 @@ public class TeachingResourceIndexService {
         if (!StringUtils.hasText(resource.getDescription())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先填写资料简介（将写入图谱 description）");
         }
+        knowledgeGraphService.requireCatalogCode(resource.getKnowledgeCode());
         String documentId = "teaching-resource-" + id;
         knowledgeGraphService.syncDocumentExplains(
                 documentId,
@@ -105,12 +117,16 @@ public class TeachingResourceIndexService {
             TeachingResourceIndexClient.IndexedResult result = client.index(resource);
             state.indexSucceeded(id, actorId, "文档 " + result.documentId() + "，片段 " + result.chunkCount());
             if (StringUtils.hasText(resource.getKnowledgeCode())) {
-                knowledgeGraphService.syncDocumentExplains(
-                        result.documentId() != null ? result.documentId() : "teaching-resource-" + id,
-                        resource.getKnowledgeCode(),
-                        resource.getTitle(),
-                        resource.getDescription()
-                );
+                try {
+                    knowledgeGraphService.syncDocumentExplains(
+                            result.documentId() != null ? result.documentId() : "teaching-resource-" + id,
+                            resource.getKnowledgeCode(),
+                            resource.getTitle(),
+                            resource.getDescription()
+                    );
+                } catch (RuntimeException graphError) {
+                    log.warn("教学资料入库成功但同步图谱失败：id={}, err={}", id, graphError.getMessage());
+                }
             }
         } catch (TeachingResourceIndexClient.IndexOutcomeUnknownException error) {
             log.warn("教学资料入库远端结果待确认：id={}", id, error);

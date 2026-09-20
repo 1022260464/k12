@@ -67,7 +67,8 @@ k12:
       public-endpoint: ${K12_MINIO_PUBLIC_ENDPOINT:${K12_MINIO_ENDPOINT:http://127.0.0.1:9000}}
       access-key: ${K12_MINIO_ACCESS_KEY:}
       secret-key: ${K12_MINIO_SECRET_KEY:}
-      bucket: ${K12_MINIO_BUCKET:k12-agent-artifacts}
+      # 头像桶可与课程素材分离；不存在时服务会自动创建
+      bucket: ${K12_AVATAR_MINIO_BUCKET:${K12_MINIO_BUCKET:k12-user-avatars}}
       url-ttl: ${K12_AVATAR_URL_TTL:1h}
 
 management:

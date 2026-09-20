@@ -4,8 +4,18 @@ import { coursesApi, homeworksApi, practiceApi, profileApi } from "../api/client
 import { LearnerKnowledgeNetwork } from "../components/LearnerKnowledgeNetwork.jsx";
 
 const stages = [["PRIMARY_LOWER", "小学低年级"], ["PRIMARY_UPPER", "小学高年级"], ["JUNIOR_HIGH", "初中"], ["SENIOR_HIGH", "高中"]];
+const PROGRESS_DOODLE = "/assets/progress-group-doodle.png";
 
-export function ProgressPage({ session, requireLogin, navigate, onPractice, practiceRevision }) {
+function ProgressTitle() {
+  return (
+    <h1 className="page-title-with-doodle">
+      <span>看见每一步进步</span>
+      <img className="page-title-doodle" src={PROGRESS_DOODLE} alt="" width={140} height={90} />
+    </h1>
+  );
+}
+
+export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, onPractice, practiceRevision }) {
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
   const [results, setResults] = useState([]);
@@ -98,12 +108,12 @@ export function ProgressPage({ session, requireLogin, navigate, onPractice, prac
     [results],
   );
 
-  if (!session) return <div className="page inner-page"><header className="page-title"><p className="eyebrow">学习报告</p><h1>看见每一步进步</h1></header><section className="empty-state"><BarChart3 size={28} /><h2>登录后查看学习报告</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
+  if (!session) return <div className="page inner-page"><header className="page-title"><p className="eyebrow">学习报告</p><ProgressTitle /></header><section className="empty-state"><BarChart3 size={28} /><h2>登录后查看学习报告</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
   if (loading) return <div className="page inner-page"><div className="loading-state"><LoaderCircle size={22} />正在生成学习报告</div></div>;
 
   return (
     <div className="page inner-page">
-      <header className="page-title"><p className="eyebrow">学习报告</p><h1>看见每一步进步</h1><p>汇总课程进度、作业结果和 AI 课堂小测。学段、年级等档案请在个人中心维护。</p></header>
+      <header className="page-title"><p className="eyebrow">学习报告</p><ProgressTitle /><p>汇总课程进度、作业结果和 AI 课堂小测。学段、年级等档案请在个人中心维护。</p></header>
       {error && <p className="page-error" role="alert">{error}</p>}
       <section className="report-stats"><article><span><BookOpen /></span><div><strong>{metrics.courses} 门</strong><small>在学课程</small></div></article><article><span><CheckCircle2 /></span><div><strong>{metrics.completedChapters}/{metrics.totalChapters}</strong><small>已完成章节</small></div></article><article><span><TrendingUp /></span><div><strong>{metrics.averageProgress}%</strong><small>平均课程进度</small></div></article><article><span><ClipboardCheck /></span><div><strong>{metrics.averageScore == null ? "暂无" : `${metrics.averageScore} 分`}</strong><small>已批改作业均分</small></div></article></section>
 
@@ -134,8 +144,8 @@ export function ProgressPage({ session, requireLogin, navigate, onPractice, prac
               <h2>{profile?.grade ? `${profile.grade} 年级` : "档案未完善"}</h2>
               <p>{profile ? [stages.find(([value]) => value === profile.schoolStage)?.[1], profile.textbook, profile.interests?.join("、")].filter(Boolean).join(" · ") || "可在个人中心完善学段、教材和兴趣" : "完善学段、教材和兴趣后，AI 会使用这些信息调整回答。"}</p>
               {navigate && (
-                <button className="text-button" type="button" onClick={() => navigate("profile")}>
-                  前往个人中心编辑
+                <button className="text-button" type="button" onClick={() => onOpenProfile?.()}>
+                  打开个人中心编辑
                 </button>
               )}
             </div>
@@ -165,7 +175,7 @@ export function ProgressPage({ session, requireLogin, navigate, onPractice, prac
               const tone = submissionTone(item.status);
               return (
                 <p key={item.id}>
-                  <span>作业 #{item.homeworkId}</span>
+                  <span>{item.homeworkTitle || "最近一次作业"}</span>
                   <strong className={`task-status-badge tone-${tone}`}>{formatSubmissionStatus(item)}</strong>
                 </p>
               );
@@ -191,8 +201,8 @@ function formatSubmissionStatus(item) {
     SUBMITTED: "已提交",
     PENDING_GRADING: "已提交",
     RETURNED: "可重新提交",
-    DRAFT: "草稿",
-  })[item.status] || item.status || "状态未知";
+    DRAFT: "未提交",
+  })[item.status] || "处理中";
 }
 
 function submissionTone(status) {

@@ -1,7 +1,18 @@
+import { readKnowledgeGraphOverviewCache, writeKnowledgeGraphOverviewCache } from "../utils/knowledgeGraphCache.js";
+
 const AUTH_STORAGE_KEY = "k12-user-auth";
 
+function readAuthRaw() {
+  return localStorage.getItem(AUTH_STORAGE_KEY) || sessionStorage.getItem(AUTH_STORAGE_KEY);
+}
+
+function clearAuthRaw() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
 export async function api(path, options = {}) {
-  const session = JSON.parse(sessionStorage.getItem(AUTH_STORAGE_KEY) || "null");
+  const session = JSON.parse(readAuthRaw() || "null");
   const { public: publicRequest = false, headers, ...requestOptions } = options;
   const response = await fetch(path, {
     ...requestOptions,
@@ -13,12 +24,31 @@ export async function api(path, options = {}) {
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401) sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    const error = new Error(payload?.message || `请求失败（${response.status}）`);
+    if (response.status === 401) clearAuthRaw();
+    const error = new Error(friendlyRequestMessage(response.status, payload?.message));
     error.status = response.status;
     throw error;
   }
   return payload?.data;
+}
+
+/** 学生端展示用：去掉 HTTP 状态码与技术异常原文 */
+function friendlyRequestMessage(status, payloadMessage) {
+  const raw = String(payloadMessage || "").trim();
+  const hasChinese = /[\u4e00-\u9fff]/.test(raw);
+  const looksTechnical = !raw
+    || /^(null|undefined|error|exception|internal|unauthorized|forbidden)$/i.test(raw)
+    || (!hasChinese && /\b(HTTP|SQL|Neo4j|Redis|MinIO|pgvector|stack|trace|Exception|NullPointer)\b/i.test(raw))
+    || /^\d{3}\b/.test(raw)
+    || /请求失败（\d+）/.test(raw);
+  if (raw && !looksTechnical) return raw;
+  if (status === 401) return "登录已过期，请重新登录";
+  if (status === 403) return "暂无权限进行此操作";
+  if (status === 404) return "未找到相关内容，请返回重试";
+  if (status === 429) return "操作太频繁，请稍后再试";
+  if (status === 503) return "头像暂时无法上传，请稍后再试";
+  if (status >= 500) return "服务暂时不可用，请稍后再试";
+  return "暂时无法完成操作，请稍后再试";
 }
 
 const query = (values) => {
@@ -48,6 +78,7 @@ export const coursesApi = {
   attachments: (courseId) => api(`/api/v1/learning/courses/${courseId}/attachments`),
   chapterAttachments: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/attachments`),
   list: () => api("/api/v1/learning/courses"),
+  recommended: (limit = 8) => api(`/api/v1/learning/courses/recommended?${query({ limit })}`),
   page: (filters = {}) => api(`/api/v1/learning/courses/page?${query(filters)}`),
   history: (limit = 10) => api(`/api/v1/learning/history/me?${query({ limit })}`),
   get: (id) => api(`/api/v1/learning/courses/${id}`),
@@ -91,7 +122,15 @@ export const practiceApi = {
 };
 
 export const knowledgeGraphApi = {
-  overview: () => api("/api/v1/learning/knowledge-graph/overview"),
+  overview: async ({ force = false } = {}) => {
+    if (!force) {
+      const cached = readKnowledgeGraphOverviewCache();
+      if (cached) return cached;
+    }
+    const data = await api("/api/v1/learning/knowledge-graph/overview");
+    writeKnowledgeGraphOverviewCache(data);
+    return data;
+  },
   recommendNext: (body) => api("/api/v1/learning/knowledge-graph/recommendations/next", {
     method: "POST",
     body: JSON.stringify(body),

@@ -521,7 +521,7 @@ def main() -> None:
         edges.append({"from": a, "to": b, "relation": "RELATED_TO"})
 
     catalog = {
-        "version": 2,
+        "version": 3,
         "categories": categories,
         "points": points,
         "edges": edges,
@@ -530,17 +530,21 @@ def main() -> None:
     # scripts/ -> k12-agent-runtime -> ai-services -> repo root
     repo_root = Path(__file__).resolve().parents[3]
     learning_root = repo_root / "backend" / "k12-learning-service"
+    # 权威源：Learning 服务 classpath（进程只读这份）
     out = learning_root / "src/main/resources/knowledge/ai_literacy_catalog.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding="utf-8")
+    out.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    sql_copy = repo_root / "backend/sql/neo4j/ai_literacy_catalog.json"
+    # 运维镜像（非运行时）：仓库根 sql/neo4j/
+    sql_copy = repo_root / "sql" / "neo4j" / "ai_literacy_catalog.json"
     sql_copy.parent.mkdir(parents=True, exist_ok=True)
     sql_copy.write_text(out.read_text(encoding="utf-8"), encoding="utf-8")
 
     print(f"categories={len(categories)} points={len(points)} edges={len(edges)}")
     print(f"total_nodes={len(categories) + len(points)}")
-    print(f"wrote {out}")
+    print(f"wrote SSOT {out}")
+    print(f"wrote mirror {sql_copy}")
+    print("NOTE: 生成器若仍输出英文 stage，请勿覆盖已手工维护的中文 stages；优先改权威 JSON。")
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ from k12_agent_runtime.domain.agents.ports import AgentRegistry
 from k12_agent_runtime.domain.llm import ChatModel
 from k12_agent_runtime.domain.sandbox.ports import CodeSandbox
 from k12_agent_runtime.infrastructure.agents.demo_chart_agent import DemoChartAgent
+from k12_agent_runtime.infrastructure.agents.python_code_coach import PythonCodeCoachAgent
 from k12_agent_runtime.infrastructure.agents.registry import InMemoryAgentRegistry
 from k12_agent_runtime.infrastructure.agents.study_plan import StudyPlanAgent
 from k12_agent_runtime.infrastructure.agents.teaching_assistant import TeachingAssistantAgent
@@ -100,6 +101,7 @@ def build_container(settings: Settings) -> ApplicationContainer:
                 rag_candidate_count=settings.rag_candidate_count,
                 rag_top_k=settings.rag_top_k,
             ),
+            PythonCodeCoachAgent(chat_model),
         ]
     )
     sandbox = _build_code_sandbox(settings, store_object)

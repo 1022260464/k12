@@ -48,7 +48,7 @@ export function CoursesPage({ session, requireLogin, navigate }) {
       <header className="page-title">
         <p className="eyebrow">课程中心</p>
         <h1>找到适合你的课程</h1>
-        <p>课程、章节、报名状态和学习进度均来自 Learning Service。</p>
+        <p>浏览已发布课程，报名后即可查看章节与学习进度。</p>
       </header>
       <div className="filter-bar">
         <label>

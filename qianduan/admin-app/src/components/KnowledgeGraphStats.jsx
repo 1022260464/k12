@@ -6,6 +6,11 @@ import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
+/** 上方统计图固定浅色，不支持自定义 */
+const STATS_LIGHT_COLORS = ["#b9dff2", "#b7e0d4", "#f5d4b0", "#d7c6ef", "#f2c4da", "#c5e0b8"];
+const STATS_BAR_COLOR = "#b9dff2";
+const STATS_COVER_COLORS = ["#b7e0d4", "#e8eef2"];
+
 function useChart(option, enabled = true) {
   const hostRef = useRef(null);
   useEffect(() => {
@@ -36,7 +41,7 @@ function countBy(items, keyFn) {
 function StatsLoadingSkeleton() {
   return (
     <section className="kg-stats-grid">
-      {["学段分布", "主题类别 Top", "关系类型", "章节 COVERS"].map((title) => (
+      {["学段分布", "主题类别 Top", "关系类型", "章节绑定"].map((title) => (
         <article className="kg-stat-card" key={title}>
           <header><strong>{title}</strong><small>加载中</small></header>
           <div className="kg-stat-loading">图表加载中…</div>
@@ -59,7 +64,15 @@ export function KnowledgeGraphStats({
     () => countBy(points.filter((p) => p.kind !== "CATEGORY"), (p) => p.categoryTitle || p.categoryCode),
     [points],
   );
-  const edgeData = useMemo(() => countBy(edges, (e) => e.relation), [edges]);
+  const edgeData = useMemo(() => countBy(edges, (e) => {
+    const key = String(e.relation || "").toUpperCase();
+    if (key === "PREREQUISITE_OF") return "先修";
+    if (key === "RELATED_TO") return "相关拓展";
+    if (key === "HAS_CHILD") return "同属一类";
+    if (key === "COVERS") return "章节覆盖";
+    if (key === "EXPLAINS") return "资料讲解";
+    return e.relation || "其他";
+  }), [edges]);
 
   const coverStats = useMemo(() => {
     const bound = chapterCovers.filter((ch) => (ch.knowledgeCodes || []).length > 0).length;
@@ -77,7 +90,7 @@ export function KnowledgeGraphStats({
   }, [chapterCovers, points, explainsCount]);
 
   const stageRef = useChart({
-    color: ["#1796d2", "#0f766e", "#b54708", "#6941c6"],
+    color: STATS_LIGHT_COLORS,
     tooltip: { trigger: "item" },
     series: [{
       type: "pie",
@@ -90,7 +103,7 @@ export function KnowledgeGraphStats({
   }, !loading);
 
   const categoryRef = useChart({
-    color: ["#1796d2"],
+    color: [STATS_BAR_COLOR],
     grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
     tooltip: { trigger: "axis" },
     xAxis: { type: "value", splitLine: { lineStyle: { color: "#eef2f6" } }, axisLabel: { color: "#98a2b3" } },
@@ -104,24 +117,24 @@ export function KnowledgeGraphStats({
       type: "bar",
       data: categoryData.slice(0, 8).map((item) => item.value).reverse(),
       barWidth: 12,
-      itemStyle: { borderRadius: [0, 4, 4, 0], color: "#1796d2" },
+      itemStyle: { borderRadius: [0, 4, 4, 0], color: STATS_BAR_COLOR },
     }],
   }, !loading);
 
   const edgeRef = useChart({
-    color: ["#1796d2", "#98a2b3", "#0f766e"],
+    color: STATS_LIGHT_COLORS,
     tooltip: { trigger: "item" },
     series: [{
       type: "pie",
       radius: ["40%", "66%"],
-      data: edgeData.length ? edgeData : [{ name: "暂无边", value: 1 }],
+      data: edgeData.length ? edgeData : [{ name: "暂无关系", value: 1 }],
       label: { fontSize: 11, color: "#667085" },
       itemStyle: { borderColor: "#fff", borderWidth: 2 },
     }],
   }, !loading);
 
   const coverRef = useChart({
-    color: ["#12b76a", "#e4e7ec"],
+    color: STATS_COVER_COLORS,
     tooltip: { trigger: "item" },
     series: [{
       type: "pie",
@@ -142,23 +155,23 @@ export function KnowledgeGraphStats({
   return (
     <section className="kg-stats-grid">
       <article className="kg-stat-card">
-        <header><strong>学段分布</strong><small>{points.length} 个节点</small></header>
+        <header><strong>学段分布</strong><small>{points.length} 个主题节点</small></header>
         <div ref={stageRef} className="kg-stat-chart" />
       </article>
       <article className="kg-stat-card">
-        <header><strong>主题类别 Top</strong><small>不含大类节点</small></header>
+        <header><strong>主题类别</strong><small>不含大类汇总</small></header>
         <div ref={categoryRef} className="kg-stat-chart" />
       </article>
       <article className="kg-stat-card">
-        <header><strong>关系类型</strong><small>{edges.length} 条边</small></header>
+        <header><strong>关系类型</strong><small>{edges.length} 条关联</small></header>
         <div ref={edgeRef} className="kg-stat-chart" />
       </article>
       <article className="kg-stat-card">
         <header>
-          <strong>章节 COVERS</strong>
+          <strong>章节绑定</strong>
           <small>
-            覆盖知识点 {coverStats.coveredPoints}/{coverStats.totalPoints || 0}
-            · 讲解边 {coverStats.explainsCount}
+            已覆盖主题 {coverStats.coveredPoints}/{coverStats.totalPoints || 0}
+            · 讲解资料 {coverStats.explainsCount}
           </small>
         </header>
         <div ref={coverRef} className="kg-stat-chart" />
