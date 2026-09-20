@@ -15,6 +15,13 @@ def test_classify_explain_for_concept_question():
 def test_classify_course_recommend_without_explanation_template():
     assert classify_intent("推荐提示词相关课程", None) == "COURSE_RECOMMEND"
     assert classify_intent("有哪些课可以学幻觉", None) == "COURSE_RECOMMEND"
+    assert classify_intent("推荐学习监督相关学习课程", None) == "COURSE_RECOMMEND"
+    assert classify_intent("帮我找一些监督学习的教学资料", None) == "COURSE_RECOMMEND"
+
+
+def test_recommend_action_alone_does_not_force_resource_mode():
+    assert classify_intent("推荐算法是什么", None) == "EXPLAIN"
+    assert classify_intent("我想学习监督学习", None) == "EXPLAIN"
 
 
 def test_classify_prefer_explain_when_mixed():

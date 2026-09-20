@@ -94,6 +94,8 @@ export const coursesApi = {
 };
 
 export const teachingResourcesApi = {
+  published: (filters = {}) => api(`/api/v1/learning/teaching-resources/published?${query(filters)}`),
+  publishedGet: (id) => api(`/api/v1/learning/teaching-resources/published/${id}`),
   publishedDownload: (id) => api(`/api/v1/learning/teaching-resources/published/${id}/download-url`),
 };
 
@@ -131,6 +133,7 @@ export const knowledgeGraphApi = {
     writeKnowledgeGraphOverviewCache(data);
     return data;
   },
+  points: (filters = {}) => api(`/api/v1/learning/knowledge-graph/points?${query(filters)}`),
   recommendNext: (body) => api("/api/v1/learning/knowledge-graph/recommendations/next", {
     method: "POST",
     body: JSON.stringify(body),

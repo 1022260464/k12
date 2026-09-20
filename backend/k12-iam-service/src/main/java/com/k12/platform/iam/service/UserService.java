@@ -80,11 +80,15 @@ public class UserService {
          * request.password 是前端传来的明文密码，
          * 入库前必须用 BCrypt 变成 password_hash。
          */
+        String username = request.username().trim();
+        String email = StringUtils.hasText(request.email()) ? request.email().trim() : null;
+        assertUniqueIdentity(username, email, null);
+
         SysUser user = new SysUser();
-        user.setUsername(request.username());
+        user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setNickname(request.nickname());
-        user.setEmail(request.email());
+        user.setEmail(email);
         user.setStatus(1);
         user.setDeleted(0);
 
@@ -108,12 +112,18 @@ public class UserService {
      */
     @Transactional
     public UserResponse registerStudent(RegisterRequest request) {
+        /*
+         * email 是选填字段。把空字符串统一转成 null，避免数据库唯一索引
+         * 把多个“未填写邮箱”的账号误判成重复邮箱。
+         * 密码不能 trim，否则会悄悄改变用户实际提交的凭据。
+         */
+        String email = StringUtils.hasText(request.email()) ? request.email().trim() : null;
         return createUserInternal(new UserCreateRequest(
-                request.username(),
+                request.username().trim(),
                 request.password(),
-                request.nickname(),
-                request.email(),
-                "ROLE_STUDENT"
+                request.nickname().trim(),
+                email,
+                K12Authorities.ROLE_STUDENT
         ));
     }
 
@@ -135,9 +145,13 @@ public class UserService {
             throw new IllegalArgumentException("不能移除当前登录管理员自己的管理员角色");
         }
 
-        user.setUsername(request.username());
+        String username = request.username().trim();
+        String email = StringUtils.hasText(request.email()) ? request.email().trim() : null;
+        assertUniqueIdentity(username, email, id);
+
+        user.setUsername(username);
         user.setNickname(request.nickname());
-        user.setEmail(request.email());
+        user.setEmail(email);
         user.setAuthVersion(nextAuthVersion(user.getAuthVersion()));
 
         userMapper.updateById(user);
@@ -234,7 +248,9 @@ public class UserService {
         if (StringUtils.hasText(email) && !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
             throw new IllegalArgumentException("邮箱格式不正确");
         }
-        user.setEmail(StringUtils.hasText(email) ? email : null);
+        String normalizedEmail = StringUtils.hasText(email) ? email : null;
+        assertUniqueIdentity(user.getUsername(), normalizedEmail, userId);
+        user.setEmail(normalizedEmail);
         user.setUpdatedTime(Instant.now());
         userMapper.updateById(user);
         return toSelfProfile(userMapper.selectById(userId));
@@ -291,6 +307,23 @@ public class UserService {
 
     private long nextAuthVersion(Long current) {
         return current == null ? 2L : current + 1L;
+    }
+
+    /**
+     * 注册/创建/改资料前显式校验唯一字段；用户名与邮箱同时冲突时一并提示。
+     * 并发下仍可能撞库唯一索引，由 DuplicateKeyException 兜底。
+     */
+    private void assertUniqueIdentity(String username, String email, Long excludeUserId) {
+        java.util.List<String> conflicts = new java.util.ArrayList<>(2);
+        if (userMapper.countByUsername(username, excludeUserId) > 0) {
+            conflicts.add("用户名已存在");
+        }
+        if (StringUtils.hasText(email) && userMapper.countByEmail(email, excludeUserId) > 0) {
+            conflicts.add("邮箱已被使用");
+        }
+        if (!conflicts.isEmpty()) {
+            throw new IllegalArgumentException(String.join("；", conflicts));
+        }
     }
 
     private void assignRole(Long userId, String roleCode) {

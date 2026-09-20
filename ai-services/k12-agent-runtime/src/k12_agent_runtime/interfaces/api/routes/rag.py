@@ -47,11 +47,23 @@ async def capabilities(request: Request) -> ApiResponse[RagCapabilitiesResponse]
     return ApiResponse[RagCapabilitiesResponse].ok(
         RagCapabilitiesResponse(
             enabled=settings.rag_enabled,
+            embedding_provider=settings.embedding_provider,
             embedding_model=settings.embedding_model,
-            embedding_device=settings.embedding_device,
+            embedding_device=(
+                "cloud" if settings.embedding_provider.lower() in {"dashscope", "aliyun", "bailian"}
+                else settings.embedding_device
+            ),
+            reranker_provider=settings.reranker_provider,
             reranker_model=settings.reranker_model,
-            reranker_device=settings.reranker_device,
-            loading_strategy="lazy",
+            reranker_device=(
+                "cloud" if settings.reranker_provider.lower() in {"dashscope", "aliyun", "bailian"}
+                else settings.reranker_device
+            ),
+            loading_strategy=(
+                "remote"
+                if settings.embedding_provider.lower() in {"dashscope", "aliyun", "bailian"}
+                else "lazy"
+            ),
             storage_enabled=(
                 settings.rag_enabled and settings.rag_database_url is not None
             ),
@@ -214,7 +226,7 @@ async def search_knowledge(
 
 
 def _unavailable(error: Exception) -> JSONResponse:
-    message = "本地RAG模型不可用" if isinstance(error, RagModelError) else str(error)
+    message = "RAG模型服务暂不可用" if isinstance(error, RagModelError) else str(error)
     response = ApiResponse[object].fail(503, message)
     return JSONResponse(
         status_code=503,

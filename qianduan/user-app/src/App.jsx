@@ -17,6 +17,7 @@ import { AUTH_STORAGE_KEY, profileApi } from "./api/client.js";
 import {
   PASSWORD_RULES_TEXT,
   USERNAME_RULES_TEXT,
+  mapUniqueIdentityError,
   passwordStrength,
   validateRegisterForm,
 } from "./utils/passwordValidation.js";
@@ -57,17 +58,33 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
   const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ username: "", password: "", nickname: "", email: "" });
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({ username: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors((current) => ({ ...current, [field]: "" }));
+    }
+    if (error) setError("");
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
+    setFieldErrors({ username: "", email: "" });
     try {
       if (mode === "register") {
         const validationError = validateRegisterForm(form);
         if (validationError) {
-          setError(validationError);
+          if (validationError.includes("用户名") || validationError.includes("账号")) {
+            setFieldErrors({ username: validationError, email: "" });
+          } else if (validationError.includes("邮箱")) {
+            setFieldErrors({ username: "", email: validationError });
+          } else {
+            setError(validationError);
+          }
           setSubmitting(false);
           return;
         }
@@ -80,7 +97,13 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
       }
       onSuccess(await login(form.username.trim(), form.password));
     } catch (authError) {
-      setError(authError.message);
+      if (mode === "register") {
+        const mapped = mapUniqueIdentityError(authError.message);
+        setFieldErrors(mapped.fields);
+        setError(mapped.form);
+      } else {
+        setError(authError.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -108,10 +131,12 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
               maxLength={32}
               pattern={mode === "register" ? "[A-Za-z][A-Za-z0-9_]{3,31}" : undefined}
               title={USERNAME_RULES_TEXT}
-              onChange={(event) => setForm({ ...form, username: event.target.value })}
+              aria-invalid={Boolean(fieldErrors.username)}
+              onChange={(event) => updateField("username", event.target.value)}
               placeholder={mode === "register" ? "例如：student01" : "请输入用户名"}
               required
             />
+            {fieldErrors.username && <small className="field-error" role="alert">{fieldErrors.username}</small>}
           </label>
           {mode === "register" && (
             <label>
@@ -119,7 +144,7 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
               <input
                 value={form.nickname}
                 maxLength={64}
-                onChange={(event) => setForm({ ...form, nickname: event.target.value })}
+                onChange={(event) => updateField("nickname", event.target.value)}
                 placeholder="例如：小明"
                 required
               />
@@ -132,9 +157,11 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
                 type="email"
                 value={form.email}
                 maxLength={128}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                aria-invalid={Boolean(fieldErrors.email)}
+                onChange={(event) => updateField("email", event.target.value)}
                 placeholder="name@example.com"
               />
+              {fieldErrors.email && <small className="field-error" role="alert">{fieldErrors.email}</small>}
             </label>
           )}
           <label>
@@ -145,7 +172,7 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
               minLength={mode === "register" ? 8 : undefined}
               maxLength={72}
               autoComplete={mode === "register" ? "new-password" : "current-password"}
-              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              onChange={(event) => updateField("password", event.target.value)}
               placeholder={mode === "register" ? "至少8位，含字母和数字" : "请输入密码"}
               required
             />
@@ -166,7 +193,11 @@ function AuthDialog({ initialMode = "login", onClose, onSuccess }) {
         <button
           className="account-switch"
           type="button"
-          onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
+          onClick={() => {
+            setMode(mode === "login" ? "register" : "login");
+            setError("");
+            setFieldErrors({ username: "", email: "" });
+          }}
         >
           {mode === "login" ? "没有账号？注册学生账号" : "已有账号？返回登录"}
         </button>
@@ -316,6 +347,15 @@ export function App() {
         displayName={displayName}
         avatarUrl={profile?.avatarUrl}
         navigate={navigate}
+        requireLogin={requireLogin}
+        onAskKnowledge={(point) => {
+          const title = point?.title || point?.code || "该知识点";
+          setAssistantDraft({
+            prompt: `请讲解知识点「${title}」${point?.code ? `（${point.code}）` : ""}，用适合我学段的例子说明，并给我一道小练习。`,
+            preferDeterministic: false,
+          });
+          requireLogin(() => navigate("ai-studio"));
+        }}
         onOpenProfile={openProfile}
         onLogin={() => openAuth("login")}
         onRegister={() => openAuth("register")}

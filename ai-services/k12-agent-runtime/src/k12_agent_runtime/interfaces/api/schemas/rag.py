@@ -69,8 +69,10 @@ class RerankResponse(ApiModel):
 
 class RagCapabilitiesResponse(ApiModel):
     enabled: bool
+    embedding_provider: str
     embedding_model: str
     embedding_device: str
+    reranker_provider: str
     reranker_model: str
     reranker_device: str
     loading_strategy: str

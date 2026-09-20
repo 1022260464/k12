@@ -36,6 +36,18 @@ public class TeachingResourceIndexService {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public TeachingResourceResponse index(long id) {
+        return scheduleIndex(id, false);
+    }
+
+    /**
+     * 为已入库资料重新提取文本并生成向量，主要用于切换 embedding 模型或切分策略。
+     */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public TeachingResourceResponse reindex(long id) {
+        return scheduleIndex(id, true);
+    }
+
+    private TeachingResourceResponse scheduleIndex(long id, boolean reindex) {
         TeachingResource resource = mapper.selectById(id);
         if (resource == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "资料不存在");
@@ -48,11 +60,17 @@ public class TeachingResourceIndexService {
         }
         knowledgeGraphService.requireCatalogCode(resource.getKnowledgeCode());
         long actorId = K12SecurityContext.requireUserId();
-        TeachingResourceResponse response = state.beginIndex(id, actorId);
+        TeachingResourceResponse response = reindex
+                ? state.beginReindex(id, actorId)
+                : state.beginIndex(id, actorId);
         try {
-            executor.execute(() -> indexInBackground(id, actorId));
+            executor.execute(() -> indexInBackground(id, actorId, reindex));
         } catch (RuntimeException error) {
-            state.indexFailed(id, actorId, "后台入库任务队列已满");
+            if (reindex) {
+                state.reindexFailed(id, actorId, "后台入库任务队列已满");
+            } else {
+                state.indexFailed(id, actorId, "后台入库任务队列已满");
+            }
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "后台入库任务队列已满");
         }
         return response;
@@ -110,12 +128,17 @@ public class TeachingResourceIndexService {
         }
     }
 
-    private void indexInBackground(long id, long actorId) {
+    private void indexInBackground(long id, long actorId, boolean reindex) {
         try {
             TeachingResource resource = mapper.selectById(id);
             if (resource == null) throw new IllegalStateException("资料不存在");
             TeachingResourceIndexClient.IndexedResult result = client.index(resource);
-            state.indexSucceeded(id, actorId, "文档 " + result.documentId() + "，片段 " + result.chunkCount());
+            String note = "文档 " + result.documentId() + "，片段 " + result.chunkCount();
+            if (reindex) {
+                state.reindexSucceeded(id, actorId, note);
+            } else {
+                state.indexSucceeded(id, actorId, note);
+            }
             if (StringUtils.hasText(resource.getKnowledgeCode())) {
                 try {
                     knowledgeGraphService.syncDocumentExplains(
@@ -130,12 +153,21 @@ public class TeachingResourceIndexService {
             }
         } catch (TeachingResourceIndexClient.IndexOutcomeUnknownException error) {
             log.warn("教学资料入库远端结果待确认：id={}", id, error);
-            state.indexUnknown(id, actorId);
+            if (reindex) {
+                state.reindexUnknown(id, actorId);
+            } else {
+                state.indexUnknown(id, actorId);
+            }
         } catch (RuntimeException error) {
             log.warn("教学资料入库失败：id={}", id, error);
             try {
-                state.indexFailed(id, actorId, error instanceof ResponseStatusException status
-                        ? status.getReason() : "知识库入库失败，请查看 Learning/Python 服务日志");
+                String note = error instanceof ResponseStatusException status
+                        ? status.getReason() : "知识库入库失败，请查看 Learning/Python 服务日志";
+                if (reindex) {
+                    state.reindexFailed(id, actorId, note);
+                } else {
+                    state.indexFailed(id, actorId, note);
+                }
             } catch (RuntimeException stateError) {
                 log.error("教学资料入库失败状态回写失败：id={}", id, stateError);
             }

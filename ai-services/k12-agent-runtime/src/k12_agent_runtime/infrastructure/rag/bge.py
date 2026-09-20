@@ -10,16 +10,9 @@ from k12_agent_runtime.domain.rag import (
     EmbeddingBatch,
     RankedDocument,
 )
+from k12_agent_runtime.infrastructure.rag.errors import RagModelError
 
 logger = logging.getLogger(__name__)
-
-
-class RagModelError(RuntimeError):
-    """对接口层安全的本地模型异常，只暴露稳定错误码。"""
-
-    def __init__(self, code: str) -> None:
-        super().__init__(code)
-        self.code = code
 
 
 class BgeM3Embedder:

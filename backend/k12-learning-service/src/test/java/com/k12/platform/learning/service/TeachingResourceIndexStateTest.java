@@ -57,6 +57,28 @@ class TeachingResourceIndexStateTest {
     }
 
     @Test
+    void indexedDocumentCanBeReindexedWithDedicatedAuditActions() {
+        TeachingResource resource = resource("PUBLISHED", "INDEXED");
+        when(mapper.selectForUpdate(7L)).thenReturn(resource);
+
+        assertThat(state.beginReindex(7L, 42L).ragIndexStatus()).isEqualTo("INDEXING");
+        state.reindexSucceeded(7L, 42L, "文档 teaching-resource-7，片段 2");
+
+        assertThat(resource.getRagIndexStatus()).isEqualTo("INDEXED");
+        ArgumentCaptor<TeachingResourceEvent> captor = ArgumentCaptor.forClass(TeachingResourceEvent.class);
+        verify(events, org.mockito.Mockito.times(2)).insert(captor.capture());
+        assertThat(captor.getAllValues()).extracting(TeachingResourceEvent::getAction)
+                .containsExactly("REINDEX_START", "REINDEX_SUCCESS");
+    }
+
+    @Test
+    void documentMustAlreadyBeIndexedBeforeReindex() {
+        when(mapper.selectForUpdate(7L)).thenReturn(resource("PUBLISHED", "NOT_INDEXED"));
+        assertThatThrownBy(() -> state.beginReindex(7L, 42L))
+                .isInstanceOf(ResponseStatusException.class).hasMessageContaining("只有已入库");
+    }
+
+    @Test
     void uncertainRemoteOutcomeBlocksEarlyRetryAndWithdrawal() {
         TeachingResource resource = resource("PUBLISHED", "NOT_INDEXED");
         when(mapper.selectForUpdate(7L)).thenReturn(resource);

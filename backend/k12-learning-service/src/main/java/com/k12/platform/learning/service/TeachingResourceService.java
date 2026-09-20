@@ -72,9 +72,12 @@ public class TeachingResourceService {
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:read')")
-    public TeachingResourcePage published(int page, int size) {
-        if (page < 1 || size < 1 || size > 100) throw new IllegalArgumentException("分页参数不合法");
-        List<TeachingResource> rows = mapper.search(null, "PUBLISHED", null, size + 1, (long) (page - 1) * size);
+    public TeachingResourcePage published(int page, int size, String keyword) {
+        if (page < 1 || size < 1 || size > 100 || (keyword != null && keyword.length() > 128)) {
+            throw new IllegalArgumentException("分页或搜索参数不合法");
+        }
+        List<TeachingResource> rows = mapper.search(null, "PUBLISHED", clean(keyword), size + 1,
+                (long) (page - 1) * size);
         return new TeachingResourcePage(page, size, rows.size() > size,
                 rows.stream().limit(size).map(this::toResponse).toList());
     }

@@ -2,6 +2,7 @@ import { Camera, LoaderCircle, Save, X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { profileApi } from "../api/client.js";
+import { mapUniqueIdentityError } from "../utils/passwordValidation.js";
 import { ChangePasswordModal } from "./ChangePasswordModal.jsx";
 
 const stages = [
@@ -21,6 +22,7 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
   const [uploading, setUploading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [message, setMessage] = useState("");
   const fileId = useId();
 
@@ -64,6 +66,7 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setEmailError("");
     setMessage("");
     try {
       const [self] = await Promise.all([
@@ -82,7 +85,9 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
       onProfileUpdated?.(self);
       setMessage("已保存");
     } catch (requestError) {
-      setError(requestError.message);
+      const mapped = mapUniqueIdentityError(requestError.message);
+      setEmailError(mapped.fields.email || "");
+      setError(mapped.form || mapped.fields.username || "");
     } finally {
       setSaving(false);
     }
@@ -188,8 +193,13 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
                             value={form.email}
                             maxLength={128}
                             placeholder="选填"
-                            onChange={(event) => setForm({ ...form, email: event.target.value })}
+                            aria-invalid={Boolean(emailError)}
+                            onChange={(event) => {
+                              setForm({ ...form, email: event.target.value });
+                              if (emailError) setEmailError("");
+                            }}
                           />
+                          {emailError && <small className="field-error" role="alert">{emailError}</small>}
                         </label>
                       </div>
                     </fieldset>

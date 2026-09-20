@@ -16,6 +16,8 @@ class TopicFocusMatcherTest {
                 .isEqualTo("machine_learning.features_labels");
         assertThat(TopicFocusMatcher.match("怎么写提示词、什么是幻觉"))
                 .isEqualTo("generative_ai.hallucination");
+        assertThat(TopicFocusMatcher.match("推荐学习监督相关学习课程"))
+                .isEqualTo("machine_learning.supervised_learning");
     }
 
     @Test

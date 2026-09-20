@@ -60,6 +60,18 @@ _RECOMMEND_KEYWORDS: tuple[str, ...] = (
     "想学什么课", "适合学哪", "该上哪",
 )
 
+# 用户经常会在动作和对象之间插入主题，例如“推荐学习监督相关学习课程”。
+# 这类表达无法靠“推荐课程”这种连续短语覆盖，因此按“动作 + 资源对象”组合识别。
+_RECOMMEND_ACTION_KEYWORDS: tuple[str, ...] = (
+    "推荐", "帮我找", "帮我选", "找一下", "查一下", "看看有哪些",
+    "有哪些", "有没有", "适合", "该学", "应该学", "学什么",
+)
+
+_RECOMMEND_TARGET_KEYWORDS: tuple[str, ...] = (
+    "课程", "章节", "课件", "讲义", "学习资料", "教学资料",
+    "学习资源", "教学资源", "学习内容", "学习路径",
+)
+
 # 讲解 / 理解意图（与推荐并存时优先走讲解模板）
 _EXPLAIN_KEYWORDS: tuple[str, ...] = (
     "什么是", "为什么", "怎么理解", "如何理解", "解释一下", "讲一下", "讲讲",
@@ -83,7 +95,7 @@ def classify_intent(input_text: str, topic_code: str | None) -> IntentMode:
 
     normalized = _normalize(text)
     has_explain = _contains_any(normalized, _EXPLAIN_KEYWORDS)
-    has_recommend = _contains_any(normalized, _RECOMMEND_KEYWORDS)
+    has_recommend = _looks_like_recommend_request(normalized)
     has_off_topic = _contains_any(normalized, _OFF_TOPIC_KEYWORDS)
     # 仅看本轮文本是否含学习信号；不沿用上一轮 topic_code，避免闲聊被误判为讲解
     has_learning = _mentions_learning_topic(normalized)
@@ -194,6 +206,15 @@ def _normalize(text: str) -> str:
 
 def _contains_any(normalized: str, keywords: tuple[str, ...]) -> bool:
     return any(_normalize(keyword) in normalized for keyword in keywords)
+
+
+def _looks_like_recommend_request(normalized: str) -> bool:
+    """识别明确资源推荐请求，同时允许主题词出现在动作与资源对象之间。"""
+    if _contains_any(normalized, _RECOMMEND_KEYWORDS):
+        return True
+    has_action = _contains_any(normalized, _RECOMMEND_ACTION_KEYWORDS)
+    has_target = _contains_any(normalized, _RECOMMEND_TARGET_KEYWORDS)
+    return has_action and has_target
 
 
 def _mentions_learning_topic(normalized: str) -> bool:

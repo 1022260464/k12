@@ -26,7 +26,10 @@ public record RegisterRequest(
         )
         String password,
 
-        @NotBlank @Size(max = 64) String nickname,
+        @NotBlank
+        @Size(max = 64, message = "昵称最多 64 个字符")
+        @Pattern(regexp = "^[^\\p{Cc}]+$", message = "昵称不能包含控制字符")
+        String nickname,
         @Email @Size(max = 128) String email
 ) {
 }

@@ -144,6 +144,7 @@ export const teachingResourcesApi = {
   reject: (id, note) => api(`/api/v1/learning/teaching-resources/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) }),
   publish: (id) => api(`/api/v1/learning/teaching-resources/${id}/publish`, { method: "POST" }),
   index: (id) => api(`/api/v1/learning/teaching-resources/${id}/index`, { method: "POST" }),
+  reindex: (id) => api(`/api/v1/learning/teaching-resources/${id}/reindex`, { method: "POST" }),
   syncGraph: (id) => api(`/api/v1/learning/teaching-resources/${id}/sync-graph`, { method: "POST" }),
   withdraw: (id) => api(`/api/v1/learning/teaching-resources/${id}/withdraw`, { method: "POST" }),
   download: (id) => api(`/api/v1/learning/teaching-resources/${id}/download-url`),

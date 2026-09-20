@@ -69,13 +69,30 @@ export function validateRegisterForm({ username, password, nickname, email }) {
   if (usernameError) return usernameError;
   if (!String(nickname || "").trim()) return "请输入姓名或昵称";
   if (String(nickname || "").trim().length > 64) return "昵称最多 64 个字符";
-  if (/[<>"'`\\]/.test(nickname || "")) return "昵称不能包含特殊符号 < > \" ' ` \\";
+  // 昵称是展示文本，不应把引号等正常字符误判为危险输入；只拒绝不可见控制字符。
+  if (/[\u0000-\u001F\u007F]/.test(nickname || "")) return "昵称不能包含控制字符";
   const emailValue = String(email || "").trim();
   if (emailValue) {
     if (emailValue.length > 128) return "邮箱过长";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) return "邮箱格式不正确";
   }
   return validateNewPassword(password, { label: "密码" });
+}
+
+/** 将后端用户名/邮箱唯一冲突映射到字段提示（可同时高亮两项）。 */
+export function mapUniqueIdentityError(message) {
+  const msg = String(message || "").trim();
+  const fields = { username: "", email: "" };
+  if (msg.includes("用户名已存在")) {
+    fields.username = "用户名已存在，请更换";
+  }
+  if (msg.includes("邮箱已被使用")) {
+    fields.email = "邮箱已被使用，请更换或留空";
+  }
+  if (fields.username || fields.email) {
+    return { form: "", fields };
+  }
+  return { form: msg || "暂时无法完成注册，请稍后再试", fields };
 }
 
 export function passwordStrength(password) {

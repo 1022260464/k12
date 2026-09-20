@@ -82,30 +82,34 @@ POST /internal/v1/rag/documents/index
 POST /internal/v1/rag/search
 ```
 
-## 本地BGE检索模型
+## RAG检索模型
 
-项目使用两个职责不同的模型：
+主链路使用阿里云百炼的两个云端模型：
 
 ```text
-BAAI/bge-m3                 文本 -> 1024维稠密向量，用于pgvector召回
-BAAI/bge-reranker-v2-m3     查询+候选片段 -> 相关性分数，用于Top-K精排
+text-embedding-v4     文本 -> 1024维稠密向量，用于pgvector召回
+qwen3-rerank          查询+候选片段 -> 相关性分数，用于Top-K精排
 ```
 
-Windows和Linux上的PyTorch固定从官方CUDA 12.8索引安装。模型采用延迟加载：FastAPI启动
-时不下载模型，也不占用显存；第一次调用对应接口时才从Hugging Face下载并加载。8GB显存的
-本地配置：
+两者默认复用`K12_AGENT_LLM_API_KEY`，无需重复保存密钥：
 
 ```dotenv
 K12_AGENT_RAG_ENABLED=true
-K12_AGENT_EMBEDDING_DEVICE=cuda
-K12_AGENT_EMBEDDING_USE_FP16=true
-K12_AGENT_EMBEDDING_BATCH_SIZE=8
-K12_AGENT_RERANKER_DEVICE=cuda
-K12_AGENT_RERANKER_USE_FP16=true
-K12_AGENT_RERANKER_BATCH_SIZE=4
+K12_AGENT_EMBEDDING_PROVIDER=dashscope
+K12_AGENT_EMBEDDING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+K12_AGENT_EMBEDDING_MODEL=text-embedding-v4
+K12_AGENT_EMBEDDING_DIMENSION=1024
+K12_AGENT_EMBEDDING_BATCH_SIZE=10
+K12_AGENT_RERANKER_PROVIDER=dashscope
+K12_AGENT_RERANKER_BASE_URL=https://dashscope.aliyuncs.com/compatible-api/v1
+K12_AGENT_RERANKER_MODEL=qwen3-rerank
 ```
 
-验证CUDA：
+如需离线调试，可将provider改为`local_bge`，模型名分别恢复为`BAAI/bge-m3`和
+`BAAI/bge-reranker-v2-m3`。云端向量和本地BGE向量不能混用；切换模型后必须重新入库。
+本地模型仍采用延迟加载，第一次调用时才占用显存。
+
+验证本地CUDA：
 
 ```powershell
 uv run python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
@@ -138,9 +142,9 @@ K12_AGENT_RAG_DATABASE_URL=postgresql://<username>:<password>@<host>:<port>/<dat
 完整检索顺序：
 
 ```text
-文档 -> 重叠切分 -> BGE-M3向量化 -> pgvector
-问题 -> BGE-M3向量化 -> 按学段/年级/教材召回Top 20
-     -> BGE Reranker精排Top 5 -> 返回片段、来源和两阶段分数
+文档 -> 重叠切分 -> text-embedding-v4 -> pgvector
+问题 -> text-embedding-v4 -> 按学段/年级/教材召回Top 20
+     -> qwen3-rerank精排Top 5 -> 返回片段、来源和两阶段分数
 ```
 
 入库采用“同一文档整体替换”事务：先更新文档，再删除旧片段并写入新片段，任何一步失败

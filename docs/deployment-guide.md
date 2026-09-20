@@ -26,9 +26,10 @@
                         │       │                 → Redis / MinIO / Neo4j（可选）
                         │       ├─ Agent       :8083  → MySQL k12_business
                         │       │                 → Agent Runtime :8090
+                        │       │                 → RabbitMQ :5672（**必选**）
                         │       └─ Assessment  :8084  → MySQL k12_business
                         │
-                        └─（可选）RabbitMQ :5672 / Piston :2000 / MinIO :9000
+                        └─（可选）Piston :2000 / MinIO :9000
 ```
 
 | 组件 | 默认端口 | 是否本仓库 Compose |
@@ -38,19 +39,20 @@
 | Learning | 8082 | 否 |
 | Agent Service | 8083 | 否 |
 | Assessment | 8084 | 否 |
-| Agent Runtime (Python) | 8090 | 否 |
+| Agent Runtime (Python HTTP) | 8090 | 否 |
+| Agent Worker (Python) | — | 否（消费 RabbitMQ） |
 | user-app / admin-app | 5173 / 5174 | 否 |
 | MySQL | 3306 | **否**（需自备） |
+| **RabbitMQ** AMQP / 管理台 | 5672 / 15672 | **是（必选）**：`deploy/rabbitmq` |
 | Redis | 6379 | **否**（可选） |
 | MinIO | 9000 | **否**（可选，头像/封面/附件） |
 | Neo4j Bolt | 7687 | **否**（可选，知识图谱） |
-| RabbitMQ AMQP / 管理台 | 5672 / 15672 | 是：`deploy/rabbitmq` |
-| Piston 代码沙箱 | 2000 | 是：`deploy/piston` |
+| Piston 代码沙箱 | 2000 | 是：`deploy/piston`（可选） |
 
 **建议启动顺序：**
 
-1. MySQL（必选）→ 可选 Redis / MinIO / Neo4j / RabbitMQ / Piston  
-2. Python Agent Runtime（要演示 AI 时）  
+1. MySQL（必选）→ **RabbitMQ（必选）** → 可选 Redis / MinIO / Neo4j / Piston  
+2. Python：**Runtime（8090）+ Worker**（见第 6.4 / 7.4 节）  
 3. IAM → Learning → Assessment → Agent Service → Gateway  
 4. 前端 `pnpm dev:user` / `pnpm dev:admin`
 
@@ -76,7 +78,7 @@ GET http://localhost:8084/api/v1/assessments/health
 | pnpm | 与仓库 lock 兼容 | `corepack enable` 后可用 |
 | Python | **3.13.x**（`<3.14`） | Agent Runtime |
 | uv | 最新稳定版 | Python 包管理 |
-| Docker Desktop | 可选 | 仅 RabbitMQ / Piston |
+| Docker Desktop | **必装（本地起 RabbitMQ）** | 也用于可选的 Piston |
 | MySQL | 8.x | 双库 `k12_auth` + `k12_business` |
 
 ---
@@ -139,7 +141,9 @@ Get-Content D:\CodeWorkPlace\k12\backend\sql\mysql\k12_business_init.sql -Raw -E
 
 ---
 
-## 4. 可选中间件
+## 4. 中间件
+
+> **RabbitMQ 为平台必选依赖**（与 Python Worker、Java Agent 异步任务联调一致）。其余 Redis / MinIO / Neo4j / Piston 仍可按功能开关。
 
 ### 4.1 Redis（Learning 缓存：排行榜 / 封面 URL / 已发布课列表 / 图谱概览）
 
@@ -164,16 +168,28 @@ Get-Content D:\CodeWorkPlace\k12\backend\sql\mysql\k12_business_init.sql -Raw -E
 
 自备 Neo4j，Learning 中设 `K12_NEO4J_ENABLED=true`。Cypher 与一键初始化说明见 `backend/docs/neo4j-knowledge-graph.md`。
 
-### 4.4 RabbitMQ（Agent 异步任务）
+### 4.4 RabbitMQ（**必选**）
+
+本地部署**必须**先启动 RabbitMQ，再启动 Python Worker 与开启了 MQ 的 Java Agent。未部署时 Worker 无法消费，异步代码执行 / 长任务链路不可用。
 
 ```powershell
 Set-Location D:\CodeWorkPlace\k12\deploy\rabbitmq
 Copy-Item .env.example .env
 # 编辑 .env 修改密码后：
 docker compose up -d
+docker compose ps
 ```
 
-管理台：<http://127.0.0.1:15672>。详见 `deploy/rabbitmq/README.md`。
+| 项 | 值 |
+| --- | --- |
+| AMQP | `127.0.0.1:5672` |
+| 管理台 | <http://127.0.0.1:15672> |
+| 默认用户 / 虚拟主机 | `k12` / `k12`（密码以 `deploy/rabbitmq/.env` 为准） |
+
+Java 侧打开 `K12_AGENT_RABBITMQ_ENABLED=true`，并配置 `K12_RABBITMQ_*`。  
+Python `.env` 中 `K12_AGENT_RABBITMQ_ENABLED=true`，`K12_AGENT_RABBITMQ_URL` 与上述账号一致（密码含 `@` 等需 URL 编码）。
+
+详见 `deploy/rabbitmq/README.md`。
 
 ### 4.5 Piston（本地代码沙箱备用）
 
@@ -271,7 +287,7 @@ JWT 两项同 5.1。
 | `K12_IAM_SERVICE_URL` | `http://127.0.0.1:8081` |
 | `K12_LEARNING_SERVICE_URL` | `http://127.0.0.1:8082` |
 | `K12_ASSESSMENT_SERVICE_URL` | `http://127.0.0.1:8084` |
-| `K12_AGENT_RABBITMQ_ENABLED` | `true` / `false` |
+| `K12_AGENT_RABBITMQ_ENABLED` | `true`（**必开**） |
 | `K12_RABBITMQ_HOST` | `127.0.0.1` 或 ______ |
 | `K12_RABBITMQ_PORT` | `5672` 或 ______ |
 | `K12_RABBITMQ_USERNAME` | `k12` 或 ______ |
@@ -321,8 +337,8 @@ Copy-Item .env.example .env
 | `K12_AGENT_RAG_DATABASE_URL` | ______（开 RAG 时） |
 | `K12_AGENT_REDIS_ENABLED` | `true` / `false` |
 | `K12_AGENT_REDIS_URL` | ______ |
-| `K12_AGENT_RABBITMQ_ENABLED` | `true` / `false` |
-| `K12_AGENT_RABBITMQ_URL` | ______（密码含 `@` 等需 URL 编码） |
+| `K12_AGENT_RABBITMQ_ENABLED` | `true`（**必开**，需已部署 RabbitMQ） |
+| `K12_AGENT_RABBITMQ_URL` | ______（例：`amqp://k12:<密码>@127.0.0.1:5672/k12`，特殊字符 URL 编码） |
 | `K12_AGENT_SANDBOX_ENABLED` | `true` / `false` |
 | `K12_AGENT_SANDBOX_PROVIDER` | `tencent_agsx` 或 `local_piston` |
 | `E2B_DOMAIN` / `E2B_API_KEY` | ______（用腾讯云沙箱时） |
@@ -340,6 +356,8 @@ Copy-Item .env.example .env
 
 ### 6.2 为每个服务建 Run Configuration
 
+![11111111](C:\Users\Lenovo\Desktop\11111111.png)
+
 分别找到并「Run」主类（或右键 → Modify Run Configuration）：
 
 | 服务 | 主类（大致包名） |
@@ -355,61 +373,77 @@ Copy-Item .env.example .env
 1. **Environment variables** 中按第 5 节粘贴该服务需要的变量（`KEY=value`，多行用 `;` 分隔，或 IDEA 的表格编辑）。  
 2. Working directory 一般为对应模块目录或 `backend`。  
 3. 不要把含真实密钥的 Run Configuration 导出进 Git（`.idea` 中的密钥配置请自行忽略）。
+4. 真实填入请你删掉换行符；
 
 **IAM 最低必填示例（值请替换）：**
 
 ```text
-K12_AUTH_DB_HOST=______
-K12_AUTH_DB_PASSWORD=______
-K12_JWT_SECRET=______
-K12_COURSE_MEDIA_ENABLED=______
-K12_MINIO_ENDPOINT=______
-K12_MINIO_ACCESS_KEY=______
-K12_MINIO_SECRET_KEY=______
-K12_AVATAR_MINIO_BUCKET=k12-user-avatars
+K12_COURSE_MEDIA_ENABLED=true;
+K12_MINIO_ACCESS_KEY=admin;
+K12_MINIO_BUCKET=k12-user-avatars;
+K12_MINIO_ENDPOINT=http://122.51.54.52:9000;
+K12_MINIO_SECRET_KEY=1022260464
 ```
 
 **Learning 最低必填示例：**
 
 ```text
-K12_BUSINESS_DB_HOST=______
-K12_BUSINESS_DB_PASSWORD=______
-K12_JWT_SECRET=______
-K12_REDIS_ENABLED=______
-K12_COURSE_MEDIA_ENABLED=______
-K12_MINIO_ENDPOINT=______
-K12_MINIO_ACCESS_KEY=______
-K12_MINIO_SECRET_KEY=______
-K12_MINIO_BUCKET=______
-K12_NEO4J_ENABLED=______
-K12_NEO4J_URI=______
-K12_NEO4J_USERNAME=______
-K12_NEO4J_PASSWORD=______
+K12_AGENT_INTERNAL_API_KEY=change_me_for_local_development;
+K12_COURSE_MEDIA_ENABLED=true;
+K12_MINIO_ACCESS_KEY=admin;
+K12_MINIO_BUCKET=k12-agent-artifacts;
+K12_MINIO_ENDPOINT=http://122.51.54.52:9000;
+K12_MINIO_SECRET_KEY=1022260464;
+K12_NEO4J_DATABASE=neo4j;
+K12_NEO4J_ENABLED=true;
+K12_NEO4J_PASSWORD=1022260464;
+K12_NEO4J_SEED_ON_STARTUP=true;
+K12_NEO4J_URI=bolt://122.51.54.52:7687;
+K12_NEO4J_USERNAME=neo4j;K12_REDIS_ENABLED=true;
+K12_REDIS_HOST=122.51.54.52;
+K12_REDIS_PASSWORD=1022260464;
+K12_REDIS_PORT=6379
 ```
 
 **Agent Service 最低必填示例：**
 
 ```text
-K12_BUSINESS_DB_HOST=______
-K12_BUSINESS_DB_PASSWORD=______
-K12_JWT_SECRET=______
-K12_AGENT_RUNTIME_URL=http://127.0.0.1:8090
-K12_AGENT_INTERNAL_API_KEY=______
-K12_IAM_SERVICE_URL=http://127.0.0.1:8081
-K12_LEARNING_SERVICE_URL=http://127.0.0.1:8082
-K12_ASSESSMENT_SERVICE_URL=http://127.0.0.1:8084
+K12_AGENT_CODE_QUOTA_ENABLED=true;
+K12_AGENT_INTERNAL_API_KEY=change_me_for_local_development;
+K12_AGENT_RABBITMQ_ENABLED=true;
+K12_RABBITMQ_PASSWORD=1022260464
 ```
 
-Gateway / Assessment 同理，补齐 DB（Assessment）与 JWT / 下游 URI。
+Gateway / Assessment同理，补齐 DB（Assessment）与 JWT / 下游 URI。
+
+Assessment最低必填示例：
 
 ### 6.3 IDEA 启动顺序建议
 
-1. 先起 IAM、Learning、Assessment  
-2. 再起 Agent（依赖 Runtime 与 Feign 下游）  
-3. 最后起 Gateway  
-4. 另开终端起 Runtime（见第 7 节）与前端  
+1. **先起 RabbitMQ**（`deploy/rabbitmq`，必选）  
+2. 起 Python：**Runtime + Worker**（见 6.4）  
+3. 再起 IAM、Learning、Assessment  
+4. 再起 Agent（依赖 Runtime / Worker / RabbitMQ 与 Feign 下游）  
+5. 最后起 Gateway 与前端  
 
-可用 IDEA Compound Configuration 一键起多个 Java 服务。
+可用 IDEA Compound Configuration 一键起多个 Java 服务；Python 两个 Run 需单独配置。
+
+### 6.4 IDEA 中的 Python 两个启动（Runtime + Worker）
+
+Python 侧是**两个独立进程**，请在 IDEA 各建一个 Run / Debug Configuration（模块目录均为 `ai-services/k12-agent-runtime`，解释器使用该目录下 uv/venv 的 Python 3.13）。
+
+| 配置名（建议） | 作用 | 启动方式示例 | Environment variables（IDEA 一栏粘贴） |
+| --- | --- | --- | --- |
+| **k12-agent-runtime** | HTTP 服务 :8090，同步对话 / 内部 API | Module / Script：`uv run k12-agent-runtime`，或入口 `k12_agent_runtime.main` | `PYTHONUNBUFFERED=1;HF_HUB_OFFLINE=1;TRANSFORMERS_OFFLINE=1` |
+| **k12-agent-worker** | 消费 RabbitMQ 异步任务 | `uv run k12-agent-worker` | `PYTHONUNBUFFERED=1` |
+
+说明：
+
+- `PYTHONUNBUFFERED=1`：日志立即刷出，便于 IDEA 控制台看输出。  
+- `HF_HUB_OFFLINE=1` / `TRANSFORMERS_OFFLINE=1`：Runtime 侧禁止联网拉 Hugging Face 模型（使用本地已缓存权重时）；Worker 一般不需要这两项。  
+- **必须先部署并启动 RabbitMQ**，再启动 Worker；否则 Worker 连不上队列。  
+- LLM Key、`K12_AGENT_INTERNAL_API_KEY`、`K12_AGENT_RABBITMQ_*` 等仍写在项目 `.env`（见 5.7），与 IDEA Environment 互补；同名时进程环境变量优先于 `.env`。  
+- 日常联调：**两个 Python 配置都要启动**，不能只起其中一个替代另一个。
 
 ---
 
@@ -457,18 +491,25 @@ Linux/macOS 可用 `export K12_AUTH_DB_HOST=...` 再 `java -jar ...`。
 
 把第 5 节变量写入 Windows「系统属性 → 环境变量」或 Linux `/etc/environment`、systemd `Environment=`，则 IDEA 与命令行都会继承，无需每个 Run Configuration 重复粘贴。仍建议敏感项只放本机，不写进仓库。
 
-### 7.4 Python Runtime
+### 7.4 Python Runtime + Worker（命令行，等价于 IDEA 两个配置）
+
+**先确认 RabbitMQ 已 `docker compose up -d`。**
 
 ```powershell
 cd D:\CodeWorkPlace\k12\ai-services\k12-agent-runtime
-# 已配置 .env
+# 已配置 .env，且 K12_AGENT_RABBITMQ_ENABLED=true
 uv sync
+
+# 终端一：HTTP Runtime（对应 IDEA runtime 环境变量）
+$env:PYTHONUNBUFFERED = "1"
+$env:HF_HUB_OFFLINE = "1"
+$env:TRANSFORMERS_OFFLINE = "1"
 uv run k12-agent-runtime
 
-# 需要 ASYNC / 代码队列时再开：
+# 终端二：Worker（对应 IDEA worker 环境变量；必须已起 RabbitMQ）
+$env:PYTHONUNBUFFERED = "1"
 uv run k12-agent-worker
 ```
-
 ### 7.5 前端
 
 ```powershell
@@ -506,8 +547,8 @@ NACOS_SERVER_ADDR=127.0.0.1:8848
 | 仅登录 / 用户管理 | MySQL + IAM + Gateway + admin-app |
 | 课程选课与进度 | 上表 + Learning + user-app |
 | 作业布置与提交 | 上表 + Assessment |
-| AI 教学助教对话 | 上表 + Agent + Runtime（含 LLM Key） |
-| 编程实验 / 沙箱 | 上表 + Runtime 沙箱（腾讯云或 Piston）+ 可选 RabbitMQ/Worker |
+| AI 教学助教对话 | 上表 + **RabbitMQ** + Agent + Runtime + **Worker**（含 LLM Key） |
+| 编程实验 / 沙箱 | 上表 + Runtime 沙箱（腾讯云或 Piston）+ **RabbitMQ + Worker** |
 | 头像 / 封面 / 附件 | 打开 MinIO 相关开关并保证密钥正确 |
 | 知识图谱力导向图 | Learning + Neo4j |
 | 排行榜缓存 | Learning + Redis（可选） |
@@ -521,6 +562,7 @@ NACOS_SERVER_ADDR=127.0.0.1:8848
 | 前端 502 / 连不上 API | Gateway 是否在 8080；Vite 代理是否指向 Gateway |
 | 登录 401 | 账号是否存在；密码是否为创建时设置；非 DB 账号 `k12` |
 | Agent 前端 503、日志 Java→Python 401 | `K12_AGENT_INTERNAL_API_KEY` 两边不一致 |
+| Worker 起不来 / 异步无结果 | **RabbitMQ 是否已部署**；`.env` 与 Java `K12_RABBITMQ_*` 是否一致 |
 | 头像 / 上传 503 | `K12_COURSE_MEDIA_ENABLED` 未开，或 MinIO 不可达 / 密钥错误 |
 | JWT 校验失败跨服务 | 各服务 `K12_JWT_SECRET` / `ISSUER` 不一致 |
 | 权限接口突然 403 | 执行了权限升级 SQL 但未重新登录 |
@@ -540,7 +582,8 @@ MinIO：开 / 关　Endpoint：______　课程桶：______　头像桶：______
 Neo4j：开 / 关　URI：______
 Runtime LLM：已配 / 未配
 沙箱：腾讯云 / Piston / 关
-RabbitMQ：开 / 关
+RabbitMQ：已部署（必选）　Worker：已开 / 未开
+Python IDEA env：Runtime=`PYTHONUNBUFFERED=1;HF_HUB_OFFLINE=1;TRANSFORMERS_OFFLINE=1`　Worker=`PYTHONUNBUFFERED=1`
 管理员登录名：______（密码勿写在此文件入库）
 学生演示账号：______
 教师演示账号：______

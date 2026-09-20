@@ -1,5 +1,6 @@
-import { LogOut, Menu, Search, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { HeaderSearch } from "./HeaderSearch.jsx";
 import { NotificationBell } from "./NotificationBell.jsx";
 
 const navigation = [
@@ -12,7 +13,19 @@ const navigation = [
   ["progress", "学习报告"],
 ];
 
-export function SiteHeader({ page, session, displayName, avatarUrl, navigate, onOpenProfile, onLogin, onRegister, onLogout }) {
+export function SiteHeader({
+  page,
+  session,
+  displayName,
+  avatarUrl,
+  navigate,
+  requireLogin,
+  onAskKnowledge,
+  onOpenProfile,
+  onLogin,
+  onRegister,
+  onLogout,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   function go(nextPage) { navigate(nextPage); setMenuOpen(false); }
   const initial = (displayName || "同").slice(0, 1).toUpperCase();
@@ -28,7 +41,12 @@ export function SiteHeader({ page, session, displayName, avatarUrl, navigate, on
         ))}
       </nav>
       <div className="header-actions">
-        <label className="header-search"><Search size={16} /><input aria-label="搜索" placeholder="搜索课程、知识点、题目" /></label>
+        <HeaderSearch
+          session={session}
+          requireLogin={requireLogin}
+          navigate={navigate}
+          onAskKnowledge={onAskKnowledge}
+        />
         {session ? (
           <div className="user-menu">
             <NotificationBell session={session} navigate={navigate} />

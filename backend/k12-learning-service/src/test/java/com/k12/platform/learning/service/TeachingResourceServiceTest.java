@@ -102,8 +102,14 @@ class TeachingResourceServiceTest {
 
     @Test
     void publishedListFiltersServerSide() {
-        service.published(1, 20);
+        service.published(1, 20, null);
         verify(mapper).search(null, "PUBLISHED", null, 21, 0L);
+    }
+
+    @Test
+    void publishedListAcceptsKeyword() {
+        service.published(1, 20, "数据");
+        verify(mapper).search(null, "PUBLISHED", "数据", 21, 0L);
     }
 
     @Test

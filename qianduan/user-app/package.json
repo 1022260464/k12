@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
-    "test": "node --test src/data/animation.test.js src/data/teachingSteps.test.js",
+    "test": "node --test src/data/animation.test.js src/data/teachingSteps.test.js src/utils/passwordValidation.test.js",
     "preview": "vite preview --host 127.0.0.1 --port 4173"
   },
   "dependencies": {

@@ -90,4 +90,13 @@ public interface UserMapper extends BaseMapper<SysUser> {
     List<Long> findActiveStudentIds(@Param("userIds") List<Long> userIds);
 
     List<com.k12.platform.iam.dto.StudentDirectoryEntry> findActiveStudents();
+
+    /**
+     * 用户名唯一性校验（含逻辑删除行，因库唯一索引覆盖全表）。
+     * excludeUserId 非空时排除当前用户（更新场景）。
+     */
+    int countByUsername(@Param("username") String username, @Param("excludeUserId") Long excludeUserId);
+
+    /** 邮箱唯一性校验；email 为空时不应调用。含逻辑删除行。 */
+    int countByEmail(@Param("email") String email, @Param("excludeUserId") Long excludeUserId);
 }

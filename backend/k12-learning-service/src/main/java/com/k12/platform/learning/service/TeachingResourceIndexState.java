@@ -34,11 +34,7 @@ public class TeachingResourceIndexState {
     public TeachingResourceResponse beginIndex(long id, long actorId) {
         TeachingResource resource = locked(id);
         if (!"PUBLISHED".equals(resource.getStatus())) conflict("只有已发布资料可入库");
-        if (!INDEXABLE.contains(resource.getMimeType()) || resource.getSizeBytes() == null
-                || resource.getSizeBytes() > MAX_INDEX_BYTES) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "仅支持不超过 20 MB 的 PDF、DOCX、PPTX 文本入库");
-        }
+        requireIndexable(resource);
         String current = resource.getRagIndexStatus();
         if ("INDEXED".equals(current)) conflict("资料已经入库");
         if ("DEINDEXING".equals(current) || ("INDEXING".equals(current) && !stale(resource))) {
@@ -46,6 +42,22 @@ public class TeachingResourceIndexState {
         }
         if ("UNKNOWN".equals(current) && !stale(resource)) conflict("入库结果待确认，15 分钟后可重试");
         changeIndex(resource, actorId, "INDEX_START", "INDEXING", null);
+        return TeachingResourceResponse.from(resource);
+    }
+
+    /**
+     * 已入库资料切换向量模型或调整切分策略后，可显式重新生成向量。
+     * 这里不删除原文档；Python 端成功写入后会按同一 documentId 原子替换旧片段。
+     */
+    @Transactional
+    public TeachingResourceResponse beginReindex(long id, long actorId) {
+        TeachingResource resource = locked(id);
+        if (!"PUBLISHED".equals(resource.getStatus())) conflict("只有已发布资料可重新向量化");
+        requireIndexable(resource);
+        if (!"INDEXED".equals(resource.getRagIndexStatus())) {
+            conflict("只有已入库资料可重新向量化");
+        }
+        changeIndex(resource, actorId, "REINDEX_START", "INDEXING", "重新提取文本并生成向量");
         return TeachingResourceResponse.from(resource);
     }
 
@@ -71,6 +83,31 @@ public class TeachingResourceIndexState {
         TeachingResource resource = locked(id);
         if ("INDEXING".equals(resource.getRagIndexStatus())) {
             changeIndex(resource, actorId, "INDEX_UNKNOWN", "UNKNOWN", "远端结果待确认，15 分钟后可重试或撤回");
+        }
+    }
+
+    @Transactional
+    public void reindexSucceeded(long id, long actorId, String note) {
+        TeachingResource resource = locked(id);
+        if (!"PUBLISHED".equals(resource.getStatus()) || !"INDEXING".equals(resource.getRagIndexStatus())) {
+            throw new IllegalStateException("重新向量化完成时资料状态已变化");
+        }
+        changeIndex(resource, actorId, "REINDEX_SUCCESS", "INDEXED", note);
+    }
+
+    @Transactional
+    public void reindexFailed(long id, long actorId, String note) {
+        TeachingResource resource = locked(id);
+        if ("INDEXING".equals(resource.getRagIndexStatus())) {
+            changeIndex(resource, actorId, "REINDEX_FAILED", "FAILED", note);
+        }
+    }
+
+    @Transactional
+    public void reindexUnknown(long id, long actorId) {
+        TeachingResource resource = locked(id);
+        if ("INDEXING".equals(resource.getRagIndexStatus())) {
+            changeIndex(resource, actorId, "REINDEX_UNKNOWN", "UNKNOWN", "远端结果待确认，15 分钟后可重试或撤回");
         }
     }
 
@@ -140,6 +177,14 @@ public class TeachingResourceIndexState {
         TeachingResource resource = mapper.selectForUpdate(id);
         if (resource == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "资料不存在");
         return resource;
+    }
+
+    private void requireIndexable(TeachingResource resource) {
+        if (!INDEXABLE.contains(resource.getMimeType()) || resource.getSizeBytes() == null
+                || resource.getSizeBytes() > MAX_INDEX_BYTES) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "仅支持不超过 20 MB 的 PDF、DOCX、PPTX 文本入库");
+        }
     }
 
     private boolean stale(TeachingResource resource) {

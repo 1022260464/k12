@@ -29,9 +29,26 @@ public class IamExceptionHandler {
 
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicateKey(DuplicateKeyException exception) {
-        log.info("IAM duplicate data rejected, reason={}", exception.getMostSpecificCause().getMessage());
+        String detail = exception.getMostSpecificCause() == null
+                ? ""
+                : String.valueOf(exception.getMostSpecificCause().getMessage());
+        log.info("IAM duplicate data rejected, reason={}", detail);
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.fail(409, "用户名、邮箱或其他唯一信息已存在"));
+                .body(ApiResponse.fail(409, resolveDuplicateMessage(detail)));
+    }
+
+    private static String resolveDuplicateMessage(String detail) {
+        String text = detail == null ? "" : detail.toLowerCase();
+        if (text.contains("uk_sys_user_username")) {
+            return "用户名已存在";
+        }
+        if (text.contains("uk_sys_user_email")) {
+            return "邮箱已被使用";
+        }
+        if (text.contains("uk_sys_user_phone")) {
+            return "手机号已被使用";
+        }
+        return "用户名或邮箱已被使用";
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
