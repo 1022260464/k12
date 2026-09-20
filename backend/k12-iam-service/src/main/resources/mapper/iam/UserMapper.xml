@@ -22,9 +22,6 @@
         <result column="email" property="email"/>
         <result column="roleCode" property="roleCode"/>
         <result column="status" property="status"/>
-        <result column="failedLoginCount" property="failedLoginCount"/>
-        <result column="lockedUntil" property="lockedUntil"/>
-        <result column="authVersion" property="authVersion"/>
         <result column="updatedTime" property="updatedTime"/>
     </resultMap>
 
@@ -34,6 +31,9 @@
         <result column="username" property="username"/>
         <result column="passwordHash" property="passwordHash"/>
         <result column="status" property="status"/>
+        <result column="failedLoginCount" property="failedLoginCount"/>
+        <result column="lockedUntil" property="lockedUntil"/>
+        <result column="authVersion" property="authVersion"/>
     </resultMap>
 
     <!--
