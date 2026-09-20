@@ -19,7 +19,11 @@ public interface TeachingResourceMapper extends BaseMapper<TeachingResource> {
             WHERE 1 = 1
             <if test="ownerId != null">AND created_by = #{ownerId}</if>
             <if test="status != null">AND status = #{status}</if>
-            <if test="keyword != null">AND title LIKE CONCAT('%', #{keyword}, '%')</if>
+            <if test="keyword != null">AND (
+                title LIKE CONCAT('%', #{keyword}, '%')
+                OR description LIKE CONCAT('%', #{keyword}, '%')
+                OR knowledge_code LIKE CONCAT('%', #{keyword}, '%')
+            )</if>
             ORDER BY updated_time DESC, id DESC
             LIMIT #{limit} OFFSET #{offset}
             </script>

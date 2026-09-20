@@ -52,6 +52,7 @@ class KnowledgeGraphServiceTest {
     @Test
     @DisplayName("扩展目录应包含大类与数百知识点")
     void expandedCatalogHasCategoriesAndHundredsOfTopics() {
+        BuiltinKnowledgeCatalog.bootstrapForTests();
         assertThat(BuiltinKnowledgeCatalog.categories()).hasSizeGreaterThanOrEqualTo(10);
         assertThat(BuiltinKnowledgeCatalog.all()).hasSizeGreaterThanOrEqualTo(300);
         assertThat(BuiltinKnowledgeCatalog.titleForCode("data_literacy.privacy_basics"))
@@ -65,6 +66,7 @@ class KnowledgeGraphServiceTest {
     @Test
     @DisplayName("Neo4j 不可用时内置目录仍可勾选")
     void builtinCatalogHasAiLiteracyPoints() {
+        BuiltinKnowledgeCatalog.bootstrapForTests();
         assertThat(BuiltinKnowledgeCatalog.filter(null, null, 500))
                 .extracting(KnowledgePointResponse::code)
                 .contains("machine_learning.supervised_learning", "generative_ai.prompt_basics");

@@ -1,6 +1,6 @@
-import { Sparkles } from "lucide-react";
-
 /** 悬浮入口：跳转到 AI 学习台主页面，避免与整页双开对话状态。 */
+const ASSISTANT_ICON = "/assets/ai-assistant-doodle.png";
+
 export function FloatingAssistant({ page, session, navigate, onRequireLogin }) {
   if (page === "ai-studio") return null;
 
@@ -19,7 +19,7 @@ export function FloatingAssistant({ page, session, navigate, onRequireLogin }) {
           navigate("ai-studio");
         }}
       >
-        <Sparkles size={22} />
+        <img src={ASSISTANT_ICON} alt="" width={36} height={36} />
       </button>
     </aside>
   );

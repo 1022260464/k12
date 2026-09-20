@@ -45,8 +45,7 @@ class TeachingResourceIndexServiceTest {
 
     @Test
     void indexRequestRunsRemoteWorkAndWritesSuccess() {
-        TeachingResource resource = new TeachingResource();
-        resource.setId(7L);
+        TeachingResource resource = resource();
         resource.setRagIndexStatus("INDEXING");
         when(state.beginIndex(7L, 42L)).thenReturn(TeachingResourceResponse.from(resource));
         when(mapper.selectById(7L)).thenReturn(resource);
@@ -58,6 +57,21 @@ class TeachingResourceIndexServiceTest {
     }
 
     @Test
+    void reindexRequestUsesDedicatedStateTransitions() {
+        TeachingResource resource = resource();
+        resource.setRagIndexStatus("INDEXED");
+        TeachingResource responseResource = resource();
+        responseResource.setRagIndexStatus("INDEXING");
+        when(mapper.selectById(7L)).thenReturn(resource);
+        when(state.beginReindex(7L, 42L)).thenReturn(TeachingResourceResponse.from(responseResource));
+        when(client.index(resource)).thenReturn(
+                new TeachingResourceIndexClient.IndexedResult("teaching-resource-7", 3, "text-embedding-v4"));
+
+        assertThat(service.reindex(7L).ragIndexStatus()).isEqualTo("INDEXING");
+        verify(state).reindexSucceeded(7L, 42L, "文档 teaching-resource-7，片段 3");
+    }
+
+    @Test
     void failedRemoteDeleteKeepsWithdrawalUnfinished() {
         when(state.beginWithdrawal(7L, 42L)).thenReturn(true);
         doThrow(new ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "删除失败"))
@@ -65,5 +79,14 @@ class TeachingResourceIndexServiceTest {
 
         assertThatThrownBy(() -> service.withdraw(7L)).isInstanceOf(ResponseStatusException.class);
         verify(state).withdrawalFailed(7L, 42L, "知识库删除失败，资料仍保持发布状态");
+    }
+
+    private TeachingResource resource() {
+        TeachingResource resource = new TeachingResource();
+        resource.setId(7L);
+        resource.setTitle("人工智能基础");
+        resource.setDescription("介绍人工智能基础概念");
+        resource.setKnowledgeCode("AI.BASIC");
+        return resource;
     }
 }

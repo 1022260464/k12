@@ -18,8 +18,10 @@ from k12_agent_runtime.application.storage import (
 from k12_agent_runtime.core.config import Settings
 from k12_agent_runtime.domain.agents.ports import AgentRegistry
 from k12_agent_runtime.domain.llm import ChatModel
+from k12_agent_runtime.domain.rag.ports import DocumentReranker, TextEmbedder
 from k12_agent_runtime.domain.sandbox.ports import CodeSandbox
 from k12_agent_runtime.infrastructure.agents.demo_chart_agent import DemoChartAgent
+from k12_agent_runtime.infrastructure.agents.python_code_coach import PythonCodeCoachAgent
 from k12_agent_runtime.infrastructure.agents.registry import InMemoryAgentRegistry
 from k12_agent_runtime.infrastructure.agents.study_plan import StudyPlanAgent
 from k12_agent_runtime.infrastructure.agents.teaching_assistant import TeachingAssistantAgent
@@ -29,6 +31,8 @@ from k12_agent_runtime.infrastructure.observability import MongoAgentTraceReposi
 from k12_agent_runtime.infrastructure.rag import (
     BgeM3Embedder,
     BgeReranker,
+    DashScopeEmbedder,
+    DashScopeReranker,
     PgVectorKnowledgeRepository,
 )
 from k12_agent_runtime.infrastructure.sandbox import (
@@ -87,7 +91,14 @@ def build_container(settings: Settings) -> ApplicationContainer:
         repository,
         rag_cache,
         settings.rag_cache_ttl_seconds,
-        f"{settings.embedding_model}:{settings.reranker_model}",
+        ":".join(
+            (
+                settings.embedding_provider,
+                settings.embedding_model,
+                settings.reranker_provider,
+                settings.reranker_model,
+            )
+        ),
     )
     # 新Agent需要在注册器中登记，接口才能通过agent_code找到它。
     registry = InMemoryAgentRegistry(
@@ -100,6 +111,7 @@ def build_container(settings: Settings) -> ApplicationContainer:
                 rag_candidate_count=settings.rag_candidate_count,
                 rag_top_k=settings.rag_top_k,
             ),
+            PythonCodeCoachAgent(chat_model),
         ]
     )
     sandbox = _build_code_sandbox(settings, store_object)
@@ -152,27 +164,65 @@ def _build_chat_model(settings: Settings) -> ChatModel | None:
     )
 
 
-def _build_rag_models(settings: Settings) -> tuple[BgeM3Embedder | None, BgeReranker | None]:
-    """只创建延迟加载适配器，真正的模型在第一次请求时加载。"""
+def _build_rag_models(
+    settings: Settings,
+) -> tuple[TextEmbedder | None, DocumentReranker | None]:
+    """根据provider装配云端或本地RAG模型适配器。"""
     if not settings.rag_enabled:
         return None, None
 
-    embedder = BgeM3Embedder(
-        model_name=settings.embedding_model,
-        device=settings.embedding_device,
-        use_fp16=settings.embedding_use_fp16,
-        batch_size=settings.embedding_batch_size,
-        max_length=settings.embedding_max_length,
-        cache_dir=settings.model_cache_dir,
-    )
-    reranker = BgeReranker(
-        model_name=settings.reranker_model,
-        device=settings.reranker_device,
-        use_fp16=settings.reranker_use_fp16,
-        batch_size=settings.reranker_batch_size,
-        max_length=settings.reranker_max_length,
-        cache_dir=settings.model_cache_dir,
-    )
+    embedding_provider = settings.embedding_provider.strip().lower()
+    reranker_provider = settings.reranker_provider.strip().lower()
+    shared_key = settings.llm_api_key.get_secret_value() if settings.llm_api_key else ""
+
+    if embedding_provider in {"dashscope", "aliyun", "bailian"}:
+        configured_embedding_key = (
+            settings.embedding_api_key.get_secret_value() if settings.embedding_api_key else ""
+        )
+        embedding_key = configured_embedding_key.strip() or shared_key
+        embedder: TextEmbedder = DashScopeEmbedder(
+            base_url=settings.embedding_base_url,
+            api_key=embedding_key,
+            model=settings.embedding_model,
+            dimension=settings.embedding_dimension,
+            batch_size=min(settings.embedding_batch_size, 10),
+            timeout_seconds=settings.embedding_timeout_seconds,
+        )
+    elif embedding_provider in {"local", "bge", "local_bge"}:
+        embedder = BgeM3Embedder(
+            model_name=settings.embedding_model,
+            device=settings.embedding_device,
+            use_fp16=settings.embedding_use_fp16,
+            batch_size=settings.embedding_batch_size,
+            max_length=settings.embedding_max_length,
+            cache_dir=settings.model_cache_dir,
+        )
+    else:
+        raise ValueError(f"暂不支持的Embedding提供方：{embedding_provider}")
+
+    if reranker_provider in {"dashscope", "aliyun", "bailian"}:
+        configured_reranker_key = (
+            settings.reranker_api_key.get_secret_value() if settings.reranker_api_key else ""
+        )
+        reranker_key = configured_reranker_key.strip() or shared_key
+        reranker: DocumentReranker = DashScopeReranker(
+            base_url=settings.reranker_base_url,
+            api_key=reranker_key,
+            model=settings.reranker_model,
+            instruction=settings.reranker_instruction,
+            timeout_seconds=settings.reranker_timeout_seconds,
+        )
+    elif reranker_provider in {"local", "bge", "local_bge"}:
+        reranker = BgeReranker(
+            model_name=settings.reranker_model,
+            device=settings.reranker_device,
+            use_fp16=settings.reranker_use_fp16,
+            batch_size=settings.reranker_batch_size,
+            max_length=settings.reranker_max_length,
+            cache_dir=settings.model_cache_dir,
+        )
+    else:
+        raise ValueError(f"暂不支持的Reranker提供方：{reranker_provider}")
     return embedder, reranker
 
 

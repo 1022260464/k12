@@ -1,4 +1,4 @@
-import { Check, Database, Download, Edit3, Eye, FileText, GitBranch, Plus, RefreshCw, Search, Send, Undo2, Upload, X } from "lucide-react";
+import { Check, Database, Download, Edit3, Eye, FileText, GitBranch, Plus, RefreshCw, Search, Send, ShieldCheck, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, knowledgeGraphApi, teachingResourcesApi } from "../api/client.js";
 import { AiSuggestButton, KnowledgePointPicker } from "../components/KnowledgePointPicker.jsx";
@@ -123,6 +123,9 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
   const [aiSuggestedCodes, setAiSuggestedCodes] = useState([]);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestNote, setSuggestNote] = useState("");
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewItems, setReviewItems] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState("");
 
   const courseIds = useMemo(() => selectedCourseIds(form.bindings), [form.bindings]);
   const primaryCourse = courses.find((course) => course.id === courseIds[0]);
@@ -210,7 +213,9 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
     setCourseQuery("");
     setContextError("");
     setSuggestNote("");
-    setPointFilter("");
+    setReviewItems([]);
+    setReviewSummary("");
+    setAiSuggestedCodes([]);
     setModal({ type: "upload" });
   }
 
@@ -253,6 +258,10 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
     setChaptersByCourse({});
     setCourseQuery("");
     setContextError("");
+    setSuggestNote("");
+    setReviewItems([]);
+    setReviewSummary("");
+    setAiSuggestedCodes([]);
     setModal({ type: "edit", item });
   }
 
@@ -345,8 +354,12 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
   }
 
   async function suggestKnowledge() {
+    if (!isAdmin) {
+      notify("仅管理员可修改资料知识点绑定", "error");
+      return;
+    }
     if (!String(form.description || "").trim()) {
-      notify("请先填写资料简介：简介会写入图谱 description，也是 AI 建议依据", "error");
+      notify("请先填写资料简介：简介会作为 AI 建议与讲解引用依据", "error");
       return;
     }
     setSuggesting(true);
@@ -383,19 +396,48 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
     }
   }
 
+  async function reviewKnowledge() {
+    if (!isAdmin) return;
+    const code = String(form.knowledgeCode || "").trim();
+    if (!code) {
+      notify("请先选择主知识点再审查", "error");
+      return;
+    }
+    if (!String(form.description || "").trim() && !String(form.title || "").trim()) {
+      notify("请先填写标题或简介作为审查依据", "error");
+      return;
+    }
+    setReviewing(true);
+    try {
+      const result = await knowledgeGraphApi.reviewAlignment({
+        title: form.title,
+        content: form.description,
+        stage: form.stageCode || undefined,
+        knowledgeCodes: [code],
+      });
+      setReviewItems(result.items || []);
+      setReviewSummary(result.summary || "");
+      notify(result.summary || "审查完成");
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setReviewing(false);
+    }
+  }
+
   async function syncGraph(item) {
     if (!item.knowledgeCode) {
-      notify("请先编辑资料填写主知识点编码", "error");
+      notify("请先编辑资料填写主知识点", "error");
       return;
     }
     if (!item.description?.trim()) {
-      notify("请先编辑资料填写简介，再同步图谱", "error");
+      notify("请先编辑资料填写简介，再同步到图谱", "error");
       return;
     }
     setBusy(true);
     try {
       await teachingResourcesApi.syncGraph(item.id);
-      notify("已同步 EXPLAINS 到知识图谱（含简介 description）");
+      notify("已同步知识点与简介到知识图谱");
       await load();
     } catch (cause) {
       notify(cause.message, "error");
@@ -407,11 +449,11 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
   async function save(event) {
     event.preventDefault();
     if (!String(form.description || "").trim()) {
-      notify("资料简介不能为空：简介会写入图谱 description，并作为 AI 建议依据", "error");
+      notify("资料简介不能为空：简介会作为 AI 建议与讲解引用依据", "error");
       return;
     }
-    if (!String(form.knowledgeCode || "").trim()) {
-      notify("请选择主知识点：入库后写入图谱 EXPLAINS，供 GraphRAG 检索", "error");
+    if (isAdmin && !String(form.knowledgeCode || "").trim()) {
+      notify("请选择主知识点：入库后可供 AI 讲解引用", "error");
       return;
     }
     setBusy(true);
@@ -449,7 +491,7 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
   }, [form.bindings, courseIds]);
 
   return <section className="page-section">
-    <header className="page-heading"><div><p className="eyebrow">TEACHING MATERIALS</p><h1>教学资料</h1><p>上传并关联课程章节（学生可见）；填写简介与主知识点后，管理员入库即可同时写入向量库与图谱 EXPLAINS（GraphRAG）。已入库资料可点「同步图谱」刷新边。</p></div><button className="button primary" type="button" onClick={openUpload}><Plus size={17} />上传资料</button></header>
+    <header className="page-heading"><div><p className="eyebrow">教学资料</p><h1>教学资料</h1><p>上传资料并关联课程章节，供学生下载；填写简介与主知识点后，管理员可入库供 AI 讲解引用。已入库资料可点「同步到图谱」更新关联。</p></div><button className="button primary" type="button" onClick={openUpload}><Plus size={17} />上传资料</button></header>
     <div className="data-panel"><div className="table-toolbar material-toolbar"><form className="search-control" onSubmit={search}><Search size={17} /><input value={searchTerm} placeholder="搜索标题" onChange={(event) => setSearchTerm(event.target.value)} /></form><select aria-label="状态筛选" value={status} onChange={(event) => changeStatus(event.target.value)}><option value="">全部状态</option>{Object.entries(statuses).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><button className="icon-button" type="button" title="刷新" onClick={() => load()}><RefreshCw size={18} /></button></div>
       <div className="table-wrap"><table className="responsive-table"><thead><tr><th>资料</th><th>学段 / 学科</th><th>审核状态</th><th>知识库</th><th>更新时间</th><th>操作</th></tr></thead><tbody>{loading ? <tr><td colSpan="6" className="empty-cell">正在加载...</td></tr> : error ? <tr><td colSpan="6" className="empty-cell table-error">{error}</td></tr> : items.length ? items.map((item) => <tr key={item.id}>
         <td data-label="资料"><strong className="table-primary-text">{item.title}</strong><small className="table-description">{item.originalFilename}</small></td><td data-label="学段 / 学科">{item.stageCode} / {item.subject}</td><td data-label="审核状态"><span className={`status ${["DRAFT", "PENDING_REVIEW"].includes(item.status) ? "pending" : item.status === "PUBLISHED" ? "enabled" : "disabled"}`}>{statuses[item.status] || item.status}</span></td><td data-label="知识库">{indexStatuses[item.ragIndexStatus] || item.ragIndexStatus}</td><td data-label="更新时间">{date(item.updatedTime)}</td>
@@ -465,15 +507,16 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
             <button className="icon-button danger" title="驳回" type="button" onClick={() => { setNote(""); setModal({ type: "reject", item }); }}><X size={16} /></button>
           </>}
           {isAdmin && item.status === "APPROVED" && <button className="icon-button" title="发布" type="button" onClick={() => setModal({ type: "publish", item })}><Upload size={16} /></button>}
-          {isAdmin && item.status === "PUBLISHED" && ["NOT_INDEXED", "FAILED", "UNKNOWN"].includes(item.ragIndexStatus) && <button className="icon-button" title={!item.knowledgeCode ? "请先编辑并填写主知识点" : !item.description?.trim() ? "请先编辑并填写简介" : !indexable(item) ? "仅支持 20 MB 内的 PDF、DOCX、PPTX 文本入库" : !retryReady(item) ? "结果待确认，15 分钟后可重试" : item.ragIndexStatus === "NOT_INDEXED" ? "知识库入库（向量+图谱）" : "重试入库"} type="button" disabled={busy || !indexable(item) || !retryReady(item) || !item.knowledgeCode || !item.description?.trim()} onClick={() => setModal({ type: "index", item })}><Database size={16} /></button>}
-          {item.status === "PUBLISHED" && item.ragIndexStatus === "INDEXED" && <button className="icon-button" title="同步图谱 EXPLAINS（按当前知识点与简介）" type="button" disabled={busy || !item.knowledgeCode || !item.description?.trim()} onClick={() => syncGraph(item)}><GitBranch size={16} /></button>}
+          {isAdmin && item.status === "PUBLISHED" && ["NOT_INDEXED", "FAILED", "UNKNOWN"].includes(item.ragIndexStatus) && <button className="icon-button" title={!item.knowledgeCode ? "请先编辑并填写主知识点" : !item.description?.trim() ? "请先编辑并填写简介" : !indexable(item) ? "仅支持 20 MB 内的 PDF、DOCX、PPTX 文本入库" : !retryReady(item) ? "结果待确认，15 分钟后可重试" : item.ragIndexStatus === "NOT_INDEXED" ? "入库供 AI 讲解引用" : "重试入库"} type="button" disabled={busy || !indexable(item) || !retryReady(item) || !item.knowledgeCode || !item.description?.trim()} onClick={() => setModal({ type: "index", item })}><Database size={16} /></button>}
+          {isAdmin && item.status === "PUBLISHED" && item.ragIndexStatus === "INDEXED" && <button className="icon-button" title="按当前模型与切分策略重新生成向量" type="button" disabled={busy || !indexable(item) || !item.knowledgeCode || !item.description?.trim()} onClick={() => setModal({ type: "reindex", item })}><RefreshCw size={16} /></button>}
+          {isAdmin && item.status === "PUBLISHED" && item.ragIndexStatus === "INDEXED" && <button className="icon-button" title="按当前知识点与简介同步到知识图谱" type="button" disabled={busy || !item.knowledgeCode || !item.description?.trim()} onClick={() => syncGraph(item)}><GitBranch size={16} /></button>}
           {isAdmin && item.status === "PUBLISHED" && <button className="icon-button" title={["INDEXING", "DEINDEXING"].includes(item.ragIndexStatus) || !retryReady(item) ? "知识库正在处理，暂不能撤回" : "撤回发布"} type="button" disabled={busy || ["INDEXING", "DEINDEXING"].includes(item.ragIndexStatus) || !retryReady(item)} onClick={() => setModal({ type: "withdraw", item })}><Undo2 size={16} /></button>}
           {item.status === "WITHDRAWN" && <button className="icon-button" title="重新编辑" type="button" disabled={busy} onClick={() => perform("reopen", item, "资料已恢复为草稿")}><Edit3 size={16} /></button>}
         </div></td></tr>) : <tr><td colSpan="6" className="empty-cell">暂无资料</td></tr>}</tbody></table></div>
       <div className="material-pagination"><button className="button ghost" type="button" disabled={page <= 1 || loading} onClick={() => turnPage(page - 1)}>上一页</button><span>第 {page} 页</span><button className="button ghost" type="button" disabled={!hasMore || loading} onClick={() => turnPage(page + 1)}>下一页</button></div>
     </div>
 
-    {["upload", "edit"].includes(modal?.type) && <Modal title={modal.type === "upload" ? "上传教学资料" : "编辑资料信息"} description="课程/章节绑定用于学生端挂载；主知识点用于图谱 EXPLAINS 与 GraphRAG 检索。简介必填，对标章节导语。" onClose={() => setModal(null)} width={720}>
+    {["upload", "edit"].includes(modal?.type) && <Modal title={modal.type === "upload" ? "上传教学资料" : "编辑资料信息"} description="关联课程章节后学生可下载；选择主知识点并填写简介后，入库即可被 AI 讲解引用。" onClose={() => setModal(null)} width={720}>
       <form className="material-form resource-form" onSubmit={save}>
         <section className="form-section">
           <h3>基础信息</h3>
@@ -497,7 +540,7 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
             <label>年级<input maxLength={32} readOnly={gradeLocked} value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} placeholder={gradeLocked ? "已随课程锁定" : "可选"} /></label>
             <label>教材<input maxLength={255} value={form.textbook} onChange={(e) => setForm({ ...form, textbook: e.target.value })} placeholder="可选" /></label>
           </div>
-          <label>资料简介（必填，图谱 description / AI 建议依据）
+          <label>资料简介（必填，供 AI 建议与讲解引用）
             <textarea required maxLength={1000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="用几句话说明本资料讲解什么知识点、适用场景" />
           </label>
         </section>
@@ -505,10 +548,26 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
         <section className="form-section knowledge-cover-panel">
           <header className="knowledge-cover-header">
             <div>
-              <strong>主知识点（图谱 EXPLAINS）</strong>
-              <small>与课程章节绑定不同：这里决定入库后挂到哪个 KnowledgePoint，并参与 GraphRAG。</small>
+              <strong>主知识点</strong>
+              <small>
+                {isAdmin
+                  ? "可手工勾选或 AI 建议；保存后可审查是否与简介对应。"
+                  : "仅可查看；改绑请联系管理员。"}
+              </small>
             </div>
-            <AiSuggestButton suggesting={suggesting} onClick={suggestKnowledge} />
+            {isAdmin && (
+              <div className="knowledge-cover-actions">
+                <AiSuggestButton suggesting={suggesting} onClick={suggestKnowledge} />
+                <button
+                  className="button ghost compact"
+                  type="button"
+                  disabled={reviewing || !form.knowledgeCode}
+                  onClick={reviewKnowledge}
+                >
+                  <ShieldCheck size={14} />{reviewing ? "审查中…" : "审查"}
+                </button>
+              </div>
+            )}
           </header>
           {suggestNote && <p className="binding-hint">{suggestNote}</p>}
           <KnowledgePointPicker
@@ -516,9 +575,26 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
             points={knowledgePoints}
             selectedCodes={form.knowledgeCode ? [form.knowledgeCode] : []}
             aiSuggestedCodes={aiSuggestedCodes}
+            readOnly={!isAdmin}
             onChange={(codes) => setForm({ ...form, knowledgeCode: codes[0] || "" })}
-            emptyText="暂无知识点目录，请重启 Learning 并同步扩展知识目录"
+            emptyText="暂无知识点目录，请联系管理员同步后再试"
           />
+          {reviewItems.length > 0 && (
+            <div className="kg-review-panel">
+              {reviewSummary ? <p className="kg-review-summary">{reviewSummary}</p> : null}
+              <ul className="kg-review-list">
+                {reviewItems.map((item) => (
+                  <li key={item.code} className={`is-${String(item.verdict || "").toLowerCase()}`}>
+                    <div className="kg-review-row">
+                      <strong>{item.title || item.code}</strong>
+                      <span>{item.verdict === "KEEP" ? "匹配" : item.verdict === "REVIEW" ? "待核" : "不符"}</span>
+                    </div>
+                    {item.reason ? <p>{item.reason}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         <section className="form-section">
@@ -635,7 +711,7 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
             <div className="material-detail-field"><span>学科</span><strong>{modal.item.subject || "-"}</strong></div>
             <div className="material-detail-field"><span>年级</span><strong>{modal.item.grade || "-"}</strong></div>
             <div className="material-detail-field"><span>教材</span><strong>{modal.item.textbook || "-"}</strong></div>
-            <div className="material-detail-field"><span>知识点编码</span><strong>{modal.item.knowledgeCode || "-"}</strong></div>
+            <div className="material-detail-field"><span>主知识点</span><strong>{modal.item.knowledgeCode || "-"}</strong></div>
             <div className="material-detail-field"><span>来源说明</span><strong>{modal.item.sourceNote || "-"}</strong></div>
             <div className="material-detail-field"><span>发布时间</span><strong>{date(modal.item.publishedTime)}</strong></div>
             <div className="material-detail-field"><span>更新时间</span><strong>{date(modal.item.updatedTime)}</strong></div>
@@ -682,6 +758,6 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
       </div>
     </Modal>}
 
-    {["approve", "reject", "publish", "index", "withdraw"].includes(modal?.type) && <Modal title={({ approve: "审核通过", reject: "驳回资料", publish: "发布资料", index: "知识库入库", withdraw: "撤回发布" })[modal.type]} description={modal.type === "publish" ? "发布后可作为教学资料使用，但不会自动进入知识库。" : modal.type === "index" ? "将提取文档文本写入向量库，并把简介+知识点同步到图谱 EXPLAINS（GraphRAG）。" : `资料：${modal.item.title}`} onClose={() => setModal(null)} width={480}><div className="material-confirm">{["approve", "reject"].includes(modal.type) && <label>审核意见{modal.type === "reject" ? "（必填）" : "（可选）"}<textarea value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} /></label>}<div className="confirm-actions"><button className="button ghost" type="button" onClick={() => setModal(null)}>取消</button><button className="button primary" type="button" disabled={busy || (modal.type === "reject" && !note.trim())} onClick={() => perform(modal.type, modal.item, modal.type === "index" ? "已开始入库" : "操作成功", note)}>{busy ? "处理中..." : "确认"}</button></div></div></Modal>}
+    {["approve", "reject", "publish", "index", "reindex", "withdraw"].includes(modal?.type) && <Modal title={({ approve: "审核通过", reject: "驳回资料", publish: "发布资料", index: "知识库入库", reindex: "重新生成向量", withdraw: "撤回发布" })[modal.type]} description={modal.type === "publish" ? "发布前须已填写官方目录内的主知识点与简介；发布后可作为教学资料使用，但不会自动进入知识库。" : modal.type === "index" ? "将提取文档文本入库，并把简介与主知识点同步到图谱。入库前须已填写目录内知识点与简介。" : modal.type === "reindex" ? "将使用当前向量模型与切分策略重新处理原文件，成功后原子替换旧向量；资料与课程关联不会改变。" : `资料：${modal.item.title}`} onClose={() => setModal(null)} width={480}><div className="material-confirm">{["approve", "reject"].includes(modal.type) && <label>审核意见{modal.type === "reject" ? "（必填）" : "（可选）"}<textarea value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} /></label>}<div className="confirm-actions"><button className="button ghost" type="button" onClick={() => setModal(null)}>取消</button><button className="button primary" type="button" disabled={busy || (modal.type === "reject" && !note.trim())} onClick={() => perform(modal.type, modal.item, modal.type === "index" ? "已开始入库" : modal.type === "reindex" ? "已开始重新生成向量" : "操作成功", note)}>{busy ? "处理中..." : "确认"}</button></div></div></Modal>}
   </section>;
 }

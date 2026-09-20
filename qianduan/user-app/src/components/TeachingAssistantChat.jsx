@@ -1,6 +1,5 @@
 import {
   BookOpenText,
-  Bot,
   CheckCircle2,
   Code2,
   ExternalLink,
@@ -15,6 +14,8 @@ import { MarkdownContent } from "./MarkdownContent.jsx";
 import { TeachingSteps } from "./TeachingSteps.jsx";
 
 export { TEACHING_TOPICS, TOPIC_CATEGORIES, topicsByCategory } from "../data/teachingTopics.js";
+
+const ASSISTANT_ICON = "/assets/ai-assistant-doodle.png";
 
 const stageCodes = {
   PRIMARY_LOWER: "lower_primary",
@@ -124,14 +125,15 @@ function KnowledgeGrounding({ grounding }) {
   const references = grounding.status === "USED" && Array.isArray(grounding.references)
     ? grounding.references
     : [];
+  const notice = friendlyGroundingNotice(grounding);
 
   return (
     <section className={`knowledge-grounding status-${String(grounding.status || "unknown").toLowerCase()}`}>
       <div className="grounding-heading">
         <BookOpenText size={14} />
-        <span>{references.length ? "推荐学习资料" : "知识库状态"}</span>
+        <span>{references.length ? "推荐学习资料" : "学习资料"}</span>
       </div>
-      <p>{grounding.notice}</p>
+      {notice && <p>{notice}</p>}
       {references.length > 0 && (
         <ol>
           {references.map((reference, index) => (
@@ -149,15 +151,37 @@ function KnowledgeGrounding({ grounding }) {
   );
 }
 
+function friendlyGroundingNotice(grounding) {
+  const raw = String(grounding?.notice || "").trim();
+  const status = String(grounding?.status || "").toUpperCase();
+  if (status === "USED" && Array.isArray(grounding.references) && grounding.references.length) {
+    return raw && !/未启用|未配置|向量|Neo4j|Runtime|pgvector/i.test(raw)
+      ? raw
+      : "以下资料可供对照阅读。";
+  }
+  if (/未启用|未配置|disabled|not_configured|向量库|检索未/i.test(raw) || status === "DISABLED" || status === "NOT_CONFIGURED") {
+    return "这次没有匹配到课程资料，回答仅供参考。";
+  }
+  if (/模板|deterministic|本地教学/i.test(raw)) {
+    return "本次用课堂讲解方式回答，未引用额外资料。";
+  }
+  if (!raw) return "这次没有匹配到课程资料，回答仅供参考。";
+  if (/Neo4j|Runtime|pgvector|MinIO|agent/i.test(raw)) {
+    return "这次没有匹配到课程资料，回答仅供参考。";
+  }
+  return raw;
+}
+
 function CourseRecommendations({ items }) {
   if (!Array.isArray(items) || !items.length) return null;
 
   function openCourseChapter(courseId, chapterId) {
     const path = `${window.location.pathname || "/"}#courses/${courseId}/chapters/${chapterId}`;
     const url = `${window.location.origin}${path}`;
-    const tab = window.open(url, "_blank", "noopener,noreferrer");
+    // 不要带 noopener：部分浏览器会让 window.open 返回 null，误走当前页 hash 跳转。
+    const tab = window.open(url, "_blank");
     if (!tab) {
-      // 弹窗被拦时退回当前页跳转
+      // 仅弹窗被拦截时，才退回当前页跳转
       window.location.hash = `#courses/${courseId}/chapters/${chapterId}`;
     }
   }
@@ -168,7 +192,7 @@ function CourseRecommendations({ items }) {
         <BookOpenText size={14} />
         <span>推荐课程章节</span>
       </div>
-      <p>根据知识点挂载推荐；点击在新标签打开课程，当前对话不会被打断。</p>
+      <p>根据你刚学的主题推荐相关课程章节；点击在新标签打开，当前对话不会被打断。</p>
       <ol>
         {items.map((item) => {
           const courseId = Number(item.courseId);
@@ -179,8 +203,8 @@ function CourseRecommendations({ items }) {
           return (
             <li key={`${courseId}-${chapterId}`}>
               <div>
-                <strong>{item.courseTitle || `课程 ${courseId}`}</strong>
-                <small>{item.chapterTitle || `章节 ${chapterId}`}</small>
+                <strong>{item.courseTitle || "相关课程"}</strong>
+                <small>{item.chapterTitle || "推荐章节"}</small>
               </div>
               <button
                 type="button"
@@ -500,7 +524,7 @@ export function TeachingAssistantChat({
         : null;
       setConversation((current) => [...current, {
         role: "assistant",
-        text: run.outputText || "任务已提交，请稍后在运行记录中查看结果。",
+        text: run.outputText || "讲解还在准备中，请稍后再问一次。",
         grounding: metadata.knowledgeGrounding || null,
         courseRecommendations: metadata.courseRecommendations || [],
         animationArtifact,
@@ -549,7 +573,9 @@ export function TeachingAssistantChat({
   return (
     <section className={`teaching-chat ${isPage ? "page-variant" : "floating-variant"}`} aria-label="AI 学习对话">
       <header className="teaching-chat-head">
-        <span className="assistant-avatar"><Bot size={19} /></span>
+        <span className="assistant-avatar">
+          <img src={ASSISTANT_ICON} alt="" width={28} height={28} />
+        </span>
         <div>
           <strong>{isPage ? "AI 通识讲解" : "AI 学习助教"}</strong>
           <small className={statusBusy ? "status-busy" : undefined}>
@@ -575,7 +601,11 @@ export function TeachingAssistantChat({
             className={`message ${message.role} ${message.animationArtifact ? "has-animation" : ""}`}
             key={`${message.runId || "local"}-${message.role}-${index}`}
           >
-            <span>{message.role === "assistant" ? <Bot size={16} /> : displayName.slice(0, 1)}</span>
+            <span>
+              {message.role === "assistant"
+                ? <img src={ASSISTANT_ICON} alt="" width={20} height={20} />
+                : displayName.slice(0, 1)}
+            </span>
             <div className="message-content">
               {message.role === "assistant" ? (
                 <MarkdownContent className="assistant-md">{message.text}</MarkdownContent>
@@ -606,7 +636,7 @@ export function TeachingAssistantChat({
         ))}
         {statusBusy && (
           <div className="message assistant pending" role="status" aria-live="polite">
-            <span><Bot size={16} /></span>
+            <span><img src={ASSISTANT_ICON} alt="" width={20} height={20} /></span>
             <div className="message-content">
               <p className="assistant-pending-bubble">
                 <LoaderCircle size={14} aria-hidden="true" />

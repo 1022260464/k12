@@ -11,7 +11,7 @@ from k12_agent_runtime.domain.rag import (
     KnowledgeDocument,
     KnowledgeSearchQuery,
 )
-from k12_agent_runtime.infrastructure.rag.bge import RagModelError
+from k12_agent_runtime.infrastructure.rag.errors import RagModelError
 
 logger = logging.getLogger(__name__)
 

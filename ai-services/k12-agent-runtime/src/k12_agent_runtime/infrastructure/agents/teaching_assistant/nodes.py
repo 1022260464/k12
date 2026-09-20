@@ -2509,7 +2509,22 @@ def _read_knowledge_graph(context: dict[str, Any]) -> dict[str, Any]:
         "ready": bool(value.get("ready")),
         "focusCode": value.get("focusCode") if isinstance(value.get("focusCode"), str) else None,
         "focusTitle": value.get("focusTitle") if isinstance(value.get("focusTitle"), str) else None,
+        "focusStage": value.get("focusStage") if isinstance(value.get("focusStage"), str) else None,
+        "stageResolution": (
+            value.get("stageResolution")
+            if isinstance(value.get("stageResolution"), str)
+            else "learner_profile"
+        ),
     }
+    raw_stages = value.get("focusStages")
+    if isinstance(raw_stages, list):
+        safe["focusStages"] = [
+            item.strip()
+            for item in raw_stages
+            if isinstance(item, str) and item.strip()
+        ][:8]
+    else:
+        safe["focusStages"] = []
     neighbor_keys = (
         "code", "title", "relation", "direction", "reason",
         "masteryPercent", "weak", "missingPrerequisites",
@@ -2751,6 +2766,9 @@ def _align_knowledge_graph(graph: dict[str, Any], topic_code: str | None) -> dic
         "ready": False,
         "focusCode": topic_code.strip(),
         "focusTitle": None,
+        "focusStages": [],
+        "focusStage": None,
+        "stageResolution": "learner_profile",
         "neighbors": [],
         "prerequisiteGaps": [],
         "nextTopics": [],
@@ -2817,6 +2835,19 @@ def _format_knowledge_graph_section(state: TeachingAssistantState) -> str:
         current_title = str(state.get("topic") or "").strip()
 
     lines: list[str] = []
+    focus_stages = graph.get("focusStages") if isinstance(graph.get("focusStages"), list) else []
+    stage_labels = [
+        str(item).strip()
+        for item in focus_stages
+        if isinstance(item, str) and str(item).strip()
+    ]
+    learner_stage = _STAGE_LABELS.get(state.get("stage") or "", "")
+    if stage_labels:
+        lines.append(
+            f"- 知识点适用学段：{'、'.join(stage_labels[:6])}；"
+            f"本轮讲解难度与用语请按学生档案学段「{learner_stage or '当前学段'}」把握，"
+            f"不要按节点上全部学段一刀切。"
+        )
     gaps = graph.get("prerequisiteGaps") if isinstance(graph.get("prerequisiteGaps"), list) else []
     if gaps:
         titles = [

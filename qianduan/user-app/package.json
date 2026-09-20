@@ -6,14 +6,17 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
-    "test": "node --test src/data/animation.test.js src/data/teachingSteps.test.js",
+    "test": "node --test src/data/animation.test.js src/data/teachingSteps.test.js src/utils/passwordValidation.test.js",
     "preview": "vite preview --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@vitejs/plugin-react": "5.0.4",
     "dompurify": "^3.4.15",
+    "duma-icons-react": "^0.1.0",
     "echarts": "^5.6.0",
     "lucide-react": "^1.21.0",
+    "monaco-editor": "^0.56.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-markdown": "^10.1.0",

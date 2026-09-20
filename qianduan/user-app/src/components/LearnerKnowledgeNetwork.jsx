@@ -5,6 +5,7 @@ import { GraphChart } from "echarts/charts";
 import { TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { knowledgeGraphApi, coursesApi } from "../api/client.js";
+import { readKnowledgeGraphOverviewCache } from "../utils/knowledgeGraphCache.js";
 
 echarts.use([GraphChart, TooltipComponent, CanvasRenderer]);
 
@@ -18,10 +19,11 @@ const RELATED_COLOR = "#98a2b3";
  * 不向学生展示内部 knowledge code。
  */
 export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, onPractice }) {
-  const [overview, setOverview] = useState(null);
+  const cachedOverview = readKnowledgeGraphOverviewCache();
+  const [overview, setOverview] = useState(cachedOverview);
   const [topicRecs, setTopicRecs] = useState([]);
   const [courseTitles, setCourseTitles] = useState(() => new Map());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedOverview);
   const [error, setError] = useState("");
   const [selectedCode, setSelectedCode] = useState("");
 
@@ -53,7 +55,7 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    if (!overview) setLoading(true);
     setError("");
 
     knowledgeGraphApi.overview()
@@ -66,7 +68,7 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
             if (!active) return;
             const map = new Map();
             (Array.isArray(list) ? list : list?.items || []).forEach((course) => {
-              if (course?.id) map.set(Number(course.id), course.title || `课程 ${course.id}`);
+              if (course?.id) map.set(Number(course.id), course.title || "相关课程");
             });
             setCourseTitles(map);
           })
@@ -134,7 +136,7 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
   const titleByCode = useMemo(() => {
     const map = new Map();
     (overview?.points || []).forEach((point) => {
-      if (point?.code) map.set(point.code, point.title || point.code);
+      if (point?.code) map.set(point.code, point.title || "相关主题");
     });
     masteryHints.forEach((item) => {
       if (!map.has(item.knowledgeCode) && item.topic) map.set(item.knowledgeCode, item.topic);
@@ -151,7 +153,7 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
         <header>
           <div>
             <h2>我的知识网络</h2>
-            <p>根据已学内容关联图谱邻居，并推荐下一知识点与课程。</p>
+            <p>根据已学内容找出相关主题，并推荐下一步练习与课程。</p>
           </div>
         </header>
         <div className="learner-kg-loading"><LoaderCircle size={20} className="spin" />知识网络加载中…</div>
@@ -165,7 +167,7 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
         <header>
           <div>
             <h2>我的知识网络</h2>
-            <p>根据已学内容关联图谱邻居，并推荐下一知识点与课程。</p>
+            <p>根据已学内容找出相关主题，并推荐下一步练习与课程。</p>
           </div>
         </header>
         <p className="learner-kg-empty">{error}</p>
@@ -182,8 +184,8 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
           <h2>我的知识网络</h2>
           <p>
             {hasMastery
-              ? "绿色为已掌握，蓝色为练习中，橙色为推荐下一主题；点击节点可聚焦邻居。"
-              : "完成 AI 助教小测后，这里会根据掌握度生成关联知识网络。"}
+              ? "绿色为已掌握，蓝色为练习中，橙色为推荐下一主题；点选主题可查看相关内容。"
+              : "完成 AI 助教小测后，这里会根据掌握情况展示相关主题。"}
           </p>
         </div>
         <strong><Network size={18} /></strong>
@@ -195,7 +197,7 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
           links={subgraph.links}
           selectedCode={selectedCode}
           onSelect={setSelectedCode}
-          emptyHint={hasMastery ? "暂无足够图谱关系可展示" : "先完成几次课堂小测，再回来看知识网络"}
+          emptyHint={hasMastery ? "相关主题还不够，再完成几次小测后再来看看" : "先完成几次课堂小测，再回来看知识网络"}
         />
 
         <aside className="learner-kg-side">
@@ -327,7 +329,7 @@ function LearnerForceGraph({ nodes, links, selectedCode, onSelect, emptyHint }) 
       <div ref={hostRef} className="learner-kg-chart" role="img" aria-label="已学关联知识网络" />
       {!nodes.length && <p className="learner-kg-empty overlay">{emptyHint}</p>}
       {selectedCode && nodes.length > 0 && (
-        <p className="learner-kg-focus-hint">已选中节点，可继续点击图上其他节点</p>
+        <p className="learner-kg-focus-hint">已选中该主题，可继续点选图上其他主题</p>
       )}
     </div>
   );
@@ -453,7 +455,7 @@ function buildCourseRecommendations(chapterCovers, topicRecs, masteryByCode, his
 
   const courseTitleById = new Map(courseTitles instanceof Map ? courseTitles : []);
   (history || []).forEach((item) => {
-    if (item?.courseId) courseTitleById.set(Number(item.courseId), item.courseTitle || `课程 ${item.courseId}`);
+    if (item?.courseId) courseTitleById.set(Number(item.courseId), item.courseTitle || "相关课程");
   });
 
   const rows = [];
@@ -471,8 +473,8 @@ function buildCourseRecommendations(chapterCovers, topicRecs, masteryByCode, his
     rows.push({
       courseId,
       chapterId,
-      courseTitle: courseTitleById.get(courseId) || `课程 ${courseId}`,
-      chapterTitle: cover.title || `章节 ${chapterId}`,
+      courseTitle: courseTitleById.get(courseId) || "相关课程",
+      chapterTitle: cover.title || "推荐章节",
       matchedTitle: titleByCode.get(hit) || null,
     });
   });
@@ -481,5 +483,13 @@ function buildCourseRecommendations(chapterCovers, topicRecs, masteryByCode, his
 
 function humanizeReason(reason) {
   if (!reason) return "可根据当前进度继续学习";
-  return String(reason);
+  const text = String(reason).trim();
+  if (!text) return "可根据当前进度继续学习";
+  if (/^[a-z0-9_.-]+$/i.test(text) || /\b[a-z]+(?:\.[a-z0-9_]+)+\b/i.test(text)) {
+    return "可根据当前进度继续学习";
+  }
+  if (/Neo4j|Cypher|vector|embedding|GraphRAG|knowledgeCode|node|edge/i.test(text)) {
+    return "可根据当前进度继续学习";
+  }
+  return text;
 }

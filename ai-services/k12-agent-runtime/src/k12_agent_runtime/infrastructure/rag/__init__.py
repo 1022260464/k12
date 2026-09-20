@@ -3,8 +3,9 @@
 from k12_agent_runtime.infrastructure.rag.bge import (
     BgeM3Embedder,
     BgeReranker,
-    RagModelError,
 )
+from k12_agent_runtime.infrastructure.rag.dashscope import DashScopeEmbedder, DashScopeReranker
+from k12_agent_runtime.infrastructure.rag.errors import RagModelError
 from k12_agent_runtime.infrastructure.rag.pgvector_repository import (
     PgVectorKnowledgeRepository,
 )
@@ -12,6 +13,8 @@ from k12_agent_runtime.infrastructure.rag.pgvector_repository import (
 __all__ = [
     "BgeM3Embedder",
     "BgeReranker",
+    "DashScopeEmbedder",
+    "DashScopeReranker",
     "PgVectorKnowledgeRepository",
     "RagModelError",
 ]

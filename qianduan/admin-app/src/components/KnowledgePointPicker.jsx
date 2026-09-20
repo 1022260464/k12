@@ -1,5 +1,5 @@
-import { Check, Maximize2, Pin, Search, Sparkles, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Check, ChevronDown, Maximize2, Pin, Search, Sparkles, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal } from "./Modal.jsx";
 
 const STAGE_SHORT = {
@@ -8,11 +8,32 @@ const STAGE_SHORT = {
   HIGH_PRIMARY: "小学高",
   JUNIOR_HIGH: "初中",
   SENIOR_HIGH: "高中",
+  小学低年级: "小学低",
+  小学高年级: "小学高",
+  初中: "初中",
+  高中: "高中",
 };
+
+function pointStageShort(point) {
+  if (Array.isArray(point?.stages) && point.stages.length) {
+    return point.stages
+      .map((item) => STAGE_SHORT[item] || item)
+      .filter(Boolean)
+      .join("·");
+  }
+  if (!point?.stage) return "";
+  return String(point.stage)
+    .split(/[、,/|;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => STAGE_SHORT[item] || item)
+    .join("·");
+}
 
 /**
  * 知识点挂载选择器：按大类分组、勾选置顶、放大面板。
  * mode=multi 用于章节 COVERS；mode=single 用于资料主知识点。
+ * layout=cards 卡片网格；layout=accordion 分类可折叠 + 小勾选框。
  */
 export function KnowledgePointPicker({
   points = [],
@@ -20,14 +41,18 @@ export function KnowledgePointPicker({
   onChange,
   mode = "multi",
   aiSuggestedCodes = [],
-  filterPlaceholder = "搜索大类、标题或编码",
+  filterPlaceholder = "搜索大类或主题名称",
   emptyText = "暂无知识点目录",
+  readOnly = false,
+  layout = "cards",
 }) {
   const [filter, setFilter] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [activeCategory, setActiveCategory] = useState("全部");
+  const [openCategories, setOpenCategories] = useState(() => new Set());
   const selectedSet = useMemo(() => new Set(selectedCodes), [selectedCodes]);
   const aiSet = useMemo(() => new Set(aiSuggestedCodes), [aiSuggestedCodes]);
+  const isAccordion = layout === "accordion";
 
   const ordered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -68,12 +93,12 @@ export function KnowledgePointPicker({
     const map = new Map();
     for (const point of ordered) {
       const key = point.categoryTitle || point.categoryCode || "未分类";
-      if (activeCategory !== "全部" && key !== activeCategory) continue;
+      if (!isAccordion && activeCategory !== "全部" && key !== activeCategory) continue;
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(point);
     }
     return [...map.entries()];
-  }, [ordered, activeCategory]);
+  }, [ordered, activeCategory, isAccordion]);
 
   const selectedPoints = useMemo(
     () => selectedCodes
@@ -82,7 +107,30 @@ export function KnowledgePointPicker({
     [selectedCodes, points],
   );
 
+  // 搜索时自动展开有结果的分类；AI 建议到来时展开相关分类
+  useEffect(() => {
+    if (!isAccordion) return;
+    const next = new Set();
+    if (filter.trim()) {
+      groups.forEach(([category]) => next.add(category));
+    } else {
+      for (const point of points) {
+        if (selectedSet.has(point.code) || aiSet.has(point.code)) {
+          next.add(point.categoryTitle || point.categoryCode || "未分类");
+        }
+      }
+    }
+    if (next.size) {
+      setOpenCategories((current) => {
+        const merged = new Set(current);
+        next.forEach((key) => merged.add(key));
+        return merged;
+      });
+    }
+  }, [isAccordion, filter, aiSuggestedCodes, groups, points, selectedSet, aiSet]);
+
   function toggle(code) {
+    if (readOnly) return;
     if (mode === "single") {
       onChange?.(selectedCodes.includes(code) ? [] : [code]);
       return;
@@ -95,18 +143,28 @@ export function KnowledgePointPicker({
   }
 
   function removeSelected(code) {
+    if (readOnly) return;
     onChange?.((selectedCodes || []).filter((item) => item !== code));
   }
 
   function pinSelectedToFront() {
-    if (mode !== "multi" || !selectedCodes.length) return;
+    if (readOnly || mode !== "multi" || !selectedCodes.length) return;
     onChange?.([...selectedCodes]);
+  }
+
+  function toggleCategoryFold(category) {
+    setOpenCategories((current) => {
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
   }
 
   function renderPointCard(point) {
     const checked = selectedSet.has(point.code);
     const aiHit = aiSet.has(point.code);
-    const stage = STAGE_SHORT[point.stage] || point.stage || "";
+    const stage = pointStageShort(point);
     return (
       <label
         key={point.code}
@@ -116,6 +174,7 @@ export function KnowledgePointPicker({
           type={mode === "single" ? "radio" : "checkbox"}
           name={mode === "single" ? "knowledge-point-single" : undefined}
           checked={checked}
+          disabled={readOnly}
           onChange={() => toggle(point.code)}
         />
         <span className="kp-card-body">
@@ -130,6 +189,95 @@ export function KnowledgePointPicker({
           </span>
         </span>
       </label>
+    );
+  }
+
+  function renderCheckRow(point) {
+    const checked = selectedSet.has(point.code);
+    const aiHit = aiSet.has(point.code);
+    return (
+      <label
+        key={point.code}
+        className={`kp-check-row${checked ? " is-checked" : ""}${aiHit ? " is-ai" : ""}`}
+      >
+        <input
+          type={mode === "single" ? "radio" : "checkbox"}
+          name={mode === "single" ? "knowledge-point-acc" : undefined}
+          checked={checked}
+          disabled={readOnly}
+          onChange={() => toggle(point.code)}
+        />
+        <span className="kp-check-title">{point.title || point.code}</span>
+        {aiHit ? <em className="knowledge-ai-tag">AI</em> : null}
+      </label>
+    );
+  }
+
+  function renderAccordion() {
+    if (!points.length) {
+      return <p className="binding-empty">{emptyText}</p>;
+    }
+    const searching = Boolean(filter.trim());
+    return (
+      <div className="knowledge-picker is-accordion">
+        <label className="kp-search">
+          <Search size={14} />
+          <input
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            placeholder={filterPlaceholder}
+          />
+        </label>
+        {selectedPoints.length > 0 && (
+          <div className="kp-chip-row">
+            {selectedPoints.slice(0, 6).map((point) => (
+              <button
+                key={point.code}
+                type="button"
+                className="kp-chip"
+                title={point.code}
+                onClick={() => removeSelected(point.code)}
+                disabled={readOnly}
+              >
+                <span>{point.title || point.code}</span>
+                {!readOnly ? <X size={12} /> : null}
+              </button>
+            ))}
+            {selectedPoints.length > 6 && (
+              <span className="kp-chip-more">+{selectedPoints.length - 6}</span>
+            )}
+          </div>
+        )}
+        <div className="kp-accordion-list">
+          {groups.map(([category, items]) => {
+            const open = searching || openCategories.has(category);
+            const selectedCount = items.filter((item) => selectedSet.has(item.code)).length;
+            return (
+              <div key={category} className={`kp-acc-block${open ? " is-open" : ""}`}>
+                <button
+                  type="button"
+                  className="kp-acc-head"
+                  aria-expanded={open}
+                  onClick={() => toggleCategoryFold(category)}
+                >
+                  <span className="kp-acc-name">{category}</span>
+                  <em className="kp-acc-count">
+                    {selectedCount > 0 ? `${selectedCount}/` : ""}{items.length}
+                  </em>
+                  <ChevronDown size={14} className="kp-acc-chevron" />
+                </button>
+                {open && (
+                  <div className="kp-acc-body">
+                    {items.map(renderCheckRow)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {!groups.length && <p className="binding-empty">无匹配知识点</p>}
+        </div>
+        <p className="binding-hint">已选 {selectedCodes.length} 个 · 点分类名称可展开或收起</p>
+      </div>
     );
   }
 
@@ -155,7 +303,7 @@ export function KnowledgePointPicker({
                 type="button"
                 title="把已勾选的知识点排到列表最前"
                 onClick={pinSelectedToFront}
-                disabled={!selectedCodes.length}
+                disabled={readOnly || !selectedCodes.length}
               >
                 <Pin size={14} />勾选置顶
               </button>
@@ -179,9 +327,10 @@ export function KnowledgePointPicker({
                 className="kp-chip"
                 title={point.code}
                 onClick={() => removeSelected(point.code)}
+                disabled={readOnly}
               >
                 <span>{point.title || point.code}</span>
-                <X size={12} />
+                {!readOnly ? <X size={12} /> : null}
               </button>
             ))}
             {selectedPoints.length > 8 && (
@@ -277,7 +426,7 @@ export function KnowledgePointPicker({
               <div className="kp-selected-head">
                 <strong>已选 {selectedPoints.length}</strong>
                 {mode === "multi" && (
-                  <button type="button" className="kp-clear" onClick={() => onChange?.([])}>
+                  <button type="button" className="kp-clear" onClick={() => onChange?.([])} disabled={readOnly}>
                     清空
                   </button>
                 )}
@@ -290,9 +439,10 @@ export function KnowledgePointPicker({
                     className="kp-chip"
                     title={point.code}
                     onClick={() => removeSelected(point.code)}
+                    disabled={readOnly}
                   >
                     <span>{point.title || point.code}</span>
-                    <X size={12} />
+                    {!readOnly ? <X size={12} /> : null}
                   </button>
                 ))}
               </div>
@@ -320,8 +470,8 @@ export function KnowledgePointPicker({
 
   return (
     <>
-      {renderCompact()}
-      {expanded && (
+      {isAccordion ? renderAccordion() : renderCompact()}
+      {!isAccordion && expanded && (
         <Modal
           title="选择知识点"
           description={mode === "single"

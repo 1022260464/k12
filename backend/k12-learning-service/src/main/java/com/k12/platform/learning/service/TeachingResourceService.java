@@ -6,6 +6,7 @@ import com.k12.platform.common.security.K12SecurityContext;
 import com.k12.platform.learning.dto.TeachingResourceMetadata;
 import com.k12.platform.learning.dto.TeachingResourcePage;
 import com.k12.platform.learning.dto.TeachingResourceResponse;
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import com.k12.platform.learning.mapper.CourseChapterMapper;
 import com.k12.platform.learning.mapper.CourseMapper;
 import com.k12.platform.learning.mapper.TeachingResourceBindingMapper;
@@ -42,16 +43,19 @@ public class TeachingResourceService {
     private final TeachingResourceStorage storage;
     private final CourseMapper courseMapper;
     private final CourseChapterMapper chapterMapper;
+    private final KnowledgeGraphService knowledgeGraphService;
 
     public TeachingResourceService(TeachingResourceMapper mapper, TeachingResourceEventMapper eventMapper,
                                    TeachingResourceBindingMapper bindingMapper, TeachingResourceStorage storage,
-                                   CourseMapper courseMapper, CourseChapterMapper chapterMapper) {
+                                   CourseMapper courseMapper, CourseChapterMapper chapterMapper,
+                                   KnowledgeGraphService knowledgeGraphService) {
         this.mapper = mapper;
         this.eventMapper = eventMapper;
         this.bindingMapper = bindingMapper;
         this.storage = storage;
         this.courseMapper = courseMapper;
         this.chapterMapper = chapterMapper;
+        this.knowledgeGraphService = knowledgeGraphService;
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:read')")
@@ -68,9 +72,12 @@ public class TeachingResourceService {
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:read')")
-    public TeachingResourcePage published(int page, int size) {
-        if (page < 1 || size < 1 || size > 100) throw new IllegalArgumentException("分页参数不合法");
-        List<TeachingResource> rows = mapper.search(null, "PUBLISHED", null, size + 1, (long) (page - 1) * size);
+    public TeachingResourcePage published(int page, int size, String keyword) {
+        if (page < 1 || size < 1 || size > 100 || (keyword != null && keyword.length() > 128)) {
+            throw new IllegalArgumentException("分页或搜索参数不合法");
+        }
+        List<TeachingResource> rows = mapper.search(null, "PUBLISHED", clean(keyword), size + 1,
+                (long) (page - 1) * size);
         return new TeachingResourcePage(page, size, rows.size() > size,
                 rows.stream().limit(size).map(this::toResponse).toList());
     }
@@ -170,6 +177,13 @@ public class TeachingResourceService {
     public TeachingResourceResponse publish(long id) {
         TeachingResource resource = locked(id);
         if (!"APPROVED".equals(resource.getStatus())) conflict("只有审核通过的资料可发布");
+        if (!StringUtils.hasText(resource.getKnowledgeCode())) {
+            throw new IllegalArgumentException("发布前请填写主知识点编码");
+        }
+        if (!StringUtils.hasText(resource.getDescription())) {
+            throw new IllegalArgumentException("发布前请填写资料简介（入库后会写入知识图谱）");
+        }
+        knowledgeGraphService.requireCatalogCode(resource.getKnowledgeCode());
         resource.setPublishedBy(K12SecurityContext.requireUserId());
         resource.setPublishedTime(Instant.now());
         // 发布仅变更教学可见性；知识库入库必须由后续单独的管理员操作触发。
@@ -323,8 +337,15 @@ public class TeachingResourceService {
             if (grade == null) grade = courseGrade;
         }
         String knowledgeCode = clean(metadata.knowledgeCode());
+        if (!K12SecurityContext.hasAuthority(ADMIN)) {
+            // 教师默认不能改知识点绑定：新建清空；编辑保留原值。
+            knowledgeCode = resource.getId() == null ? null : resource.getKnowledgeCode();
+        }
         if (knowledgeCode != null && !KNOWLEDGE_CODE.matcher(knowledgeCode).matches()) {
             throw new IllegalArgumentException("知识点编码格式不合法");
+        }
+        if (knowledgeCode != null) {
+            knowledgeGraphService.requireCatalogCode(knowledgeCode);
         }
         resource.setTitle(metadata.title().trim());
         resource.setDescription(clean(metadata.description()));

@@ -19,7 +19,7 @@ public class IamMediaProperties {
     private String publicEndpoint;
     private String accessKey;
     private String secretKey;
-    private String bucket = "k12-agent-artifacts";
+    private String bucket = "k12-user-avatars";
     private Duration urlTtl = Duration.ofMinutes(60);
 
     public String resolvePublicEndpoint() {

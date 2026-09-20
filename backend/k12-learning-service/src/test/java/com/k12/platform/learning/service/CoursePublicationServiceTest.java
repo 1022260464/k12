@@ -1,5 +1,6 @@
 package com.k12.platform.learning.service;
 
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import com.k12.platform.learning.mapper.CourseChapterMapper;
 import com.k12.platform.learning.mapper.CourseMapper;
 import com.k12.platform.learning.mapper.CourseSectionMapper;
@@ -9,11 +10,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +29,15 @@ class CoursePublicationServiceTest {
     @Mock private CourseMapper courseMapper;
     @Mock private CourseChapterMapper chapterMapper;
     @Mock private CourseSectionMapper sectionMapper;
+    @Mock private KnowledgeGraphService knowledgeGraphService;
+    @Mock private ObjectProvider<PublishedCourseListCache> publishedCourseListCache;
+    @Mock private ObjectProvider<KnowledgeGraphOverviewCache> overviewCache;
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubCache() {
+        when(publishedCourseListCache.getIfAvailable()).thenReturn(null);
+        when(overviewCache.getIfAvailable()).thenReturn(null);
+    }
 
     @Test
     void rejectsChapterWithoutTeachingContent() {
@@ -37,6 +51,22 @@ class CoursePublicationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("没有导语或小节正文");
         verify(courseMapper, never()).updateById(any(Course.class));
+        verify(knowledgeGraphService, never()).assertChaptersCoveredForPublish(anyLong(), any());
+    }
+
+    @Test
+    void rejectsWhenChapterMissingKnowledgeCovers() {
+        Course course = draft();
+        CourseChapter chapter = chapter("导语");
+        when(access.requireCourse(1L, true)).thenReturn(course);
+        when(chapterMapper.selectList(any())).thenReturn(List.of(chapter));
+        doThrow(new IllegalArgumentException("以下章节尚未绑定知识点，请先在章节管理中绑定后再发布：第一章"))
+                .when(knowledgeGraphService).assertChaptersCoveredForPublish(eq(1L), any());
+
+        assertThatThrownBy(() -> service().publish(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("尚未绑定知识点");
+        verify(courseMapper, never()).updateById(any(Course.class));
     }
 
     @Test
@@ -48,12 +78,14 @@ class CoursePublicationServiceTest {
 
         service().publish(1L);
 
+        verify(knowledgeGraphService).assertChaptersCoveredForPublish(eq(1L), any());
         verify(courseMapper).updateById(course);
         org.assertj.core.api.Assertions.assertThat(course.getStatus()).isEqualTo(1);
     }
 
     private CoursePublicationService service() {
-        return new CoursePublicationService(access, courseMapper, chapterMapper, sectionMapper);
+        return new CoursePublicationService(access, courseMapper, chapterMapper, sectionMapper,
+                knowledgeGraphService, publishedCourseListCache, overviewCache);
     }
 
     private Course draft() {

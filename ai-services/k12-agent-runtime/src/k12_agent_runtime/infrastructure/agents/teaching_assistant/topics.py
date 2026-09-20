@@ -716,7 +716,10 @@ _SUPERVISED_LEARNING = Topic(
     code="machine_learning.supervised_learning",
     title="监督学习",
     chapter="带着答案学习",
-    aliases=("监督学习", "supervised", "有监督学习", "带标签学习"),
+    aliases=(
+        "监督学习", "supervised", "有监督学习", "带标签学习",
+        "监督相关", "监督式学习",
+    ),
     lessons=_lessons(
         strategy="learn-with-answers",
         goal=(

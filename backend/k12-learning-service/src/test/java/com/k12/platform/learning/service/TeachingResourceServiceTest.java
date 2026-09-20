@@ -1,5 +1,6 @@
 package com.k12.platform.learning.service;
 
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import com.k12.platform.learning.mapper.TeachingResourceBindingMapper;
 import com.k12.platform.learning.mapper.TeachingResourceEventMapper;
 import com.k12.platform.learning.mapper.TeachingResourceMapper;
@@ -41,11 +42,12 @@ class TeachingResourceServiceTest {
     @Mock TeachingResourceStorage storage;
     @Mock CourseMapper courses;
     @Mock CourseChapterMapper chapters;
+    @Mock KnowledgeGraphService knowledgeGraph;
     TeachingResourceService service;
 
     @BeforeEach
     void setup() {
-        service = new TeachingResourceService(mapper, events, bindings, storage, courses, chapters);
+        service = new TeachingResourceService(mapper, events, bindings, storage, courses, chapters, knowledgeGraph);
         authenticate("ROLE_ADMIN", "42");
         org.mockito.Mockito.lenient().when(bindings.selectList(any())).thenReturn(List.of());
         org.mockito.Mockito.lenient().when(bindings.delete(any())).thenReturn(1);
@@ -57,16 +59,29 @@ class TeachingResourceServiceTest {
     @Test
     void publishingDoesNotIndexResource() {
         TeachingResource resource = resource("APPROVED", 5L);
+        resource.setKnowledgeCode("generative_ai.llm_basics");
+        resource.setDescription("大模型入门讲义");
         when(mapper.selectForUpdate(5L)).thenReturn(resource);
 
         var response = service.publish(5L);
 
         assertThat(response.status()).isEqualTo("PUBLISHED");
         assertThat(response.ragIndexStatus()).isEqualTo("NOT_INDEXED");
+        verify(knowledgeGraph).requireCatalogCode("generative_ai.llm_basics");
         ArgumentCaptor<TeachingResourceEvent> event = ArgumentCaptor.forClass(TeachingResourceEvent.class);
         verify(events).insert(event.capture());
         assertThat(event.getValue().getAction()).isEqualTo("PUBLISH");
         assertThat(event.getValue().getFromStatus()).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void publishRequiresKnowledgeCode() {
+        TeachingResource resource = resource("APPROVED", 5L);
+        when(mapper.selectForUpdate(5L)).thenReturn(resource);
+        assertThatThrownBy(() -> service.publish(5L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("主知识点");
+        verify(mapper, never()).updateById(any(TeachingResource.class));
     }
 
     @Test
@@ -87,8 +102,14 @@ class TeachingResourceServiceTest {
 
     @Test
     void publishedListFiltersServerSide() {
-        service.published(1, 20);
+        service.published(1, 20, null);
         verify(mapper).search(null, "PUBLISHED", null, 21, 0L);
+    }
+
+    @Test
+    void publishedListAcceptsKeyword() {
+        service.published(1, 20, "数据");
+        verify(mapper).search(null, "PUBLISHED", "数据", 21, 0L);
     }
 
     @Test

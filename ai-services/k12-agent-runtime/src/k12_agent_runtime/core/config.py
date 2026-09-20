@@ -32,14 +32,26 @@ class Settings(BaseSettings):
     llm_max_output_tokens: int = 1200
     llm_temperature: float = 0.2
 
-    # RAG模型按第一次请求延迟加载，服务启动时不会立即占用显存。
+    # RAG支持百炼云端模型和本地BGE。云端Key留空时复用LLM API Key。
     rag_enabled: bool = False
+    embedding_provider: str = "local_bge"
+    embedding_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    embedding_api_key: SecretStr | None = None
     embedding_model: str = "BAAI/bge-m3"
+    embedding_dimension: int = Field(default=1024, gt=0, le=4096)
+    embedding_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     embedding_device: str = "cuda"
     embedding_use_fp16: bool = True
     embedding_batch_size: int = 8
     embedding_max_length: int = 1024
+    reranker_provider: str = "local_bge"
+    reranker_base_url: str = "https://dashscope.aliyuncs.com/compatible-api/v1"
+    reranker_api_key: SecretStr | None = None
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    reranker_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
+    reranker_instruction: str = (
+        "Given a K12 education question, retrieve passages that accurately answer the query."
+    )
     reranker_device: str = "cuda"
     reranker_use_fp16: bool = True
     reranker_batch_size: int = 4

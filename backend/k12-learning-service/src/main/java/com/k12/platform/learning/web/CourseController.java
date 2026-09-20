@@ -50,6 +50,14 @@ public class CourseController {
         return ApiResponse.ok(courseService.listCourses());
     }
 
+    /** 首页推荐：已发布课程，后端可 Redis 缓存整表结果。 */
+    @GetMapping("/recommended")
+    public ApiResponse<List<CourseResponse>> recommended(
+            @RequestParam(name = "limit", defaultValue = "8") int limit
+    ) {
+        return ApiResponse.ok(courseService.listRecommendedCourses(limit));
+    }
+
     @GetMapping("/page")
     public ApiResponse<CoursePageResponse> search(
             @RequestParam(name = "page", defaultValue = "1") int page,

@@ -79,7 +79,7 @@ public class UserAvatarStorage {
             throw error;
         } catch (Exception error) {
             log.error("用户头像上传 MinIO 失败", error);
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "头像存储暂不可用");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "头像暂时无法上传，请稍后再试");
         }
     }
 
@@ -135,13 +135,13 @@ public class UserAvatarStorage {
             throw error;
         } catch (Exception error) {
             log.error("检查/创建头像 MinIO 桶失败: {}", properties.getBucket(), error);
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "头像存储桶不可用");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "头像暂时无法上传，请稍后再试");
         }
     }
 
     private MinioClient client() {
         if (client == null) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "头像存储未启用，请配置 MinIO");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "头像暂时无法上传，请稍后再试");
         }
         return client;
     }

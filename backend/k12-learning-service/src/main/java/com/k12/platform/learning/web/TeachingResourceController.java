@@ -50,8 +50,9 @@ public class TeachingResourceController {
 
     @GetMapping("/published")
     public ApiResponse<TeachingResourcePage> published(@RequestParam(defaultValue = "1") int page,
-                                                       @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(service.published(page, size));
+                                                       @RequestParam(defaultValue = "20") int size,
+                                                       @RequestParam(required = false) String keyword) {
+        return ApiResponse.ok(service.published(page, size, keyword));
     }
 
     @GetMapping("/published/{id}")
@@ -122,6 +123,11 @@ public class TeachingResourceController {
     @PostMapping("/{id}/index")
     public ResponseEntity<ApiResponse<TeachingResourceResponse>> index(@PathVariable("id") @Positive long id) {
         return ResponseEntity.accepted().body(ApiResponse.ok(indexService.index(id)));
+    }
+
+    @PostMapping("/{id}/reindex")
+    public ResponseEntity<ApiResponse<TeachingResourceResponse>> reindex(@PathVariable("id") @Positive long id) {
+        return ResponseEntity.accepted().body(ApiResponse.ok(indexService.reindex(id)));
     }
 
     @PostMapping("/{id}/sync-graph")

@@ -22,7 +22,7 @@ final class TopicFocusMatcher {
             new Rule("searching.linear_search", "线性查找", "顺序查找", "linearsearch"),
             new Rule("machine_learning.image_classification", "图像分类", "图片分类", "图像识别"),
             new Rule("machine_learning.features_labels", "特征与标签", "特征和标签", "特征", "标签", "feature", "label"),
-            new Rule("machine_learning.supervised_learning", "监督学习", "有监督"),
+            new Rule("machine_learning.supervised_learning", "监督学习", "有监督", "监督相关", "监督式学习"),
             new Rule("machine_learning.classification_regression", "分类与回归", "回归"),
             new Rule("machine_learning.train_test_split", "训练集", "测试集", "训练测试"),
             new Rule("machine_learning.overfitting", "过拟合"),

@@ -1,4 +1,4 @@
-import { Edit3, FileText, ListTree, Plus, RefreshCw, Save, Trash2, Upload } from "lucide-react";
+import { Edit3, FileText, ListTree, Plus, RefreshCw, Save, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, knowledgeGraphApi, teachingResourcesApi } from "../api/client.js";
 import { AiSuggestButton, KnowledgePointPicker, mergeAiSuggestedCodes } from "../components/KnowledgePointPicker.jsx";
@@ -60,7 +60,7 @@ function stageCodeFromCourse(course) {
   return "JUNIOR_HIGH";
 }
 
-export function CourseChapterManager({ course, notify, onClose }) {
+export function CourseChapterManager({ course, notify, onClose, isAdmin = false }) {
   const [tab, setTab] = useState("chapters");
   const [chapters, setChapters] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -86,6 +86,10 @@ export function CourseChapterManager({ course, notify, onClose }) {
   const [suggestNote, setSuggestNote] = useState("");
   const [suggesting, setSuggesting] = useState(false);
   const [savingCovers, setSavingCovers] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewItems, setReviewItems] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState("");
+  const canEditKnowledge = Boolean(isAdmin);
 
   async function load() {
     setLoading(true);
@@ -111,17 +115,17 @@ export function CourseChapterManager({ course, notify, onClose }) {
       const list = Array.isArray(points) ? points : [];
       setKnowledgePoints(list);
       if (!list.length) {
-        setSuggestNote("知识点目录为空：请重启 Learning 并执行图谱 seed / syncExpandedCatalog");
+        setSuggestNote("知识点目录为空：请联系管理员同步知识目录后再试");
       } else if (status && status.enabled === false) {
-        setSuggestNote(`已加载 ${list.length} 个知识点。图谱未启用：可勾选；保存绑定需开启 Neo4j`);
+        setSuggestNote(`已加载 ${list.length} 个知识点。图谱未启用时仍可勾选预览；保存绑定需先启用图谱服务`);
       } else if (status && status.ready === false) {
-        setSuggestNote(`已加载 ${list.length} 个知识点。图谱未就绪（${status.message || "连接失败"}）`);
+        setSuggestNote(`已加载 ${list.length} 个知识点。图谱暂未就绪，请稍后再保存绑定`);
       } else {
         setSuggestNote(`已加载 ${list.length} 个知识点（含大类分组）`);
       }
     } catch {
       setKnowledgePoints([]);
-      setSuggestNote("目录接口失败，请检查 Learning 服务 /knowledge-graph/points");
+      setSuggestNote("知识点目录暂时无法加载，请稍后重试");
     }
   }
 
@@ -134,6 +138,8 @@ export function CourseChapterManager({ course, notify, onClose }) {
       setEditing(detail);
       setForm({ title: detail.title, content: detail.content, sortOrder: detail.sortOrder });
       setSuggestNote("");
+      setReviewItems([]);
+      setReviewSummary("");
       try {
         const covers = await coursesApi.chapterCovers(course.id, chapter.id);
         setSelectedCodes((covers.covers || []).map((item) => item.code));
@@ -151,6 +157,8 @@ export function CourseChapterManager({ course, notify, onClose }) {
     setSelectedCodes([]);
     setAiSuggestedCodes([]);
     setSuggestNote("");
+    setReviewItems([]);
+    setReviewSummary("");
   }
 
   async function save(event) {
@@ -186,6 +194,10 @@ export function CourseChapterManager({ course, notify, onClose }) {
   }
 
   async function suggestCovers() {
+    if (!canEditKnowledge) {
+      notify("仅管理员可修改知识点绑定", "error");
+      return;
+    }
     const catalog = knowledgePoints;
     if (!catalog.length) {
       notify("暂无知识点目录可建议", "error");
@@ -238,6 +250,10 @@ export function CourseChapterManager({ course, notify, onClose }) {
   }
 
   async function saveCovers() {
+    if (!canEditKnowledge) {
+      notify("仅管理员可保存知识点绑定", "error");
+      return;
+    }
     if (!editing) {
       notify("请先保存章节，再绑定知识点", "error");
       return;
@@ -260,6 +276,33 @@ export function CourseChapterManager({ course, notify, onClose }) {
       await load();
     } catch (error) { notify(error.message, "error"); }
     finally { setSavingCovers(false); }
+  }
+
+  async function reviewCovers() {
+    if (!canEditKnowledge) return;
+    if (!selectedCodes.length) {
+      notify("请先勾选或绑定知识点再审查", "error");
+      return;
+    }
+    if (!stripHtml(form.content) && !String(form.title || "").trim()) {
+      notify("请先填写章节标题或导语作为审查依据", "error");
+      return;
+    }
+    setReviewing(true);
+    try {
+      const result = await knowledgeGraphApi.reviewAlignment({
+        title: form.title,
+        content: form.content,
+        knowledgeCodes: selectedCodes,
+      });
+      setReviewItems(result.items || []);
+      setReviewSummary(result.summary || "");
+      notify(result.summary || "审查完成");
+    } catch (error) {
+      notify(error.message, "error");
+    } finally {
+      setReviewing(false);
+    }
   }
 
   async function uploadMaterial(event) {
@@ -286,7 +329,7 @@ export function CourseChapterManager({ course, notify, onClose }) {
         bindings,
         grade: course.gradeLevel || "",
         textbook: "",
-        knowledgeCode: materialForm.knowledgeCode || "",
+        knowledgeCode: canEditKnowledge ? (materialForm.knowledgeCode || "") : "",
       }, materialFile);
       notify("资料已上传为草稿，请到教学资料提交审核");
       setMaterialFile(null);
@@ -310,110 +353,161 @@ export function CourseChapterManager({ course, notify, onClose }) {
   }
 
   return <Modal title={`课程工作台 · ${course.title}`} description="维护章节小节与知识点绑定，并可直接为课程上传教学附件（走审核发布后学生可见）。" onClose={onClose} variant="workspace">
-    <div className="workspace-tabs">
-      <button className={tab === "chapters" ? "active" : ""} type="button" onClick={() => setTab("chapters")}>章节与小节</button>
-      <button className={tab === "materials" ? "active" : ""} type="button" onClick={() => setTab("materials")}>课程附件</button>
-    </div>
-    {tab === "materials" ? (
-      <section className="workspace-pane">
-        <form className="material-form resource-form workspace-import" onSubmit={uploadMaterial}>
-          <section className="form-section">
-            <h3>上传课程附件</h3>
-            <p className="binding-hint">文件进入教学资料草稿，需管理员审核发布后学生端可见。课程须已发布才能关联。</p>
-            <div className="field-pair">
-              <label>标题<input value={materialForm.title} onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })} required /></label>
-              <label>学段 / 学科
-                <input
-                  readOnly
-                  value={`${STAGE_LABELS[courseStageCode] || courseStageCode} · ${course.subject || "-"}${course.gradeLevel ? `（${course.gradeLevel}）` : ""}`}
-                  title="随当前课程锁定，不可修改"
-                />
-              </label>
-            </div>
-            <label>来源说明<input value={materialForm.sourceNote} onChange={(e) => setMaterialForm({ ...materialForm, sourceNote: e.target.value })} required /></label>
-            <label>主知识点编码（可选）
-              <input
-                list="chapter-material-knowledge-codes"
-                value={materialForm.knowledgeCode}
-                maxLength={128}
-                onChange={(e) => setMaterialForm({ ...materialForm, knowledgeCode: e.target.value.trim() })}
-                placeholder="如 machine_learning.supervised_learning"
-              />
-            </label>
-            <datalist id="chapter-material-knowledge-codes">
-              {knowledgePoints.map((point) => (
-                <option key={point.code} value={point.code}>{point.title}</option>
-              ))}
-            </datalist>
-            <div className="binding-chapters" style={{ margin: 0 }}>
-              <p>关联章节（可多选；不选则仅关联本课程）</p>
-              {chapters.length === 0 ? <small className="binding-empty">暂无章节，将仅关联整课</small> : chapters.map((chapter) => (
-                <label key={chapter.id}>
-                  <input type="checkbox" checked={materialForm.chapterIds.includes(chapter.id)} onChange={() => toggleMaterialChapter(chapter.id)} />
-                  <span>{chapter.sortOrder}. {chapter.title}</span>
+    <div className="course-workspace">
+      <div className="workspace-tabs">
+        <button className={tab === "chapters" ? "active" : ""} type="button" onClick={() => setTab("chapters")}>章节与小节</button>
+        <button className={tab === "materials" ? "active" : ""} type="button" onClick={() => setTab("materials")}>课程附件</button>
+      </div>
+      {tab === "materials" ? (
+        <div className="course-workspace-main">
+          <section className="workspace-pane">
+            <form className="material-form resource-form workspace-import" onSubmit={uploadMaterial}>
+              <section className="form-section">
+                <h3>上传课程附件</h3>
+                <p className="binding-hint">文件进入教学资料草稿，需管理员审核发布后学生端可见。课程须已发布才能关联。</p>
+                <div className="field-pair">
+                  <label>标题<input value={materialForm.title} onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })} required /></label>
+                  <label>学段 / 学科
+                    <input
+                      readOnly
+                      value={`${STAGE_LABELS[courseStageCode] || courseStageCode} · ${course.subject || "-"}${course.gradeLevel ? `（${course.gradeLevel}）` : ""}`}
+                      title="随当前课程锁定，不可修改"
+                    />
+                  </label>
+                </div>
+                <label>来源说明<input value={materialForm.sourceNote} onChange={(e) => setMaterialForm({ ...materialForm, sourceNote: e.target.value })} required /></label>
+                <label>主知识点（可选）
+                  <input
+                    list="chapter-material-knowledge-codes"
+                    value={materialForm.knowledgeCode}
+                    maxLength={128}
+                    readOnly={!canEditKnowledge}
+                    onChange={(e) => canEditKnowledge && setMaterialForm({ ...materialForm, knowledgeCode: e.target.value.trim() })}
+                    placeholder={canEditKnowledge ? "选择或搜索知识点名称" : "仅管理员可绑定知识点"}
+                  />
                 </label>
-              ))}
-            </div>
-            <div className="import-panel-actions">
-              <label className="file-drop compact-drop">
-                <Upload size={16} />
-                <span>{materialFile ? materialFile.name : "选择附件文件"}</span>
-                <input type="file" accept=".pdf,.docx,.pptx,.png,.jpg,.jpeg,.mp4" required onChange={(e) => setMaterialFile(e.target.files?.[0] || null)} />
-              </label>
-              <button className="button primary compact" type="submit" disabled={!materialFile || uploading}><Upload size={15} />{uploading ? "上传中..." : "上传附件"}</button>
+                {!canEditKnowledge && (
+                  <p className="binding-hint">教师上传附件时默认不绑定知识点；管理员可在「教学资料」中补绑。</p>
+                )}
+                <datalist id="chapter-material-knowledge-codes">
+                  {knowledgePoints.map((point) => (
+                    <option key={point.code} value={point.code}>{point.title}</option>
+                  ))}
+                </datalist>
+                <div className="binding-chapters" style={{ margin: 0 }}>
+                  <p>关联章节（可多选；不选则仅关联本课程）</p>
+                  {chapters.length === 0 ? <small className="binding-empty">暂无章节，将仅关联整课</small> : chapters.map((chapter) => (
+                    <label key={chapter.id}>
+                      <input type="checkbox" checked={materialForm.chapterIds.includes(chapter.id)} onChange={() => toggleMaterialChapter(chapter.id)} />
+                      <span>{chapter.sortOrder}. {chapter.title}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="import-panel-actions">
+                  <label className="file-drop compact-drop">
+                    <Upload size={16} />
+                    <span>{materialFile ? materialFile.name : "选择附件文件"}</span>
+                    <input type="file" accept=".pdf,.docx,.pptx,.png,.jpg,.jpeg,.mp4" required onChange={(e) => setMaterialFile(e.target.files?.[0] || null)} />
+                  </label>
+                  <button className="button primary compact" type="submit" disabled={!materialFile || uploading}><Upload size={15} />{uploading ? "上传中..." : "上传附件"}</button>
+                </div>
+              </section>
+            </form>
+            <div className="attachment-list material-list">
+              {materials.length ? materials.map((item) => (
+                <div key={item.id}><strong>{item.title}</strong><small>{item.status} · {item.originalFilename}{item.chapterTitle ? ` · ${item.chapterTitle}` : ""}{item.knowledgeCode ? ` · ${item.knowledgeCode}` : ""}</small></div>
+              )) : <p className="inline-empty">暂无已关联本课程的教学资料</p>}
             </div>
           </section>
-        </form>
-        <div className="attachment-list material-list">
-          {materials.length ? materials.map((item) => (
-            <div key={item.id}><strong>{item.title}</strong><small>{item.status} · {item.originalFilename}{item.chapterTitle ? ` · ${item.chapterTitle}` : ""}{item.knowledgeCode ? ` · ${item.knowledgeCode}` : ""}</small></div>
-          )) : <p className="inline-empty">暂无已关联本课程的教学资料</p>}
         </div>
-      </section>
-    ) : sectionChapter ? <CourseSectionManager course={course} chapter={sectionChapter} notify={notify} onBack={() => setSectionChapter(null)} /> : <div className="manager-layout chapter-manager">
-      <section className="manager-list">
-        <header><strong>课程章节</strong><button className="icon-button" type="button" title="刷新章节" onClick={load}><RefreshCw size={17} /></button></header>
-        {loading ? <p className="manager-empty">正在加载章节...</p> : chapters.length === 0 ? <p className="manager-empty">暂无章节。也可关闭后用 JSON 批量导入整课结构。</p> : chapters.map((chapter) => <article className={editing?.id === chapter.id ? "selected" : ""} key={chapter.id}><span><FileText size={17} /></span><div><strong>{chapter.sortOrder}. {chapter.title}</strong><small>{formatTime(chapter.updatedTime)}</small></div><button className="icon-button" type="button" title="管理小节" onClick={() => setSectionChapter(chapter)}><ListTree size={15} /></button><button className="icon-button" type="button" title="编辑章节" onClick={() => edit(chapter)}><Edit3 size={15} /></button><button className="icon-button danger" type="button" title="删除章节" onClick={() => remove(chapter)}><Trash2 size={15} /></button></article>)}
-      </section>
-      <form className="manager-form" onSubmit={save}>
-        <header><div><strong>{editing ? "编辑章节" : "新建章节"}</strong><small>章节导语必填：写入图谱描述，并作为 AI 建议依据；正文放在小节中。</small></div><button className="button ghost compact" type="button" onClick={create}><Plus size={15} />新建</button></header>
-        <label>章节标题<input value={form.title} maxLength={128} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></label>
-        <label>排序<input type="number" min="0" max="10000" value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: event.target.value })} required /></label>
-        <RichTextField
-          label="章节导语（必填）"
-          value={form.content}
-          resetKey={editing?.id ? `chapter-${editing.id}` : "chapter-new"}
-          onChange={(content) => setForm({ ...form, content })}
-          required
-          hint="必填。用几句话说明本章教什么；保存后同步到图谱 CourseChapterRef.description，AI 建议主要依据这段文字。"
-          onUploadImage={(file) => coursesApi.uploadContentImage(course.id, file)}
-        />
+      ) : sectionChapter ? (
+        <div className="course-workspace-main is-sections">
+          <CourseSectionManager course={course} chapter={sectionChapter} notify={notify} onBack={() => setSectionChapter(null)} />
+        </div>
+      ) : (
+        <div className="course-workspace-main">
+          <div className="manager-layout chapter-manager">
+            <section className="manager-list">
+              <header><strong>课程章节</strong><button className="icon-button" type="button" title="刷新章节" onClick={load}><RefreshCw size={17} /></button></header>
+              {loading ? <p className="manager-empty">正在加载章节...</p> : chapters.length === 0 ? <p className="manager-empty">暂无章节。也可关闭后用 JSON 批量导入整课结构。</p> : chapters.map((chapter) => <article className={editing?.id === chapter.id ? "selected" : ""} key={chapter.id}><span><FileText size={17} /></span><div><strong>{chapter.sortOrder}. {chapter.title}</strong><small>{formatTime(chapter.updatedTime)}</small></div><button className="icon-button" type="button" title="管理小节" onClick={() => setSectionChapter(chapter)}><ListTree size={15} /></button><button className="icon-button" type="button" title="编辑章节" onClick={() => edit(chapter)}><Edit3 size={15} /></button><button className="icon-button danger" type="button" title="删除章节" onClick={() => remove(chapter)}><Trash2 size={15} /></button></article>)}
+            </section>
+            <form className="manager-form" onSubmit={save}>
+              <header><div><strong>{editing ? "编辑章节" : "新建章节"}</strong><small>章节导语必填：写入图谱描述，并作为 AI 建议依据；正文放在小节中。</small></div><button className="button ghost compact" type="button" onClick={create}><Plus size={15} />新建</button></header>
+              <label>章节标题<input value={form.title} maxLength={128} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></label>
+              <label>排序<input type="number" min="0" max="10000" value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: event.target.value })} required /></label>
+              <RichTextField
+                label="章节导语（必填）"
+                value={form.content}
+                resetKey={editing?.id ? `chapter-${editing.id}` : "chapter-new"}
+                onChange={(content) => setForm({ ...form, content })}
+                required
+                hint="必填。用几句话说明本章教什么；保存后会同步给 AI 建议与知识图谱绑定。"
+                onUploadImage={(file) => coursesApi.uploadContentImage(course.id, file)}
+              />
 
-        <section className="form-section knowledge-cover-panel">
-          <header className="knowledge-cover-header">
-            <div>
-              <strong>本章知识点</strong>
-              <small>先写导语 → AI 建议（自动勾选置顶）→ 可放大面板手工改 → 保存绑定。</small>
-            </div>
-            <AiSuggestButton suggesting={suggesting} onClick={suggestCovers} />
-          </header>
-          {suggestNote && <p className="binding-hint">{suggestNote}</p>}
-          <KnowledgePointPicker
-            points={knowledgePoints}
-            selectedCodes={selectedCodes}
-            aiSuggestedCodes={aiSuggestedCodes}
-            mode="multi"
-            onChange={setSelectedCodes}
-            emptyText="暂无知识点目录。请确认 Learning 已重启并完成图谱目录同步。"
-          />
-          <button className="button ghost" type="button" disabled={!editing || savingCovers} onClick={saveCovers}>
-            <Save size={15} />{savingCovers ? "绑定保存中..." : editing ? "保存知识点绑定" : "请先保存章节再绑定"}
-          </button>
-        </section>
+              <section className="form-section knowledge-cover-panel">
+                <header className="knowledge-cover-header">
+                  <div>
+                    <strong>本章知识点</strong>
+                    <small>
+                      {canEditKnowledge
+                        ? "导语写好后可用 AI 建议勾选，也可手工调整；保存绑定后可再审查。"
+                        : "仅可查看；改绑请联系管理员。"}
+                    </small>
+                  </div>
+                  {canEditKnowledge && (
+                    <div className="knowledge-cover-actions">
+                      <AiSuggestButton suggesting={suggesting} onClick={suggestCovers} />
+                      <button
+                        className="button ghost compact"
+                        type="button"
+                        disabled={reviewing || !selectedCodes.length}
+                        onClick={reviewCovers}
+                      >
+                        <ShieldCheck size={14} />{reviewing ? "审查中…" : "审查"}
+                      </button>
+                    </div>
+                  )}
+                </header>
+                {suggestNote && <p className="binding-hint">{suggestNote}</p>}
+                <KnowledgePointPicker
+                  points={knowledgePoints}
+                  selectedCodes={selectedCodes}
+                  aiSuggestedCodes={aiSuggestedCodes}
+                  mode="multi"
+                  readOnly={!canEditKnowledge}
+                  onChange={setSelectedCodes}
+                  emptyText="暂无知识点目录。请联系管理员同步知识目录后再试。"
+                />
+                {reviewItems.length > 0 && (
+                  <div className="kg-review-panel">
+                    {reviewSummary ? <p className="kg-review-summary">{reviewSummary}</p> : null}
+                    <ul className="kg-review-list">
+                      {reviewItems.map((item) => (
+                        <li key={item.code} className={`is-${String(item.verdict || "").toLowerCase()}`}>
+                          <div className="kg-review-row">
+                            <strong>{item.title || item.code}</strong>
+                            <span>{item.verdict === "KEEP" ? "匹配" : item.verdict === "REVIEW" ? "待核" : "不符"}</span>
+                          </div>
+                          {item.reason ? <p>{item.reason}</p> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {canEditKnowledge ? (
+                  <button className="button ghost" type="button" disabled={!editing || savingCovers} onClick={saveCovers}>
+                    <Save size={15} />{savingCovers ? "绑定保存中..." : editing ? "保存知识点绑定" : "请先保存章节再绑定"}
+                  </button>
+                ) : null}
+              </section>
 
-        <button className="button primary" type="submit" disabled={saving}><Save size={16} />{saving ? "保存中..." : "保存章节"}</button>
-      </form>
-    </div>}
+              <button className="button primary" type="submit" disabled={saving}><Save size={16} />{saving ? "保存中..." : "保存章节"}</button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   </Modal>;
 }
 

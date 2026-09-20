@@ -7,6 +7,9 @@ Java 微服务和 Python Agent Runtime，用于建设按学段适配的对话、
 产品最终边界、系统总流程、真实完成进度和后续阶段统一记录在
 [K12 AI 通识教学助手总体规划](docs/project-scope-and-roadmap.md)。
 
+从零部署与 IDEA / 命令行环境变量说明见 [项目部署指南](docs/deployment-guide.md)；
+答辩与验收全流程演示脚本见 [全流程演示文档](docs/demo-guide.md)。
+
 ## 项目结构
 
 ```text

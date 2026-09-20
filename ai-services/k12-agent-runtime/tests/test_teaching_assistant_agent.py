@@ -1061,6 +1061,43 @@ def test_course_recommend_intent_skips_explanation_template():
     assert result.metadata.get("modelUsed") is False
 
 
+def test_course_recommend_intent_allows_topic_between_action_and_course():
+    result = run_topic(
+        "推荐学习监督相关学习课程",
+        {
+            "stage": "初中",
+            "knowledgeGraph": {
+                "enabled": True,
+                "ready": True,
+                "focusCode": "machine_learning.supervised_learning",
+                "focusTitle": "监督学习",
+                "coveredChapters": [
+                    {
+                        "courseId": 9,
+                        "chapterId": 18,
+                        "courseTitle": "机器学习入门",
+                        "chapterTitle": "带着答案学习",
+                    }
+                ],
+            },
+            "personalization": {"knowledgeGraphStatus": "LOADED"},
+        },
+    )
+
+    assert result.metadata["intentMode"] == "COURSE_RECOMMEND"
+    assert result.metadata["topicCode"] == "machine_learning.supervised_learning"
+    assert result.metadata["courseRecommendations"] == [
+        {
+            "courseId": 9,
+            "chapterId": 18,
+            "courseTitle": "机器学习入门",
+            "chapterTitle": "带着答案学习",
+        }
+    ]
+    assert "课程与资料推荐" in (result.output_text or "")
+    assert "概念解释" not in (result.output_text or "")
+
+
 def test_off_topic_intent_increments_strike_without_rag():
     result = run_topic(
         "今天天气怎么样",

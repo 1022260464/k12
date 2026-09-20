@@ -6,6 +6,7 @@ import { topicsByCategory } from "../data/teachingTopics.js";
 const RAIL_MIN = 220;
 const RAIL_MAX = 440;
 const RAIL_DEFAULT = 280;
+const IDEA_DOODLE = "/assets/ai-studio-idea-doodle.png";
 
 export function AiStudioPage({
   session,
@@ -26,12 +27,23 @@ export function AiStudioPage({
   const topicGroups = topicsByCategory();
 
   useEffect(() => {
-    if (!draftRequest?.topic || !session) return;
-    setSeedPrompt({
-      prompt: `请继续讲解${draftRequest.topic}，并给我一道新的练习题。`,
-      preferDeterministic: false,
-    });
-    onDraftConsumed?.();
+    if (!draftRequest || !session) return;
+    if (draftRequest.prompt) {
+      setSeedPrompt({
+        prompt: draftRequest.prompt,
+        preferDeterministic: Boolean(draftRequest.preferDeterministic),
+        topicId: draftRequest.topicId,
+      });
+      onDraftConsumed?.();
+      return;
+    }
+    if (draftRequest.topic) {
+      setSeedPrompt({
+        prompt: `请继续讲解${draftRequest.topic}，并给我一道新的练习题。`,
+        preferDeterministic: false,
+      });
+      onDraftConsumed?.();
+    }
   }, [draftRequest, session, onDraftConsumed]);
 
   useEffect(() => {
@@ -79,10 +91,13 @@ export function AiStudioPage({
   return (
     <div className="page inner-page ai-studio-page">
       <header className="ai-studio-hero">
-        <div>
+        <div className="ai-studio-hero-copy">
           <p className="eyebrow"><Sparkles size={14} /> AI 通识主课堂</p>
-          <h1>AI 学习台</h1>
-          <p>先点左侧分类标签展开主题，再点具体主题开始学习；右侧为固定可滚动对话窗。</p>
+          <h1 className="ai-studio-title">
+            <span>AI 学习台</span>
+            <img className="ai-studio-title-doodle" src={IDEA_DOODLE} alt="" width={72} height={72} />
+          </h1>
+          <p>选择左侧主题开始学习；右侧对话窗可随时提问、看讲解与小测。</p>
         </div>
         <button
           className="button secondary"

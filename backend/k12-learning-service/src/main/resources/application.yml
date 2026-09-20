@@ -85,6 +85,19 @@ k12:
       key: ${K12_LEADERBOARD_REDIS_KEY:k12:learning:leaderboard:v1}
       ttl: ${K12_LEADERBOARD_CACHE_TTL:60s}
       rebuild-limit: ${K12_LEADERBOARD_REBUILD_LIMIT:1000}
+    cache:
+      # 与排行榜共用开关：封面签名 URL、首页推荐课程、知识图谱 overview。
+      redis-enabled: ${K12_REDIS_ENABLED:false}
+      media-url-key-prefix: ${K12_MEDIA_URL_REDIS_KEY_PREFIX:k12:learning:media-url:v1:}
+      # 必须短于 media.url-ttl，避免缓存返回已过期的 MinIO 签名。
+      media-url-ttl: ${K12_MEDIA_URL_CACHE_TTL:10m}
+      published-courses-key: ${K12_PUBLISHED_COURSES_REDIS_KEY:k12:learning:courses:published:v1}
+      published-courses-ttl: ${K12_PUBLISHED_COURSES_CACHE_TTL:5m}
+      knowledge-graph-overview-key: ${K12_KG_OVERVIEW_REDIS_KEY:k12:learning:kg:overview:v2}
+      knowledge-graph-overview-ttl: ${K12_KG_OVERVIEW_CACHE_TTL:10m}
+    # 知识目录 JSON：默认 classpath；可改为 file: 路径以便热更后「重新加载」
+    knowledge-catalog:
+      location: ${K12_KNOWLEDGE_CATALOG_LOCATION:classpath:knowledge/ai_literacy_catalog.json}
     neo4j:
       # 知识关系层；关闭时助教降级为无先修导航，不影响主链路。
       enabled: ${K12_NEO4J_ENABLED:false}

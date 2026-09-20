@@ -1,7 +1,28 @@
-import { Braces, Clock3, Code2, Download, FileText, Image, LoaderCircle, Play, RotateCcw, Square, Table2, Terminal } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Braces,
+  CheckCircle2,
+  Clock3,
+  Code2,
+  Download,
+  FileText,
+  Image,
+  LoaderCircle,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Square,
+  Table2,
+  Terminal,
+  XCircle,
+} from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { agentsApi } from "../api/client.js";
+import { CodeCoachPanel } from "../components/CodeCoachPanel.jsx";
 import { Modal } from "../components/Modal.jsx";
+import { parsePythonDiagnostics } from "../utils/pythonDiagnostics.js";
+
+const PythonCodeEditor = lazy(() => import("../components/PythonCodeEditor.jsx"));
 
 const CODE_EXAMPLES = [
   { id: "average", label: "成绩计算", code: `# 修改代码后点击“运行”
@@ -103,14 +124,16 @@ const INITIAL_CODE = CODE_EXAMPLES[0].code;
 
 const ACTIVE_STATUSES = new Set(["PENDING", "RUNNING"]);
 const STATUS_LABELS = {
-  PENDING: "等待执行",
-  RUNNING: "正在执行",
-  SUCCEEDED: "执行成功",
-  FAILED: "执行失败",
-  TIMED_OUT: "执行超时",
-  REJECTED: "请求被拒绝",
-  CANCELLED: "已取消",
+  PENDING: "准备中",
+  RUNNING: "正在运行",
+  SUCCEEDED: "运行成功",
+  FAILED: "运行失败",
+  TIMED_OUT: "运行超时",
+  REJECTED: "暂时无法运行",
+  CANCELLED: "已停止",
 };
+
+const CODE_LAB_DOODLE = "/assets/code-lab-laptop-doodle.png";
 
 export function CodeLabPage({ session, requireLogin }) {
   const [code, setCode] = useState(INITIAL_CODE);
@@ -121,6 +144,8 @@ export function CodeLabPage({ session, requireLogin }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachIntent, setCoachIntent] = useState("guide");
 
   useEffect(() => {
     function applyPreferredExample(exampleId) {
@@ -213,14 +238,38 @@ export function CodeLabPage({ session, requireLogin }) {
   }
 
   const active = submitting || ACTIVE_STATUSES.has(result?.status);
+  const runDiagnostics = useMemo(
+    () => parsePythonDiagnostics(result?.stderr || error || ""),
+    [result?.stderr, error],
+  );
+  const exampleLabel = CODE_EXAMPLES.find((item) => item.id === exampleId)?.label || "";
+  // 必须先有过运行结果且存在报错/失败态，才允许「帮我看报错」
+  const hasRunError = useMemo(() => {
+    if (!result && !error) return false;
+    const stderr = String(result?.stderr || "").trim();
+    const requestError = String(error || "").trim();
+    if (stderr || requestError) return true;
+    return ["FAILED", "TIMED_OUT", "REJECTED"].includes(result?.status);
+  }, [result, error]);
+
+  function openCoach(intent = "guide") {
+    if (intent === "debug" && !hasRunError) return;
+    requireLogin(() => {
+      setCoachIntent(intent);
+      setCoachOpen(true);
+    });
+  }
 
   return (
     <div className="page inner-page code-lab-page">
       <header className="page-title page-title-row">
-        <div>
-          <p className="eyebrow"><Code2 size={14} />编程实验</p>
-          <h1>运行 Python 代码</h1>
-          <p>代码只会提交到隔离沙箱，不在浏览器或业务服务进程中执行。</p>
+        <div className="page-title-copy">
+          <p className="eyebrow"><Code2 size={14} /> 编程实验</p>
+          <h1 className="page-title-with-doodle">
+            <span>运行 Python 代码</span>
+            <img className="page-title-doodle page-title-doodle-laptop" src={CODE_LAB_DOODLE} alt="" width={110} height={90} />
+          </h1>
+          <p>支持语法高亮与补全；可在本页直接获得写码与改错指导。</p>
         </div>
         <div className="code-runtime-label"><span />Python 3</div>
       </header>
@@ -230,7 +279,7 @@ export function CodeLabPage({ session, requireLogin }) {
           <Terminal size={20} />
           <div>
             <strong>登录后使用编程实验</strong>
-            <p>运行记录和生成文件需要关联到你的学习账号。</p>
+            <p>登录后才能保存运行结果和生成的文件。</p>
           </div>
           <button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button>
         </section>
@@ -239,7 +288,7 @@ export function CodeLabPage({ session, requireLogin }) {
       <form className="code-workspace code-workspace-compact" onSubmit={execute}>
         <section className="code-editor-panel">
           <header>
-            <div><Code2 size={17} /><strong>main.py</strong></div>
+            <div><Code2 size={17} /><strong>我的代码</strong></div>
             <div className="code-editor-actions">
               <select
                 aria-label="代码示例"
@@ -258,38 +307,34 @@ export function CodeLabPage({ session, requireLogin }) {
               </button>
             </div>
           </header>
-          <div className="code-editor-body">
-            <div className="line-numbers" aria-hidden="true">
-              {code.split("\n").map((_, index) => <span key={index}>{index + 1}</span>)}
-            </div>
-            <textarea
-              aria-label="Python代码"
-              spellCheck="false"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              maxLength={100000}
-              disabled={active}
-              required
-            />
+          <div className="code-editor-body code-editor-body-monaco">
+            <Suspense fallback={<div className="python-monaco-loading">正在加载编辑器…</div>}>
+              <PythonCodeEditor
+                value={code}
+                onChange={setCode}
+                diagnostics={runDiagnostics}
+                readOnly={active}
+              />
+            </Suspense>
           </div>
           <footer>
-            <span>{code.length.toLocaleString("zh-CN")} / 100,000 字符</span>
-            <span>暂不支持安装第三方依赖</span>
+            <span>{code.length.toLocaleString("zh-CN")} / 100,000 字符 · Ctrl/⌘+Enter 运行</span>
+            <span>暂不支持安装额外扩展包</span>
           </footer>
         </section>
 
         <aside className="code-control-panel">
           <section>
-            <h2>运行设置</h2>
+            <h2>运行选项</h2>
             <label>
-              执行方式
+              运行方式
               <div className="segmented-control code-mode-control">
-                <button className={mode === "ASYNC" ? "active" : ""} type="button" onClick={() => setMode("ASYNC")} disabled={active}>异步</button>
-                <button className={mode === "SYNC" ? "active" : ""} type="button" onClick={() => setMode("SYNC")} disabled={active}>同步</button>
+                <button className={mode === "ASYNC" ? "active" : ""} type="button" onClick={() => setMode("ASYNC")} disabled={active} title="提交后可先做其他事，稍后再看结果">后台运行</button>
+                <button className={mode === "SYNC" ? "active" : ""} type="button" onClick={() => setMode("SYNC")} disabled={active} title="等待运行完成后再显示结果">等待结果</button>
               </div>
             </label>
             <label>
-              超时时间
+              最长等待
               <div className="timeout-input">
                 <Clock3 size={16} />
                 <input type="number" min="1" max="30" value={timeoutSeconds} onChange={(event) => setTimeoutSeconds(event.target.value)} disabled={active} />
@@ -298,11 +343,11 @@ export function CodeLabPage({ session, requireLogin }) {
             </label>
             <button className="button primary full" type="submit" disabled={!session || active || !code.trim()}>
               {active ? <LoaderCircle className="spin-icon" size={17} /> : <Play size={17} />}
-              {submitting ? "正在提交" : ACTIVE_STATUSES.has(result?.status) ? STATUS_LABELS[result.status] : "运行代码"}
+              {submitting ? "正在运行" : ACTIVE_STATUSES.has(result?.status) ? STATUS_LABELS[result.status] : "运行代码"}
             </button>
             {ACTIVE_STATUSES.has(result?.status) && (
               <button className="button secondary full" type="button" onClick={cancelRun}>
-                <Square size={15} />取消任务
+                <Square size={15} />停止运行
               </button>
             )}
             {(result || error) && (
@@ -313,56 +358,136 @@ export function CodeLabPage({ session, requireLogin }) {
             )}
             {result?.status && (
               <div className={`code-result-chip status-${result.status.toLowerCase()}`}>
-                <span>{STATUS_LABELS[result.status] || result.status}</span>
-                <small>{result.durationMs == null ? "—" : `${result.durationMs} ms`}</small>
+                <span>{STATUS_LABELS[result.status] || "状态更新中"}</span>
+                <small>{formatDuration(result.durationMs)}</small>
               </div>
             )}
+          </section>
+
+          <section className="code-ai-assist">
+            <h2><Sparkles size={16} /> 代码教练</h2>
+            <p>在本页右侧打开对话，帮你审查代码、理解报错并给出修改建议。</p>
+            <button className="button primary full" type="button" onClick={() => openCoach("guide")} disabled={active}>
+              <Sparkles size={16} />打开代码教练
+            </button>
+            <button
+              className="button secondary full"
+              type="button"
+              onClick={() => openCoach("debug")}
+              disabled={active || !hasRunError}
+              title={hasRunError ? "根据最近一次运行报错进行分析" : "请先运行代码并产生报错后再使用"}
+            >
+              <Terminal size={15} />帮我看报错
+            </button>
+            <button className="button ghost full" type="button" onClick={() => openCoach("explain")} disabled={active}>
+              <Sparkles size={15} />解释这段代码
+            </button>
           </section>
         </aside>
       </form>
 
+      <CodeCoachPanel
+        open={coachOpen}
+        onClose={() => setCoachOpen(false)}
+        session={session}
+        requireLogin={requireLogin}
+        code={code}
+        result={result}
+        error={error}
+        exampleLabel={exampleLabel}
+        initialIntent={coachIntent}
+        hasRunError={hasRunError}
+      />
+
       {resultOpen && (
         <Modal
           title="运行结果"
-          description={result?.status ? (STATUS_LABELS[result.status] || result.status) : "等待输出"}
+          description={result?.status ? (STATUS_LABELS[result.status] || "结果准备中") : "等待运行结果"}
           onClose={() => setResultOpen(false)}
-          width={720}
+          width={760}
           layer={120}
         >
           <div className="code-result-modal" aria-live="polite">
             <header className="code-result-modal-head">
-              {result?.status ? (
-                <span className={`run-status status-${result.status.toLowerCase()}`}>
-                  {STATUS_LABELS[result.status] || result.status}
-                </span>
-              ) : (
-                <span className="run-status status-pending">准备中</span>
-              )}
+              <RunStatusBadge status={result?.status} submitting={submitting && !result} />
               {ACTIVE_STATUSES.has(result?.status) && (
                 <button className="button secondary compact" type="button" onClick={cancelRun}>
-                  <Square size={14} />取消
+                  <Square size={14} />停止
                 </button>
               )}
             </header>
-            {error && <p className="page-error" role="alert">{error}</p>}
+
+            {error && (
+              <div className="code-result-alert" role="alert">
+                <AlertTriangle size={16} />
+                <p>{error}</p>
+              </div>
+            )}
+
             {submitting && !result && !error && (
-              <p className="code-result-empty">正在提交到沙箱…</p>
+              <div className="code-result-empty-card">
+                <LoaderCircle className="spin-icon" size={22} />
+                <div>
+                  <strong>正在准备运行</strong>
+                  <p>请稍候，马上开始运行你的代码。</p>
+                </div>
+              </div>
             )}
+
             {!result && !error && !submitting && (
-              <p className="code-result-empty">暂无运行结果。</p>
+              <div className="code-result-empty-card">
+                <Terminal size={22} />
+                <div>
+                  <strong>暂无运行结果</strong>
+                  <p>点击「运行代码」后，输出会显示在这里。</p>
+                </div>
+              </div>
             )}
+
             {result && (
               <>
-                <pre>
-                  {result.stdout
-                    || result.stderr
-                    || (ACTIVE_STATUSES.has(result.status) ? "任务已提交，正在等待运行结果…" : "程序没有输出。")}
-                </pre>
-                <dl>
-                  <div><dt>运行编号</dt><dd title={result.runId}>{result.runId}</dd></div>
-                  <div><dt>退出码</dt><dd>{result.exitCode ?? "--"}</dd></div>
-                  <div><dt>耗时</dt><dd>{result.durationMs == null ? "--" : `${result.durationMs} ms`}</dd></div>
-                </dl>
+                <div className="code-result-meta">
+                  <article>
+                    <span><Clock3 size={14} />耗时</span>
+                    <strong>{formatDuration(result.durationMs)}</strong>
+                  </article>
+                  <article>
+                    <span><Terminal size={14} />运行状态</span>
+                    <strong>{STATUS_LABELS[result.status] || "结果准备中"}</strong>
+                  </article>
+                  <article>
+                    <span><CheckCircle2 size={14} />是否成功</span>
+                    <strong>{result.status === "SUCCEEDED" ? "成功" : (ACTIVE_STATUSES.has(result.status) ? "进行中" : "未成功")}</strong>
+                  </article>
+                </div>
+
+                {(result.stdout || ACTIVE_STATUSES.has(result.status) || (!result.stdout && !result.stderr)) && (
+                  <section className={`code-result-stream ${result.stderr && !result.stdout ? "is-muted" : ""}`}>
+                    <header>
+                      <Terminal size={14} />
+                      <strong>程序输出</strong>
+                      {result.stdout ? <small>{`${result.stdout.length} 字`}</small> : null}
+                    </header>
+                    <pre className="code-result-pre is-stdout">
+                      {result.stdout
+                        || (ACTIVE_STATUSES.has(result.status)
+                          ? "代码正在运行，请稍候…"
+                          : (result.stderr ? "（本次没有程序输出）" : "程序没有输出。"))}
+                    </pre>
+                  </section>
+                )}
+
+                {Boolean(String(result.stderr || "").trim()) && (
+                  <section className="code-result-stream is-error">
+                    <header>
+                      <XCircle size={14} />
+                      <strong>报错信息</strong>
+                      <small>可交给代码教练分析</small>
+                    </header>
+                    <pre className="code-result-pre is-stderr">{result.stderr}</pre>
+                  </section>
+                )}
+
                 <CodeArtifacts runId={result.runId} artifacts={result.artifacts} />
               </>
             )}
@@ -373,12 +498,59 @@ export function CodeLabPage({ session, requireLogin }) {
   );
 }
 
+function formatDuration(durationMs) {
+  if (durationMs == null || Number.isNaN(Number(durationMs))) return "--";
+  const ms = Number(durationMs);
+  if (ms < 1000) return `${ms} 毫秒`;
+  return `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} 秒`;
+}
+
+function friendlyMimeLabel(mimeType, kind) {
+  const mime = String(mimeType || "").toLowerCase();
+  if (mime.startsWith("image/")) return "图片";
+  if (mime.includes("csv") || mime.includes("table") || kind === "TABLE") return "表格";
+  if (mime.startsWith("text/") || kind === "TEXT") return "文本";
+  if (kind === "IMAGE") return "图片";
+  if (kind === "FILE") return "文件";
+  return "结果文件";
+}
+
+function friendlyArtifactTitle(artifact) {
+  if (artifact?.title) return artifact.title;
+  return friendlyMimeLabel(artifact?.mimeType, artifact?.kind);
+}
+
+function RunStatusBadge({ status, submitting }) {
+  if (submitting && !status) {
+    return (
+      <span className="run-status status-pending">
+        <LoaderCircle className="spin-icon" size={13} />准备中
+      </span>
+    );
+  }
+  if (!status) {
+    return <span className="run-status status-pending"><Terminal size={13} />等待结果</span>;
+  }
+  const label = STATUS_LABELS[status] || "结果准备中";
+  const tone = STATUS_LABELS[status] ? `status-${String(status).toLowerCase()}` : "status-cancelled";
+  if (status === "SUCCEEDED") {
+    return <span className={`run-status ${tone}`}><CheckCircle2 size={13} />{label}</span>;
+  }
+  if (status === "FAILED" || status === "TIMED_OUT" || status === "REJECTED") {
+    return <span className={`run-status ${tone}`}><XCircle size={13} />{label}</span>;
+  }
+  if (ACTIVE_STATUSES.has(status)) {
+    return <span className={`run-status ${tone}`}><LoaderCircle className="spin-icon" size={13} />{label}</span>;
+  }
+  return <span className={`run-status ${tone}`}><Terminal size={13} />{label}</span>;
+}
+
 function CodeArtifacts({ runId, artifacts }) {
   if (!Array.isArray(artifacts) || !artifacts.length) return null;
 
   return (
     <section className="code-artifacts">
-      <h3>生成产物 <span>{artifacts.length}</span></h3>
+      <h3>生成结果 <span>{artifacts.length}</span></h3>
       {artifacts.map((artifact) => (
         <ArtifactItem runId={runId} artifact={artifact} key={artifact.artifactId} />
       ))}
@@ -392,7 +564,8 @@ function ArtifactItem({ runId, artifact }) {
   const [resolveError, setResolveError] = useState("");
   const url = safeHttpUrl(artifact.storageUri) || safeHttpUrl(resolvedUrl);
   const stored = typeof artifact.storageUri === "string" && artifact.storageUri.startsWith("s3://");
-  const title = artifact.title || artifact.kind || "运行产物";
+  const title = friendlyArtifactTitle(artifact);
+  const formatLabel = friendlyMimeLabel(artifact.mimeType, artifact.kind);
 
   async function resolveDownloadUrl() {
     if (!runId || !artifact.artifactId || resolving) return;
@@ -401,7 +574,7 @@ function ArtifactItem({ runId, artifact }) {
     try {
       const response = await agentsApi.artifactDownloadUrl(runId, artifact.artifactId);
       const nextUrl = safeHttpUrl(response?.url);
-      if (!nextUrl) throw new Error("服务端未返回有效的临时地址");
+      if (!nextUrl) throw new Error("暂时无法获取下载地址");
       setResolvedUrl(nextUrl);
     } catch (requestError) {
       setResolveError(requestError.message);
@@ -413,7 +586,7 @@ function ArtifactItem({ runId, artifact }) {
   if (artifact.kind === "IMAGE") {
     return (
       <article className="code-artifact">
-        <ArtifactHeading icon={Image} title={title} mimeType={artifact.mimeType} />
+        <ArtifactHeading icon={Image} title={title} formatLabel={formatLabel} />
         {url ? (
           <img src={url} alt={title} referrerPolicy="no-referrer" />
         ) : (
@@ -426,11 +599,11 @@ function ArtifactItem({ runId, artifact }) {
   if (artifact.kind === "FILE") {
     return (
       <article className="code-artifact">
-        <ArtifactHeading icon={FileText} title={title} mimeType={artifact.mimeType} />
+        <ArtifactHeading icon={FileText} title={title} formatLabel={formatLabel} />
         {url ? (
           <a className="artifact-download" href={url} target="_blank" rel="noreferrer"><Download size={15} />下载文件</a>
         ) : (
-          <UnavailableStoredArtifact stored={stored} resolving={resolving} error={resolveError} actionLabel="生成下载链接" onResolve={resolveDownloadUrl} />
+          <UnavailableStoredArtifact stored={stored} resolving={resolving} error={resolveError} actionLabel="获取下载链接" onResolve={resolveDownloadUrl} />
         )}
       </article>
     );
@@ -440,7 +613,7 @@ function ArtifactItem({ runId, artifact }) {
   if (artifact.kind === "TABLE" && table) {
     return (
       <article className="code-artifact">
-        <ArtifactHeading icon={Table2} title={title} mimeType={artifact.mimeType} />
+        <ArtifactHeading icon={Table2} title={title} formatLabel={formatLabel} />
         <div className="artifact-table-wrap">
           <table>
             <thead><tr>{table.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead>
@@ -458,7 +631,7 @@ function ArtifactItem({ runId, artifact }) {
   if (artifact.kind === "TEXT" && typeof artifact.payload === "string") {
     return (
       <article className="code-artifact">
-        <ArtifactHeading icon={FileText} title={title} mimeType={artifact.mimeType} />
+        <ArtifactHeading icon={FileText} title={title} formatLabel={formatLabel} />
         <p className="artifact-text">{artifact.payload}</p>
       </article>
     );
@@ -466,29 +639,29 @@ function ArtifactItem({ runId, artifact }) {
 
   return (
     <article className="code-artifact">
-      <ArtifactHeading icon={Braces} title={title} mimeType={artifact.mimeType} />
+      <ArtifactHeading icon={Braces} title={title} formatLabel={formatLabel} />
       <pre className="artifact-json">{formatPayload(artifact.payload)}</pre>
     </article>
   );
 }
 
-function ArtifactHeading({ icon: Icon, title, mimeType }) {
+function ArtifactHeading({ icon: Icon, title, formatLabel }) {
   return (
     <header>
       <Icon size={15} />
       <div>
         <strong>{title}</strong>
-        <small>{mimeType || "未知格式"}</small>
+        <small>{formatLabel}</small>
       </div>
     </header>
   );
 }
 
 function UnavailableStoredArtifact({ stored, resolving, error, actionLabel, onResolve }) {
-  if (!stored) return <p className="artifact-unavailable">该产物没有可访问的文件地址。</p>;
+  if (!stored) return <p className="artifact-unavailable">暂时无法下载这个文件。</p>;
   return (
     <div className="artifact-access">
-      <p>产物已安全保存，访问时会生成短期有效的下载地址。</p>
+      <p>文件已保存，点击后可获取短期有效的下载链接。</p>
       <button className="artifact-download" type="button" disabled={resolving} onClick={onResolve}>
         {resolving ? <LoaderCircle className="spin-icon" size={15} /> : <Download size={15} />}
         {resolving ? "正在获取" : actionLabel}
@@ -526,12 +699,12 @@ function formatCell(value) {
 }
 
 function formatPayload(payload) {
-  if (payload == null) return "无内嵌数据";
+  if (payload == null) return "没有可展示的内容";
   if (typeof payload === "string") return payload;
   try {
     return JSON.stringify(payload, null, 2);
   } catch {
-    return "数据无法显示";
+    return "内容暂时无法显示";
   }
 }
 

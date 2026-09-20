@@ -307,7 +307,7 @@ function submissionStatusLabel(status) {
     PENDING_GRADING: "已提交",
     GRADED: "已完成",
     RETURNED: "可重新提交",
-  })[status] || status || "未知";
+  })[status] || "处理中";
 }
 
 function typeLabel(type) {

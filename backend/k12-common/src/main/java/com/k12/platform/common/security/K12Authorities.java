@@ -9,6 +9,8 @@ package com.k12.platform.common.security;
 public final class K12Authorities {
 
     public static final String ROLE_ADMIN = "ROLE_ADMIN";
+    public static final String ROLE_TEACHER = "ROLE_TEACHER";
+    public static final String ROLE_STUDENT = "ROLE_STUDENT";
 
     public static final String USER_READ = "user:read";
     public static final String USER_CREATE = "user:create";

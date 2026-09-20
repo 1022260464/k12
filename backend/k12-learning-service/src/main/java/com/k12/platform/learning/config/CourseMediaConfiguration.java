@@ -1,11 +1,14 @@
 package com.k12.platform.learning.config;
 
+import com.k12.platform.learning.service.CachingCourseMediaUrlResolver;
+import com.k12.platform.learning.service.CourseMediaUrlCache;
 import com.k12.platform.learning.service.CourseMediaUrlResolver;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.Http.Method;
 import io.minio.MinioClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +19,7 @@ import org.springframework.util.StringUtils;
  * 课程封面访问配置。
  *
  * 签名URL在本地计算，不需要每次访问MinIO；异常时返回null，让前端使用默认插画。
+ * 启用 Redis 时对签名结果做短 TTL 缓存，加速课程列表封面回显。
  */
 @Configuration(proxyBeanMethods = false)
 public class CourseMediaConfiguration {
@@ -23,7 +27,10 @@ public class CourseMediaConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "k12.learning.media", name = "enabled", havingValue = "true")
-    public CourseMediaUrlResolver minioCourseMediaUrlResolver(CourseMediaProperties properties) {
+    public CourseMediaUrlResolver minioCourseMediaUrlResolver(
+            CourseMediaProperties properties,
+            ObjectProvider<CourseMediaUrlCache> mediaUrlCache
+    ) {
         if (!StringUtils.hasText(properties.getAccessKey()) || !StringUtils.hasText(properties.getSecretKey())) {
             throw new IllegalStateException("启用课程MinIO素材后必须配置访问密钥");
         }
@@ -33,7 +40,7 @@ public class CourseMediaConfiguration {
                 .build();
         int expirySeconds = Math.toIntExact(properties.getUrlTtl().toSeconds());
 
-        return objectKey -> {
+        CourseMediaUrlResolver signing = objectKey -> {
             if (!CourseMediaUrlResolver.isAllowedObjectKey(objectKey)) {
                 return null;
             }
@@ -49,6 +56,7 @@ public class CourseMediaConfiguration {
                 return null;
             }
         };
+        return new CachingCourseMediaUrlResolver(signing, mediaUrlCache);
     }
 
     @Bean
@@ -56,5 +64,4 @@ public class CourseMediaConfiguration {
     public CourseMediaUrlResolver disabledCourseMediaUrlResolver() {
         return objectKey -> null;
     }
-
 }

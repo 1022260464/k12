@@ -6,11 +6,13 @@ import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.CourseResponse;
 import com.k12.platform.learning.dto.CoursePageResponse;
 import com.k12.platform.common.security.K12SecurityContext;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import com.k12.platform.learning.mapper.CourseMapper;
 import com.k12.platform.learning.model.Course;
+import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import com.k12.platform.common.security.K12Authorities;
@@ -27,12 +29,21 @@ public class CourseService {
     private final CourseMapper courseMapper;
     private final CourseMediaUrlResolver mediaUrlResolver;
     private final CourseCoverStorage coverStorage;
+    private final KnowledgeGraphService knowledgeGraphService;
+    private final PublishedCourseListCache publishedCourseListCache;
+    private final CourseMediaUrlCache mediaUrlCache;
 
     public CourseService(CourseMapper courseMapper, CourseMediaUrlResolver mediaUrlResolver,
-                         CourseCoverStorage coverStorage) {
+                         CourseCoverStorage coverStorage,
+                         KnowledgeGraphService knowledgeGraphService,
+                         ObjectProvider<PublishedCourseListCache> publishedCourseListCache,
+                         ObjectProvider<CourseMediaUrlCache> mediaUrlCache) {
         this.courseMapper = courseMapper;
         this.mediaUrlResolver = mediaUrlResolver;
         this.coverStorage = coverStorage;
+        this.knowledgeGraphService = knowledgeGraphService;
+        this.publishedCourseListCache = publishedCourseListCache.getIfAvailable();
+        this.mediaUrlCache = mediaUrlCache.getIfAvailable();
     }
 
     /* 查询课程需要 course:read 权限。管理员、教师、学生默认都拥有。 */
@@ -49,6 +60,39 @@ public class CourseService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /**
+     * 首页推荐：仅已发布课程，整表结果可 Redis 缓存；封面 URL 另有签名缓存。
+     */
+    @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_READ + "')")
+    public List<CourseResponse> listRecommendedCourses(int limit) {
+        int size = Math.min(Math.max(limit, 1), 24);
+        if (publishedCourseListCache != null) {
+            try {
+                Optional<List<CourseResponse>> cached = publishedCourseListCache.read();
+                if (cached.isPresent()) {
+                    return cached.get().stream().limit(size).toList();
+                }
+            } catch (RuntimeException ignored) {
+                // 降级查库
+            }
+        }
+        List<CourseResponse> published = courseMapper.selectList(Wrappers.lambdaQuery(Course.class)
+                        .eq(Course::getStatus, 1)
+                        .orderByDesc(Course::getUpdatedTime, Course::getId)
+                        .last("LIMIT 48"))
+                .stream()
+                .map(this::toResponse)
+                .toList();
+        if (publishedCourseListCache != null) {
+            try {
+                publishedCourseListCache.replace(published);
+            } catch (RuntimeException ignored) {
+                // ignore
+            }
+        }
+        return published.stream().limit(size).toList();
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_READ + "')")
@@ -93,10 +137,13 @@ public class CourseService {
             return Optional.empty();
         }
         requireOwner(course);
+        String previousCover = course.getCoverObjectKey();
         applyRequest(course, request);
         course.setUpdatedTime(Instant.now());
         courseMapper.updateById(course);
-
+        evictCoverUrl(previousCover);
+        evictCoverUrl(course.getCoverObjectKey());
+        invalidatePublishedList();
         return Optional.of(toResponse(courseMapper.selectById(id)));
     }
 
@@ -108,7 +155,13 @@ public class CourseService {
             return false;
         }
         requireOwner(course);
-        return courseMapper.deleteById(id) > 0;
+        boolean deleted = courseMapper.deleteById(id) > 0;
+        if (deleted) {
+            knowledgeGraphService.removeCourseChapterRefs(id);
+            evictCoverUrl(course.getCoverObjectKey());
+            invalidatePublishedList();
+        }
+        return deleted;
     }
 
     @Transactional
@@ -126,7 +179,9 @@ public class CourseService {
         courseMapper.updateById(course);
         if (StringUtils.hasText(previous) && !previous.equals(objectKey)) {
             coverStorage.removeQuietly(previous);
+            evictCoverUrl(previous);
         }
+        invalidatePublishedList();
         return toResponse(courseMapper.selectById(id));
     }
 
@@ -143,6 +198,28 @@ public class CourseService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "课程媒体访问地址不可用");
         }
         return new ContentImageResponse(objectKey, url);
+    }
+
+    public void invalidatePublishedList() {
+        if (publishedCourseListCache == null) {
+            return;
+        }
+        try {
+            publishedCourseListCache.invalidate();
+        } catch (RuntimeException ignored) {
+            // ignore
+        }
+    }
+
+    private void evictCoverUrl(String objectKey) {
+        if (mediaUrlCache == null || !StringUtils.hasText(objectKey)) {
+            return;
+        }
+        try {
+            mediaUrlCache.evict(objectKey);
+        } catch (RuntimeException ignored) {
+            // ignore
+        }
     }
 
     private CourseResponse toResponse(Course course) {

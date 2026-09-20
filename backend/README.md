@@ -307,6 +307,16 @@ K12_REDIS_PORT=6379
 K12_REDIS_USERNAME=
 K12_REDIS_PASSWORD=<redis-password>
 K12_LEADERBOARD_CACHE_TTL=60s
+# 同时启用：MinIO 封面签名 URL、首页已发布课程推荐、知识图谱 overview 缓存
+K12_MEDIA_URL_CACHE_TTL=10m
+K12_PUBLISHED_COURSES_CACHE_TTL=5m
+K12_KG_OVERVIEW_CACHE_TTL=10m
+```
+
+首页推荐接口：
+
+```http
+GET /api/v1/learning/courses/recommended?limit=8
 ```
 
 密码只放在IDE运行配置、操作系统环境变量或后续Nacos密文配置中，不提交到仓库。
@@ -340,8 +350,11 @@ POST /api/v1/agents/code-executions
 `agentCode=code-tutor`仅用于运行记录分类，无需新增智能体配置记录，也不能从普通Agent重试接口重试。
 按用户限制云沙箱调用次数时，先单独执行
 `backend/sql/mysql/k12_business_code_execution_quota.sql`，再设置
-`K12_AGENT_CODE_QUOTA_ENABLED=true`并重启Agent Service；默认每位用户每天20次，可用
+`K12_AGENT_CODE_QUOTA_ENABLED=true`并重启 Agent Service；默认每位用户每天20次，可用
 `K12_AGENT_CODE_DAILY_LIMIT`调整。超额返回429。完整计数规则见Agent Java联调说明。
+
+编程实验代码教练使用独立 `agentCode=python-code-coach`（不走 teaching-assistant 图谱流程）。
+现网补种：`backend/sql/mysql/k12_agent_python_code_coach.sql`，并重启 Agent Runtime。
 
 ```text
 POST /api/v1/agents/{agentCode}/runs

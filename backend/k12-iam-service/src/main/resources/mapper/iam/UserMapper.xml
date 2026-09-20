@@ -22,9 +22,6 @@
         <result column="email" property="email"/>
         <result column="roleCode" property="roleCode"/>
         <result column="status" property="status"/>
-        <result column="failedLoginCount" property="failedLoginCount"/>
-        <result column="lockedUntil" property="lockedUntil"/>
-        <result column="authVersion" property="authVersion"/>
         <result column="updatedTime" property="updatedTime"/>
     </resultMap>
 
@@ -34,6 +31,9 @@
         <result column="username" property="username"/>
         <result column="passwordHash" property="passwordHash"/>
         <result column="status" property="status"/>
+        <result column="failedLoginCount" property="failedLoginCount"/>
+        <result column="lockedUntil" property="lockedUntil"/>
+        <result column="authVersion" property="authVersion"/>
     </resultMap>
 
     <!--
@@ -195,5 +195,24 @@
               #{userId}
           </foreach>
         ORDER BY u.id
+    </select>
+
+    <!-- 不按 deleted 过滤：唯一索引对已软删用户名/邮箱仍然生效。 -->
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_user
+        WHERE username = #{username}
+        <if test="excludeUserId != null">
+            AND id &lt;&gt; #{excludeUserId}
+        </if>
+    </select>
+
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_user
+        WHERE email = #{email}
+        <if test="excludeUserId != null">
+            AND id &lt;&gt; #{excludeUserId}
+        </if>
     </select>
 </mapper>

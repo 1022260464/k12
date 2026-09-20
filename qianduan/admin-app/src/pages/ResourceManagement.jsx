@@ -396,7 +396,7 @@ export function ResourceManagement({ resource, isAdmin, notify }) {
     </Modal>}
 
     {deleting && <Modal title="确认删除记录" description={`即将删除“${deleting.title || deleting.name}”，关联数据可能阻止该操作。`} onClose={() => setDeleting(null)} width={460}><div className="confirm-actions"><button className="button ghost" type="button" onClick={() => setDeleting(null)}>取消</button><button className="button danger-solid" type="button" onClick={remove}>确认删除</button></div></Modal>}
-    {resource === "courses" && workspaceItem && <CourseChapterManager course={workspaceItem} notify={notify} onClose={() => setWorkspaceItem(null)} />}
+    {resource === "courses" && workspaceItem && <CourseChapterManager course={workspaceItem} isAdmin={isAdmin} notify={notify} onClose={() => setWorkspaceItem(null)} />}
     {resource === "homeworks" && workspaceItem && <HomeworkDetailManager homework={workspaceItem} notify={notify} initialTab={workspaceTab || "questions"} onClose={() => { setWorkspaceItem(null); setWorkspaceTab(null); }} />}
     {resource === "agents" && runCenterOpen && <AgentRunManager notify={notify} onClose={() => setRunCenterOpen(false)} />}
     {resource === "courses" && importOpen && <Modal title="从 JSON 批量导入课程" description="推荐工程化路径：下载模板 → 填写课程/章/节 → 上传。任一条失败则整批回滚。" onClose={() => setImportOpen(false)} width={600}>
