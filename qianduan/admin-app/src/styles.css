@@ -38,7 +38,7 @@ h1,h2,h3,p { margin-top:0; }
   display:grid;
   place-items:center;
   padding:40px;
-  background:#f7f9fc url("/assets/login-panel-texture.png") center / cover no-repeat;
+  background:#f7f9fc url("../public/assets/login-panel-texture.png") center / cover no-repeat;
 }
 .login-box {
   width:min(410px,100%);
