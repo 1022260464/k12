@@ -7,7 +7,15 @@ from k12_agent_runtime.bootstrap.container import build_container
 from k12_agent_runtime.core.config import Settings, get_settings
 from k12_agent_runtime.core.logging import configure_logging
 from k12_agent_runtime.interfaces.api.errors import register_exception_handlers
-from k12_agent_runtime.interfaces.api.routes import agents, health, knowledge, rag, sandbox, storage
+from k12_agent_runtime.interfaces.api.routes import (
+    agents,
+    health,
+    knowledge,
+    rag,
+    sandbox,
+    speech,
+    storage,
+)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -36,6 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(rag.router, prefix="/internal/v1")
     application.include_router(knowledge.router, prefix="/internal/v1")
     application.include_router(storage.router, prefix="/internal/v1")
+    application.include_router(speech.router, prefix="/internal/v1")
     return application
 
 

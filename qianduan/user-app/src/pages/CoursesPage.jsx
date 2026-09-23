@@ -1,13 +1,15 @@
 import { ArrowRight, BookOpen, LoaderCircle, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi } from "../api/client.js";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { courses as visualCourses } from "../data/learningData.js";
+import { EXPERIENCE } from "../experience/experience.js";
 
 const subjects = ["全部", "信息科技", "数学", "科学", "英语", "拓展课程"];
 const fallbackImageFor = (course, index) => visualCourses.find((item) => item.subject === course.subject)?.image || visualCourses[index % visualCourses.length].image;
 const imageFor = (course, index) => course.coverUrl || fallbackImageFor(course, index);
 
-export function CoursesPage({ session, requireLogin, navigate }) {
+export function CoursesPage({ session, requireLogin, navigate, experience = EXPERIENCE.TEEN }) {
   const [subject, setSubject] = useState("全部");
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState([]);
@@ -45,11 +47,15 @@ export function CoursesPage({ session, requireLogin, navigate }) {
 
   return (
     <div className="page inner-page">
-      <header className="page-title">
-        <p className="eyebrow">课程中心</p>
-        <h1>找到适合你的课程</h1>
-        <p>浏览已发布课程，报名后即可查看章节与学习进度。</p>
-      </header>
+      <ExperiencePageHeader
+        experience={experience}
+        eyebrow={experience === EXPERIENCE.PRIMARY ? "探索课程" : "课程中心"}
+        title={experience === EXPERIENCE.PRIMARY ? "选一个喜欢的主题开始探险" : "找到适合你的课程"}
+        description={experience === EXPERIENCE.PRIMARY
+          ? "从故事、图形编程和趣味实验开始，完成每一站的小目标。"
+          : "浏览已发布课程，报名后即可查看章节与学习进度。"}
+        imageKey="courses"
+      />
       <div className="filter-bar">
         <label>
           <Search size={18} />

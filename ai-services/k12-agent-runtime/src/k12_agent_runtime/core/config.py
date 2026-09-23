@@ -32,6 +32,19 @@ class Settings(BaseSettings):
     llm_max_output_tokens: int = 1200
     llm_temperature: float = 0.2
 
+    # 低龄绘本朗读使用百炼云语音。API Key留空时复用LLM Key，避免重复保存密钥。
+    tts_enabled: bool = False
+    tts_provider: str = "dashscope"
+    tts_base_url: str = (
+        "https://dashscope.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer"
+    )
+    tts_api_key: SecretStr | None = None
+    tts_model: str = "cosyvoice-v3-flash"
+    tts_voice: str = "longanyang"
+    tts_timeout_seconds: float = Field(default=60.0, gt=0, le=180)
+    tts_max_text_chars: int = Field(default=1200, ge=1, le=4000)
+    tts_max_audio_bytes: int = Field(default=5_242_880, ge=1024, le=20_971_520)
+
     # RAG支持百炼云端模型和本地BGE。云端Key留空时复用LLM API Key。
     rag_enabled: bool = False
     embedding_provider: str = "local_bge"

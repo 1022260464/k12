@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, BookOpen, ChevronDown, ClipboardCheck, FileCheck2, LayoutDashboard, LogOut, Menu, Network, PanelLeftClose, ScrollText, Settings, ShieldCheck, UserRound, Users, X } from "lucide-react";
+import { Activity, Bot, BookOpen, BookOpenCheck, Blocks, ChevronDown, ClipboardCheck, FileCheck2, LayoutDashboard, LogOut, Menu, Network, PanelLeftClose, ScrollText, Settings, ShieldCheck, UserRound, Users, X } from "lucide-react";
 import { clearSession, getSession, profileApi, rolesApi } from "./api/client.js";
 import { AdminNotificationBell } from "./components/AdminNotificationBell.jsx";
 import { ProfileModal } from "./components/ProfileModal.jsx";
@@ -13,6 +13,9 @@ import { PlaceholderPage } from "./pages/PlaceholderPage.jsx";
 import { ResourceManagement } from "./pages/ResourceManagement.jsx";
 import { TeachingResourceManagement } from "./pages/TeachingResourceManagement.jsx";
 import { KnowledgeGraphPage } from "./pages/KnowledgeGraphPage.jsx";
+import { VisualProgrammingMissionManagement } from "./pages/VisualProgrammingMissionManagement.jsx";
+import { PictureBookManagement } from "./pages/PictureBookManagement.jsx";
+import { StudentLearningEvidencePage } from "./pages/StudentLearningEvidencePage.jsx";
 
 const BRAND_ICON = "/assets/brand-face-doodle.png";
 
@@ -23,8 +26,11 @@ const navigation = [
   { id: "courses", label: "课程资源", icon: BookOpen, permission: "course:read" },
   { id: "materials", label: "教学资料", icon: FileCheck2, permission: "course:create" },
   { id: "knowledge", label: "知识图谱", icon: Network, permission: "course:read" },
+  { id: "visual-programming", label: "图形化关卡", icon: Blocks, adminOnly: true },
+  { id: "picture-books", label: "绘本审核", icon: BookOpenCheck, adminOnly: true },
   { id: "agents", label: "智能体管理", icon: Bot, adminOnly: true },
   { id: "homeworks", label: "作业管理", icon: ClipboardCheck, permission: "homework:read" },
+  { id: "learning-evidence", label: "学习证据", icon: Activity, permission: "homework:grade" },
   { id: "audits", label: "安全审计", icon: ScrollText, adminOnly: true },
   { id: "settings", label: "系统设置", icon: Settings, adminOnly: true },
 ];
@@ -116,6 +122,9 @@ export function App() {
     if (["courses", "agents", "homeworks"].includes(currentPage)) return <ResourceManagement resource={currentPage} isAdmin={isAdmin} notify={notify} />;
     if (currentPage === "materials") return <TeachingResourceManagement isAdmin={isAdmin} notify={notify} />;
     if (currentPage === "knowledge") return <KnowledgeGraphPage isAdmin={isAdmin} notify={notify} />;
+    if (currentPage === "visual-programming") return <VisualProgrammingMissionManagement notify={notify} />;
+    if (currentPage === "picture-books") return <PictureBookManagement notify={notify} />;
+    if (currentPage === "learning-evidence") return <StudentLearningEvidencePage notify={notify} />;
     if (currentPage === "audits") return <AuditManagement notify={notify} />;
     return <PlaceholderPage title="系统设置" description="通知策略、全局参数和配置中心管理尚无对应后端接口。" />;
   }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { getStoredSession, login, logout, register } from "./api/auth.js";
 import { FloatingAssistant } from "./components/FloatingAssistant.jsx";
@@ -6,14 +6,25 @@ import { ProfileSettingsModal } from "./components/ProfileSettingsModal.jsx";
 import { SiteHeader } from "./components/SiteHeader.jsx";
 import { AiStudioPage } from "./pages/AiStudioPage.jsx";
 import { CodeLabPage } from "./pages/CodeLabPage.jsx";
+import { CatRecognitionLessonPage } from "./pages/CatRecognitionLessonPage.jsx";
 import { CourseDetailPage } from "./pages/CourseDetailPage.jsx";
 import { CoursesPage } from "./pages/CoursesPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
 import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { ProgressPage } from "./pages/ProgressPage.jsx";
+import { PictureBooksPage } from "./pages/PictureBooksPage.jsx";
+import { PictureBookReaderPage } from "./pages/PictureBookReaderPage.jsx";
 import { StudentHomeworkPage } from "./pages/StudentHomeworkPage.jsx";
 import { TasksPage } from "./pages/TasksPage.jsx";
 import { AUTH_STORAGE_KEY, profileApi } from "./api/client.js";
+import {
+  EXPERIENCE,
+  experienceForSchoolStage,
+  readStoredExperience,
+  storeExperience,
+} from "./experience/experience.js";
+import { visualsFor } from "./experience/visualAssets.js";
+import { topicIdForKnowledgeCode } from "./data/teachingTopics.js";
 import {
   PASSWORD_RULES_TEXT,
   USERNAME_RULES_TEXT,
@@ -22,7 +33,9 @@ import {
   validateRegisterForm,
 } from "./utils/passwordValidation.js";
 
-const listPages = new Set(["home", "ai-studio", "courses", "tasks", "code-lab", "leaderboard", "progress"]);
+const listPages = new Set(["home", "ai-studio", "picture-books", "courses", "tasks", "visual-code-lab", "code-lab", "leaderboard", "progress", "cat-lesson"]);
+const VisualCodeLabPage = lazy(() => import("./pages/VisualCodeLabPage.jsx")
+  .then((module) => ({ default: module.VisualCodeLabPage })));
 
 function parseRoute() {
   const raw = window.location.hash.replace(/^#\/?/, "") || "home";
@@ -38,6 +51,9 @@ function parseRoute() {
       chapterId,
     };
   }
+  if (root === "picture-books" && parts[1]) {
+    return { page: "picture-book-reader", nav: "picture-books", bookCode: parts[1] };
+  }
   if (root === "tasks" && parts[1]) {
     return {
       page: "task-detail",
@@ -49,7 +65,7 @@ function parseRoute() {
     return { page: "home", nav: "home", courseId: null, chapterId: null, homeworkId: null, openProfile: true };
   }
   if (listPages.has(root)) {
-    return { page: root, nav: root, courseId: null, chapterId: null, homeworkId: null };
+    return { page: root, nav: root === "code-lab" ? "visual-code-lab" : root, courseId: null, chapterId: null, homeworkId: null };
   }
   return { page: "home", nav: "home", courseId: null, chapterId: null, homeworkId: null };
 }
@@ -215,10 +231,12 @@ export function App() {
   const [authMode, setAuthMode] = useState("login");
   const [showProfile, setShowProfile] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [experience, setExperience] = useState(() => readStoredExperience() || EXPERIENCE.TEEN);
   const displayName = useMemo(
     () => profile?.nickname || session?.user?.username || "同学",
     [profile, session],
   );
+  const footerMascot = visualsFor(experience).mascot;
 
   useEffect(() => {
     const handleHashChange = () => setRoute(parseRoute());
@@ -261,6 +279,25 @@ export function App() {
     return () => { alive = false; };
   }, [session]);
 
+  useEffect(() => {
+    if (!session || readStoredExperience()) return undefined;
+    let active = true;
+    profileApi.getLearningProfile()
+      .then((learningProfile) => {
+        if (active && learningProfile?.schoolStage) {
+          setExperience(experienceForSchoolStage(learningProfile.schoolStage));
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [session]);
+
+  function changeExperience(nextExperience) {
+    if (!Object.values(EXPERIENCE).includes(nextExperience)) return;
+    storeExperience(nextExperience);
+    setExperience(nextExperience);
+  }
+
   function navigate(nextPage) {
     window.location.hash = `#${nextPage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -293,8 +330,16 @@ export function App() {
         navigate={navigate}
         courseId={route.courseId}
         chapterId={route.chapterId}
+        onLaunchActivity={(activity, launch) => {
+          if (!launch) return;
+          if (launch.draftRequest) setAssistantDraft(launch.draftRequest);
+          if (launch.exampleId) sessionStorage.setItem("k12-codelab-example", launch.exampleId);
+          navigate(launch.route);
+        }}
       />
     );
+  } else if (route.page === "picture-book-reader") {
+    content = <PictureBookReaderPage bookCode={route.bookCode} navigate={navigate} />;
   } else if (route.page === "task-detail") {
     content = (
       <StudentHomeworkPage
@@ -306,7 +351,40 @@ export function App() {
     );
   } else {
     const pages = {
-      home: <HomePage session={session} displayName={displayName} navigate={navigate} requireLogin={requireLogin} />,
+      home: <HomePage
+        session={session}
+        displayName={displayName}
+        navigate={navigate}
+        requireLogin={requireLogin}
+        onAskTopic={(topic) => {
+          const gapText = topic?.gaps?.length
+            ? `。请先说明我缺少的先修知识「${topic.gaps.map((item) => item.title || item.code).join("、")}」，再带我分步练习`
+            : "，并给我一个适合当前学段的分步练习";
+          setAssistantDraft({
+            prompt: `请带我学习「${topic?.title || topic?.code || "推荐知识点"}」${gapText}。`,
+            topicId: topicIdForKnowledgeCode(topic?.code),
+            preferDeterministic: false,
+          });
+          requireLogin(() => navigate("ai-studio"));
+        }}
+        experience={experience}
+      />,
+      "picture-books": <PictureBooksPage session={session} requireLogin={requireLogin} navigate={navigate} />,
+      "cat-lesson": (
+        <CatRecognitionLessonPage
+          session={session}
+          requireLogin={requireLogin}
+          navigate={navigate}
+          onContinue={(nextTopic) => {
+            setAssistantDraft({
+              prompt: `我刚完成了“AI 为什么能认出小猫”。请继续讲解「${nextTopic?.title || "图像中的物体"}」，先说明为什么推荐它，再给我一个适合小学低年级的小任务。`,
+              topicId: topicIdForKnowledgeCode(nextTopic?.code) || "image-classification",
+              preferDeterministic: true,
+            });
+            navigate("ai-studio");
+          }}
+        />
+      ),
       "ai-studio": (
         <AiStudioPage
           session={session}
@@ -316,12 +394,18 @@ export function App() {
           draftRequest={assistantDraft}
           onDraftConsumed={() => setAssistantDraft(null)}
           onPracticeRecorded={() => setPracticeRevision((value) => value + 1)}
+          experience={experience}
         />
       ),
-      courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} />,
-      tasks: <TasksPage session={session} requireLogin={requireLogin} navigate={navigate} />,
-      "code-lab": <CodeLabPage session={session} requireLogin={requireLogin} />,
-      leaderboard: <LeaderboardPage session={session} requireLogin={requireLogin} />,
+      courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />,
+      tasks: <TasksPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />,
+      "visual-code-lab": (
+        <Suspense fallback={<div className="page page-loading">正在准备图形化实验...</div>}>
+          <VisualCodeLabPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />
+        </Suspense>
+      ),
+      "code-lab": <CodeLabPage session={session} requireLogin={requireLogin} experience={experience} />,
+      leaderboard: <LeaderboardPage session={session} requireLogin={requireLogin} experience={experience} />,
       progress: (
         <ProgressPage
           session={session}
@@ -333,6 +417,7 @@ export function App() {
             requireLogin(() => navigate("ai-studio"));
           }}
           practiceRevision={practiceRevision}
+          experience={experience}
         />
       ),
     };
@@ -340,7 +425,7 @@ export function App() {
   }
 
   return (
-    <main>
+    <main className={`student-experience experience-${experience}`} data-experience={experience}>
       <SiteHeader
         page={route.nav}
         session={session}
@@ -360,16 +445,18 @@ export function App() {
         onLogin={() => openAuth("login")}
         onRegister={() => openAuth("register")}
         onLogout={() => { logout(); setAssistantDraft(null); setProfile(null); setShowProfile(false); setSession(null); }}
+        experience={experience}
+        onExperienceChange={changeExperience}
       />
       {content}
       <footer className="site-footer">
         <button className="brand brand-button" type="button" onClick={() => navigate("home")}>
-          <span className="brand-mark"><img src="/assets/brand-face-doodle.png" alt="" /></span><span>EduGraph AI</span>
+          <span className="brand-mark"><img src={footerMascot} alt="" /></span><span>EduGraph AI</span>
         </button>
-        <p>面向 K12 的多智能体教学平台</p>
+        <p>{experience === EXPERIENCE.PRIMARY ? "陪伴小学生探索人工智能" : "面向初高中阶段的人工智能学习平台"}</p>
         <span>© 2026 K12 Platform</span>
       </footer>
-      <FloatingAssistant page={route.page} session={session} navigate={navigate} onRequireLogin={() => openAuth("login")} />
+      <FloatingAssistant page={route.page} session={session} navigate={navigate} onRequireLogin={() => openAuth("login")} experience={experience} />
       {showLogin && (
         <AuthDialog
           initialMode={authMode}

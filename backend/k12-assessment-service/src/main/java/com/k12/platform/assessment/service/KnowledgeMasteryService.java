@@ -22,7 +22,11 @@ public class KnowledgeMasteryService {
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_READ + "')")
     public List<KnowledgeMasteryResponse> myMastery() {
-        return mapper.findByStudent(K12SecurityContext.requireUserId(), MAX_ITEMS).stream()
+        return forStudent(K12SecurityContext.requireUserId());
+    }
+
+    public List<KnowledgeMasteryResponse> forStudent(Long studentUserId) {
+        return mapper.findByStudent(studentUserId, MAX_ITEMS).stream()
                 .filter(row -> row.getTotalMaxScore() != null && row.getTotalMaxScore() > 0)
                 .map(this::toResponse)
                 .toList();

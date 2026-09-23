@@ -100,7 +100,7 @@ def normalize_learning_context(state: TeachingAssistantState) -> dict[str, Any]:
     context = run_input.context
     stage = _read_stage(context)
     conversation_history = _read_conversation_history(context)
-    context_topic = context.get("topic")
+    context_topic = context.get("topicCode") or context.get("knowledgeCode") or context.get("topic")
     if not context_topic and conversation_history:
         previous_turn = conversation_history[-1]
         if "当前教学助手支持：" not in previous_turn["assistant"]:
@@ -1168,6 +1168,12 @@ def _should_omit_repeat_demo(state: TeachingAssistantState) -> bool:
     """仅当本会话已对该 topicCode 下发过动画时跳过；换主题不受影响。"""
     topic_code = state.get("topic_code")
     if not isinstance(topic_code, str) or not topic_code:
+        return False
+    # 课程页需要稳定拿到练习产物，即使用户重复进入同一课程也不能省略。
+    # 普通对话仍保留去重行为，避免在聊天窗口反复堆叠动画与小测。
+    context = state["run_input"].context
+    require_practice = context.get("requirePracticeArtifact")
+    if require_practice is True or require_practice == "true" or require_practice == 1:
         return False
     if _wants_demo_replay(state["run_input"].input_text):
         return False

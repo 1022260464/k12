@@ -108,18 +108,19 @@ class PgVectorKnowledgeRepository:
         try:
             rows = await pool.fetch(
                 """
+                WITH filtered AS (
                 SELECT
                     chunk_id,
                     document_id,
                     content,
+                    embedding,
                     metadata,
                     title,
                     source_uri,
                     stage_code,
                     grade,
                     textbook,
-                    chapter,
-                    1 - (embedding <=> $1) AS retrieval_score
+                    chapter
                 FROM k12_rag.knowledge_chunk
                 WHERE embedding_model = $2
                   AND ($3::text IS NULL OR stage_code = $3)
@@ -129,8 +130,67 @@ class PgVectorKnowledgeRepository:
                     cardinality($6::text[]) = 0
                     OR COALESCE(metadata->>'knowledgeCode', '') = ANY($6::text[])
                   )
-                ORDER BY embedding <=> $1
-                LIMIT $7
+                ),
+                dense_candidates AS (
+                    SELECT chunk_id, 1 - (embedding <=> $1) AS dense_score
+                    FROM filtered
+                    ORDER BY embedding <=> $1
+                    LIMIT $9
+                ),
+                dense_ranked AS (
+                    SELECT chunk_id, dense_score,
+                           row_number() OVER (ORDER BY dense_score DESC) AS dense_rank
+                    FROM dense_candidates
+                ),
+                lexical_candidates AS (
+                    SELECT f.chunk_id,
+                           (CASE WHEN position(lower($7) in lower(f.content)) > 0
+                                 THEN 3.0 ELSE 0.0 END)
+                           + (SELECT count(*)::double precision
+                              FROM unnest($8::text[]) AS term
+                              WHERE position(lower(term) in lower(f.content)) > 0) AS lexical_score
+                    FROM filtered f
+                    WHERE $7 <> '' AND (
+                        position(lower($7) in lower(f.content)) > 0
+                        OR EXISTS (
+                            SELECT 1 FROM unnest($8::text[]) AS term
+                            WHERE position(lower(term) in lower(f.content)) > 0
+                        )
+                    )
+                    ORDER BY lexical_score DESC, f.chunk_id
+                    LIMIT $9
+                ),
+                lexical_ranked AS (
+                    SELECT chunk_id, lexical_score,
+                           row_number() OVER (ORDER BY lexical_score DESC, chunk_id) AS lexical_rank
+                    FROM lexical_candidates
+                ),
+                fused AS (
+                    SELECT chunk_id,
+                           max(dense_score) AS dense_score,
+                           max(lexical_score) AS lexical_score,
+                           sum(rrf_score) AS rrf_score
+                    FROM (
+                        SELECT chunk_id, dense_score, NULL::double precision AS lexical_score,
+                               1.0 / (60 + dense_rank) AS rrf_score
+                        FROM dense_ranked
+                        UNION ALL
+                        SELECT chunk_id, NULL::double precision, lexical_score,
+                               1.0 / (60 + lexical_rank) AS rrf_score
+                        FROM lexical_ranked
+                    ) ranked
+                    GROUP BY chunk_id
+                )
+                SELECT f.chunk_id, f.document_id, f.content, f.metadata, f.title,
+                       f.source_uri, f.stage_code, f.grade, f.textbook, f.chapter,
+                       fused.rrf_score AS retrieval_score,
+                       fused.dense_score, fused.lexical_score
+                FROM fused
+                JOIN filtered f ON f.chunk_id = fused.chunk_id
+                ORDER BY fused.rrf_score DESC,
+                         COALESCE(fused.dense_score, -1) DESC,
+                         f.chunk_id
+                LIMIT $9
                 """,
                 np.asarray(query.query_embedding, dtype=np.float32),
                 query.embedding_model,
@@ -140,6 +200,8 @@ class PgVectorKnowledgeRepository:
                 list(query.knowledge_codes)
                 if query.knowledge_codes
                 else ([query.knowledge_code] if query.knowledge_code else []),
+                query.query_text,
+                list(query.lexical_terms),
                 query.limit,
             )
         except Exception as exc:  # noqa: BLE001
@@ -160,6 +222,17 @@ class PgVectorKnowledgeRepository:
                     "grade": row["grade"],
                     "textbook": row["textbook"],
                     "chapter": row["chapter"],
+                    "retrievalMode": "hybrid",
+                    "denseScore": (
+                        float(row["dense_score"])
+                        if row["dense_score"] is not None
+                        else None
+                    ),
+                    "lexicalScore": (
+                        float(row["lexical_score"])
+                        if row["lexical_score"] is not None
+                        else None
+                    ),
                 },
             )
             for row in rows

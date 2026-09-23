@@ -5,6 +5,8 @@ import com.k12.platform.learning.dto.ContentImageResponse;
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.CourseResponse;
 import com.k12.platform.learning.dto.CoursePageResponse;
+import com.k12.platform.learning.dto.PersonalizedCourseRequest;
+import com.k12.platform.learning.dto.PersonalizedCourseResponse;
 import com.k12.platform.common.security.K12SecurityContext;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -93,6 +99,41 @@ public class CourseService {
             }
         }
         return published.stream().limit(size).toList();
+    }
+
+    /** 根据多个课程形成的掌握度，跨课程寻找覆盖薄弱知识点的已发布章节。 */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('course:read')")
+    public List<PersonalizedCourseResponse> personalized(PersonalizedCourseRequest request) {
+        int limit = request.limit() == null ? 6 : request.limit();
+        List<PersonalizedCourseRequest.MasteryHint> hints = request.mastery() == null
+                ? List.of() : request.mastery().stream()
+                .filter(item -> item != null && StringUtils.hasText(item.knowledgeCode()))
+                .sorted(Comparator.comparingInt(PersonalizedCourseRequest.MasteryHint::masteryPercent))
+                .toList();
+        Map<Long, PersonalizedCourseResponse> selected = new LinkedHashMap<>();
+        for (PersonalizedCourseRequest.MasteryHint hint : hints) {
+            for (Map<String, Object> chapter : knowledgeGraphService.listChaptersCovering(hint.knowledgeCode())) {
+                Object rawCourseId = chapter.get("courseId");
+                if (!(rawCourseId instanceof Number number) || selected.containsKey(number.longValue())) continue;
+                Course course = courseMapper.selectById(number.longValue());
+                if (course == null || !Integer.valueOf(1).equals(course.getStatus())) continue;
+                Long chapterId = chapter.get("chapterId") instanceof Number value ? value.longValue() : null;
+                String chapterTitle = chapter.get("chapterTitle") instanceof String value ? value : null;
+                String reason = hint.masteryPercent() < 60
+                        ? "你在「" + hint.knowledgeCode() + "」上的掌握度较低，建议先通过这门课程的相关章节复习。"
+                        : "这门课程覆盖你正在巩固的「" + hint.knowledgeCode() + "」，适合继续练习和迁移应用。";
+                selected.put(course.getId(), new PersonalizedCourseResponse(toResponse(course), chapterId,
+                        chapterTitle, hint.knowledgeCode(), hint.masteryPercent(), reason));
+                if (selected.size() >= limit) return new ArrayList<>(selected.values());
+            }
+        }
+        if (selected.isEmpty()) {
+            for (CourseResponse course : listRecommendedCourses(limit)) {
+                selected.put(course.id(), new PersonalizedCourseResponse(course, null, null, null, null,
+                        "暂未积累足够的跨课程练习证据，先从已发布的 AI 通识课程开始。"));
+            }
+        }
+        return new ArrayList<>(selected.values()).stream().limit(limit).toList();
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.COURSE_READ + "')")

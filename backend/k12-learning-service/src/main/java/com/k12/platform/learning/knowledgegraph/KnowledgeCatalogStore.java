@@ -222,6 +222,8 @@ public class KnowledgeCatalogStore {
                 .filter(point -> q.isEmpty()
                         || (point.code() != null && point.code().toLowerCase(Locale.ROOT).contains(q))
                         || (point.title() != null && point.title().toLowerCase(Locale.ROOT).contains(q))
+                        || point.aliases().stream().anyMatch(item -> item.toLowerCase(Locale.ROOT).contains(q))
+                        || point.keywords().stream().anyMatch(item -> item.toLowerCase(Locale.ROOT).contains(q))
                         || (point.categoryTitle() != null
                         && point.categoryTitle().toLowerCase(Locale.ROOT).contains(q)))
                 .limit(capped)
@@ -267,6 +269,8 @@ public class KnowledgeCatalogStore {
                 }
             }
         }
+        List<String> aliases = stringList(node, "aliases");
+        List<String> keywords = stringList(node, "keywords");
         return new KnowledgePointResponse(
                 text(node, "code"),
                 text(node, "title"),
@@ -276,8 +280,23 @@ public class KnowledgeCatalogStore {
                 categoryCode,
                 categoryTitle,
                 kind,
-                stages.isEmpty() ? null : stages
+                stages.isEmpty() ? null : stages,
+                aliases,
+                keywords
         );
+    }
+
+    private static List<String> stringList(JsonNode node, String field) {
+        List<String> values = new ArrayList<>();
+        JsonNode array = node.get(field);
+        if (array != null && array.isArray()) {
+            for (JsonNode item : array) {
+                if (item != null && item.isTextual() && !item.asText().isBlank()) {
+                    values.add(item.asText().trim());
+                }
+            }
+        }
+        return List.copyOf(values);
     }
 
     private static String text(JsonNode node, String field) {

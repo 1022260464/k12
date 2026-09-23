@@ -11,6 +11,7 @@ from k12_agent_runtime.application.rag.search_knowledge import (
 )
 from k12_agent_runtime.domain.rag import (
     DocumentCandidate,
+    DocumentSection,
     EmbeddingBatch,
     KnowledgeDocument,
     KnowledgeSearchResult,
@@ -121,6 +122,34 @@ def test_index_document_chunks_embeds_and_replaces_atomically() -> None:
     assert cache.invalidations == 1
 
 
+def test_index_document_preserves_page_and_heading_metadata() -> None:
+    repository = FakeRepository()
+    use_case = IndexDocumentUseCase(
+        FakeEmbedder(),
+        repository,
+        TextChunker(chunk_size=100, overlap=20),
+    )
+    document = KnowledgeDocument(
+        document_id="doc-structured",
+        title="图像分类",
+        content="第一部分\n" + "机器通过样本学习。" * 12,
+        source_type="teaching_resource",
+        sections=(
+            DocumentSection(
+                text="第一部分\n" + "机器通过样本学习。" * 12,
+                heading="第一部分",
+                page_number=3,
+            ),
+        ),
+    )
+
+    asyncio.run(use_case.execute(IndexDocumentCommand(document)))
+
+    assert repository.chunks
+    assert all(chunk.metadata["pageStart"] == 3 for chunk in repository.chunks)
+    assert all(chunk.metadata["heading"] == "第一部分" for chunk in repository.chunks)
+
+
 def test_search_applies_filters_then_reranks_candidates() -> None:
     repository = FakeRepository()
     use_case = SearchKnowledgeUseCase(FakeEmbedder(), FakeReranker(), repository)
@@ -143,6 +172,8 @@ def test_search_applies_filters_then_reranks_candidates() -> None:
     assert repository.last_query.embedding_model == "test-embedding"
     assert repository.last_query.stage_code == "middle_school"
     assert repository.last_query.grade == "八年级"
+    assert repository.last_query.query_text == "什么是机器学习？"
+    assert "机器" in repository.last_query.lexical_terms
 
 
 def test_search_returns_cached_result_without_querying_repository() -> None:

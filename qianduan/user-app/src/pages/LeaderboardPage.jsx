@@ -2,10 +2,10 @@ import { Clap, Crown, Trophy } from "duma-icons-react";
 import { LoaderCircle, RefreshCw, UserRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { leaderboardApi } from "../api/client.js";
+import { EXPERIENCE } from "../experience/experience.js";
+import { visualsFor } from "../experience/visualAssets.js";
 
-const CHEER_ICON = "/assets/leaderboard-cheer.png";
-
-export function LeaderboardPage({ session, requireLogin }) {
+export function LeaderboardPage({ session, requireLogin, experience = EXPERIENCE.TEEN }) {
   const [leaderboard, setLeaderboard] = useState(null);
   const [loading, setLoading] = useState(Boolean(session));
   const [error, setError] = useState("");
@@ -34,13 +34,14 @@ export function LeaderboardPage({ session, requireLogin }) {
 
   const entries = leaderboard?.entries || [];
   const currentEntry = useMemo(() => entries.find((entry) => entry.currentUser), [entries]);
+  const pageVisual = visualsFor(experience).progress;
 
   if (!session) {
     return (
       <div className="page inner-page leaderboard-page">
-        <LeaderboardHero />
+        <LeaderboardHero experience={experience} />
         <section className="empty-state">
-          <img className="leaderboard-empty-mascot" src={CHEER_ICON} alt="" />
+          <img className="leaderboard-empty-mascot" src={pageVisual} alt="" />
           <h2>登录后查看排行榜</h2>
           <p>排行榜根据课程章节学习进度生成，只展示匿名编号和积分。</p>
           <button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button>
@@ -52,7 +53,7 @@ export function LeaderboardPage({ session, requireLogin }) {
   return (
     <div className="page inner-page leaderboard-page">
       <header className="page-title page-title-row leaderboard-title-row">
-        <LeaderboardHero />
+        <LeaderboardHero experience={experience} />
         <button className="button secondary" type="button" onClick={loadLeaderboard} disabled={loading}>
           <RefreshCw size={16} />刷新
         </button>
@@ -63,7 +64,7 @@ export function LeaderboardPage({ session, requireLogin }) {
 
       {!loading && !error && entries.length === 0 && (
         <section className="empty-state">
-          <img className="leaderboard-empty-mascot" src={CHEER_ICON} alt="" />
+          <img className="leaderboard-empty-mascot" src={pageVisual} alt="" />
           <h2>排行榜还没有数据</h2>
           <p>报名课程并完成章节后，学习积分会出现在这里。</p>
         </section>
@@ -105,16 +106,17 @@ function rankVisual(rank) {
   return <span>{rank}</span>;
 }
 
-function LeaderboardHero() {
+function LeaderboardHero({ experience }) {
+  const primary = experience === EXPERIENCE.PRIMARY;
   return (
     <div className="leaderboard-hero">
       <div className="leaderboard-mascot" aria-hidden="true">
-        <img src={CHEER_ICON} alt="" />
+        <img src={visualsFor(experience).progress} alt="" />
       </div>
       <div className="leaderboard-hero-copy">
-        <p className="eyebrow">学习排行</p>
-        <h1>用持续学习积累进步</h1>
-        <p>积分来自已报名课程的章节最高进度，不代表考试成绩。</p>
+        <p className="eyebrow">{primary ? "成长排行" : "学习排行"}</p>
+        <h1>{primary ? "每一次坚持都值得一颗星" : "用持续学习积累进步"}</h1>
+        <p>{primary ? "完成课程和挑战可以积累成长积分，和昨天的自己比一比。" : "积分来自已报名课程的章节最高进度，不代表考试成绩。"}</p>
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import com.k12.platform.learning.dto.ContentImageResponse;
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.CourseResponse;
 import com.k12.platform.learning.dto.CoursePageResponse;
+import com.k12.platform.learning.dto.PersonalizedCourseRequest;
+import com.k12.platform.learning.dto.PersonalizedCourseResponse;
 import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.constraints.Size;
 import com.k12.platform.learning.service.CourseService;
@@ -56,6 +58,12 @@ public class CourseController {
             @RequestParam(name = "limit", defaultValue = "8") int limit
     ) {
         return ApiResponse.ok(courseService.listRecommendedCourses(limit));
+    }
+
+    @PostMapping("/personalized")
+    public ApiResponse<List<PersonalizedCourseResponse>> personalized(
+            @Valid @RequestBody PersonalizedCourseRequest request) {
+        return ApiResponse.ok(courseService.personalized(request));
     }
 
     @GetMapping("/page")

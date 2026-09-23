@@ -1,21 +1,27 @@
 import { BarChart3, BookOpen, CheckCircle2, ClipboardCheck, LoaderCircle, MessageSquareText, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, homeworksApi, practiceApi, profileApi } from "../api/client.js";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { LearnerKnowledgeNetwork } from "../components/LearnerKnowledgeNetwork.jsx";
+import { EXPERIENCE } from "../experience/experience.js";
 
 const stages = [["PRIMARY_LOWER", "小学低年级"], ["PRIMARY_UPPER", "小学高年级"], ["JUNIOR_HIGH", "初中"], ["SENIOR_HIGH", "高中"]];
-const PROGRESS_DOODLE = "/assets/progress-group-doodle.png";
-
-function ProgressTitle() {
+function ProgressHeader({ experience }) {
+  const primary = experience === EXPERIENCE.PRIMARY;
   return (
-    <h1 className="page-title-with-doodle">
-      <span>看见每一步进步</span>
-      <img className="page-title-doodle" src={PROGRESS_DOODLE} alt="" width={140} height={90} />
-    </h1>
+    <ExperiencePageHeader
+      experience={experience}
+      eyebrow={primary ? "我的成长" : "学习报告"}
+      title={primary ? "看看今天又收获了什么" : "看见每一步进步"}
+      description={primary
+        ? "课程、挑战和小测都会变成成长记录，帮助你找到下一次探索的方向。"
+        : "汇总课程进度、作业结果和 AI 课堂小测。学段、年级等档案请在个人中心维护。"}
+      imageKey="progress"
+    />
   );
 }
 
-export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, onPractice, practiceRevision }) {
+export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, onPractice, practiceRevision, experience = EXPERIENCE.TEEN }) {
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
   const [results, setResults] = useState([]);
@@ -108,12 +114,12 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
     [results],
   );
 
-  if (!session) return <div className="page inner-page"><header className="page-title"><p className="eyebrow">学习报告</p><ProgressTitle /></header><section className="empty-state"><BarChart3 size={28} /><h2>登录后查看学习报告</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
+  if (!session) return <div className="page inner-page"><ProgressHeader experience={experience} /><section className="empty-state"><BarChart3 size={28} /><h2>{experience === EXPERIENCE.PRIMARY ? "登录后查看成长记录" : "登录后查看学习报告"}</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
   if (loading) return <div className="page inner-page"><div className="loading-state"><LoaderCircle size={22} />正在生成学习报告</div></div>;
 
   return (
     <div className="page inner-page">
-      <header className="page-title"><p className="eyebrow">学习报告</p><ProgressTitle /><p>汇总课程进度、作业结果和 AI 课堂小测。学段、年级等档案请在个人中心维护。</p></header>
+      <ProgressHeader experience={experience} />
       {error && <p className="page-error" role="alert">{error}</p>}
       <section className="report-stats"><article><span><BookOpen /></span><div><strong>{metrics.courses} 门</strong><small>在学课程</small></div></article><article><span><CheckCircle2 /></span><div><strong>{metrics.completedChapters}/{metrics.totalChapters}</strong><small>已完成章节</small></div></article><article><span><TrendingUp /></span><div><strong>{metrics.averageProgress}%</strong><small>平均课程进度</small></div></article><article><span><ClipboardCheck /></span><div><strong>{metrics.averageScore == null ? "暂无" : `${metrics.averageScore} 分`}</strong><small>已批改作业均分</small></div></article></section>
 
@@ -122,6 +128,7 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
         history={history}
         navigate={navigate}
         onPractice={onPractice}
+        experience={experience}
       />
 
       <div className="report-layout">

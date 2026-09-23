@@ -1,10 +1,10 @@
-import { ArrowRight, CalendarDays, CheckCircle2, ClipboardList, Clock3, FileText, LoaderCircle, RotateCcw } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, FileText, LoaderCircle, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { homeworksApi } from "../api/client.js";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
+import { EXPERIENCE } from "../experience/experience.js";
 
-const TASKS_DOODLE = "/assets/tasks-face-doodle.png";
-
-export function TasksPage({ session, requireLogin, navigate }) {
+export function TasksPage({ session, requireLogin, navigate, experience = EXPERIENCE.TEEN }) {
   const [tab, setTab] = useState("全部");
   const [items, setItems] = useState([]);
   const [submissionsByHomework, setSubmissionsByHomework] = useState({});
@@ -79,14 +79,15 @@ export function TasksPage({ session, requireLogin, navigate }) {
 
   return (
     <div className="page inner-page">
-      <header className="page-title">
-        <p className="eyebrow"><ClipboardList size={14} /> 作业练习</p>
-        <h1 className="page-title-with-doodle">
-          <span>安排好今天的学习任务</span>
-          <img className="page-title-doodle page-title-doodle-face" src={TASKS_DOODLE} alt="" width={96} height={96} />
-        </h1>
-        <p>提交后显示「已提交」，教师批改完成显示「已完成」；退回后可重新提交。</p>
-      </header>
+      <ExperiencePageHeader
+        experience={experience}
+        eyebrow={experience === EXPERIENCE.PRIMARY ? "今日挑战" : "作业练习"}
+        title={experience === EXPERIENCE.PRIMARY ? "完成任务，点亮今天的成长星" : "安排好今天的学习任务"}
+        description={experience === EXPERIENCE.PRIMARY
+          ? "先完成待办的小挑战，提交后可以回来查看老师的反馈。"
+          : "提交后显示「已提交」，教师批改完成显示「已完成」；退回后可重新提交。"}
+        imageKey="tasks"
+      />
       <section className="task-summary">
         <article className="tone-todo"><Clock3 /><div><strong>{counts.todo}</strong><span>待完成</span></div></article>
         <article className="tone-submitted"><CalendarDays /><div><strong>{counts.submitted}</strong><span>已提交</span></div></article>

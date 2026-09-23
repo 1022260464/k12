@@ -44,6 +44,23 @@ K12_AGENT_LLM_API_KEY=
 K12_AGENT_LLM_MODEL=qwen-plus
 ```
 
+小学绘本朗读使用百炼CosyVoice，默认复用同一个Key：
+
+```dotenv
+K12_AGENT_TTS_ENABLED=true
+K12_AGENT_TTS_PROVIDER=dashscope
+K12_AGENT_TTS_BASE_URL=https://dashscope.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer
+K12_AGENT_TTS_MODEL=cosyvoice-v3-flash
+K12_AGENT_TTS_VOICE=longanyang
+```
+
+Java服务通过内部接口获取音频，浏览器不接触百炼密钥：
+
+```text
+GET  /internal/v1/speech/capabilities
+POST /internal/v1/speech/synthesize
+```
+
 教学 Agent 通过领域层 `ChatModel` 接口调用模型，基础设施层负责适配千问的 OpenAI 兼容
 接口。冒泡排序等固定主题有确定性的本地保底内容；知识库中的新增主题可以由模型生成受
 Pydantic约束的讲解与步骤JSON，由前端白名单组件渲染，不执行模型生成的代码。模型未配置、
@@ -80,6 +97,8 @@ POST /internal/v1/rag/embeddings
 POST /internal/v1/rag/rerank
 POST /internal/v1/rag/documents/index
 POST /internal/v1/rag/search
+GET  /internal/v1/speech/capabilities
+POST /internal/v1/speech/synthesize
 ```
 
 ## RAG检索模型

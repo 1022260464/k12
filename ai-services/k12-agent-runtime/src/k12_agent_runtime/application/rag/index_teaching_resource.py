@@ -9,9 +9,9 @@ from k12_agent_runtime.application.rag.index_document import (
 )
 from k12_agent_runtime.application.rag.teaching_resource_text import (
     MAX_INDEX_BYTES,
-    extract_text,
+    extract_document,
 )
-from k12_agent_runtime.domain.rag import IndexedDocument, KnowledgeDocument
+from k12_agent_runtime.domain.rag import DocumentSection, IndexedDocument, KnowledgeDocument
 from k12_agent_runtime.domain.storage import ObjectStorage
 
 _OBJECT_KEY = re.compile(r"^teaching-resources/[0-9a-f-]{36}\.(pdf|docx|pptx)$")
@@ -66,10 +66,13 @@ class IndexTeachingResourceUseCase:
         if command.knowledge_code and not _KNOWLEDGE_CODE.fullmatch(command.knowledge_code):
             raise ValueError("知识点编码格式不合法")
         content = await self._storage.read_bytes(command.object_key, MAX_INDEX_BYTES)
-        text = extract_text(content, match.group(1))
+        extracted = extract_document(content, match.group(1))
+        text = extracted.text
         description = (command.description or "").strip()
+        sections = extracted.sections
         if description:
             text = f"【资料简介】{description}\n\n{text}"
+            sections = (DocumentSection(text=description, heading="资料简介"), *sections)
         document = KnowledgeDocument(
             document_id=f"teaching-resource-{command.resource_id}",
             title=command.title,
@@ -88,6 +91,8 @@ class IndexTeachingResourceUseCase:
                 **({"chapterId": command.chapter_id} if command.chapter_id else {}),
                 **({"knowledgeCode": command.knowledge_code} if command.knowledge_code else {}),
                 **({"description": description} if description else {}),
+                "extraction": extracted.diagnostics,
             },
+            sections=sections,
         )
         return await self._index_document.execute(IndexDocumentCommand(document=document))

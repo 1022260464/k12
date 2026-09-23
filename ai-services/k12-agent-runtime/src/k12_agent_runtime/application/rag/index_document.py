@@ -38,20 +38,20 @@ class IndexDocumentUseCase:
         if self._embedder is None or self._repository is None:
             raise RagDisabledError("RAG知识库存储尚未启用")
         document = command.document
-        chunks = self._chunker.split(document.content)
+        chunks = self._chunker.split_structured(document.content, document.sections)
         if not chunks:
             raise ValueError("知识文档内容不能为空")
 
-        embeddings = await self._embedder.embed(chunks)
+        embeddings = await self._embedder.embed(tuple(chunk.text for chunk in chunks))
         knowledge_chunks = tuple(
             KnowledgeChunk(
                 chunk_id=str(
-                    uuid5(NAMESPACE_URL, f"k12:{document.document_id}:{index}:{content}")
+                    uuid5(NAMESPACE_URL, f"k12:{document.document_id}:{index}:{chunk.text}")
                 ),
                 document_id=document.document_id,
                 chunk_index=index,
                 title=document.title,
-                content=content,
+                content=chunk.text,
                 embedding=embedding,
                 embedding_model=embeddings.model,
                 source_uri=document.source_uri,
@@ -59,9 +59,9 @@ class IndexDocumentUseCase:
                 grade=document.grade,
                 textbook=document.textbook,
                 chapter=document.chapter,
-                metadata=dict(document.metadata),
+                metadata={**document.metadata, **chunk.metadata},
             )
-            for index, (content, embedding) in enumerate(
+            for index, (chunk, embedding) in enumerate(
                 zip(chunks, embeddings.vectors, strict=True)
             )
         )

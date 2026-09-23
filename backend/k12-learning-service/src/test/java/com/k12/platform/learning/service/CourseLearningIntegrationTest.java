@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.k12.platform.learning.dto.ChapterRequest;
 import com.k12.platform.learning.dto.CourseRequest;
 import com.k12.platform.learning.dto.SectionRequest;
+import com.k12.platform.learning.dto.SectionActivityRequest;
 import com.k12.platform.learning.config.LeaderboardProperties;
 import com.k12.platform.learning.knowledgegraph.KnowledgeGraphService;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -52,11 +53,25 @@ class CourseLearningIntegrationTest {
     @EnableMethodSecurity
     @MapperScan("com.k12.platform.learning.mapper")
     @Import({CourseService.class, CourseAccessService.class, CourseChapterService.class, CourseSectionService.class,
+            CourseSectionActivityService.class,
             CoursePublicationService.class, CourseStudyService.class, LearningHistoryService.class, LearningLeaderboardService.class,
             LeaderboardProperties.class})
     static class Config {
         @Bean CourseMediaUrlResolver courseMediaUrlResolver() {
             return objectKey -> null;
+        }
+
+        @Bean CourseCoverStorage courseCoverStorage() {
+            return Mockito.mock(CourseCoverStorage.class);
+        }
+
+        @Bean CourseContentMediaRewriter courseContentMediaRewriter() {
+            CourseContentMediaRewriter rewriter = Mockito.mock(CourseContentMediaRewriter.class);
+            Mockito.when(rewriter.stampObjectKeys(Mockito.anyString()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            Mockito.when(rewriter.refreshImageUrls(Mockito.anyString()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            return rewriter;
         }
 
         @Bean KnowledgeGraphService knowledgeGraphService() {
@@ -84,6 +99,7 @@ class CourseLearningIntegrationTest {
     @Autowired CourseService courses;
     @Autowired CourseChapterService chapters;
     @Autowired CourseSectionService sections;
+    @Autowired CourseSectionActivityService activities;
     @Autowired CoursePublicationService publication;
     @Autowired CourseStudyService study;
     @Autowired LearningHistoryService history;
@@ -141,6 +157,39 @@ class CourseLearningIntegrationTest {
         teacher(10L);
         sections.delete(courseId, chapterId, sectionId);
         assertThat(sections.list(courseId, chapterId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("正式小节活动按选课和课程归属隔离，并且不接受任意活动类型")
+    void sectionActivitiesRespectEnrollmentAndOwnership() {
+        Long sectionId = sections.create(courseId, chapterId,
+                new SectionRequest("第一节", "先读讲解，再完成受控活动。", 1)).id();
+        var created = activities.create(courseId, chapterId, sectionId,
+                new SectionActivityRequest("TEACHING_TOPIC", "train-test", "训练集与测试集课堂",
+                        "进入 AI 学习台完成讲解和小测。", 1, true));
+        assertThat(created.activityType()).isEqualTo("TEACHING_TOPIC");
+        assertThat(created.referenceKey()).isEqualTo("train-test");
+        assertStatus(() -> activities.create(courseId, chapterId, sectionId,
+                new SectionActivityRequest("TEACHING_TOPIC", "train-test", "重复绑定", null, 2, true)),
+                HttpStatus.CONFLICT);
+
+        student(20L);
+        assertStatus(() -> activities.list(courseId, chapterId, sectionId), HttpStatus.FORBIDDEN);
+        study.enroll(courseId);
+        assertThat(activities.list(courseId, chapterId, sectionId))
+                .extracting(item -> item.referenceKey()).containsExactly("train-test");
+
+        teacher(11L);
+        assertStatus(() -> activities.update(courseId, chapterId, sectionId, created.id(),
+                new SectionActivityRequest("TEACHING_TOPIC", "embedding-intro", "篡改", null, 1, true)),
+                HttpStatus.FORBIDDEN);
+        teacher(10L);
+        activities.delete(courseId, chapterId, sectionId, created.id());
+        assertThat(activities.list(courseId, chapterId, sectionId)).isEmpty();
+        var recreated = activities.create(courseId, chapterId, sectionId,
+                new SectionActivityRequest("TEACHING_TOPIC", "train-test", "重新绑定", null, 1, true));
+        activities.delete(courseId, chapterId, sectionId, recreated.id());
+        assertThat(activities.list(courseId, chapterId, sectionId)).isEmpty();
     }
 
     @Test

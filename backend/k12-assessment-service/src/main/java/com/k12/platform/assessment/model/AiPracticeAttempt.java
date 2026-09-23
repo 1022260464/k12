@@ -23,6 +23,9 @@ public class AiPracticeAttempt {
     private Integer correctCount;
     private Integer totalQuestions;
     private String weakPoint;
+    private Integer hintCount;
+    private Long durationMs;
+    private String errorTypesJson;
     private String answersJson;
     private Instant createdTime;
 }

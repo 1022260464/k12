@@ -43,7 +43,8 @@ class CourseServletSecurityTest {
     @RestController
     static class ProbeController {
         @RequestMapping({"/api/v1/learning/courses/**", "/api/v1/learning/leaderboard",
-                "/api/v1/learning/history/me"})
+                "/api/v1/learning/history/me", "/api/v1/learning/picture-books/**",
+                "/api/v1/learning/teaching-resources/**"})
         String probe() { return "reached-controller"; }
     }
 
@@ -117,6 +118,17 @@ class CourseServletSecurityTest {
     }
 
     @Test
+    @DisplayName("小节活动读取沿用 course:read，管理沿用 course:update")
+    void sectionActivityPermissions() throws Exception {
+        String activities = "/1/chapters/2/sections/3/activities";
+        expect("GET", activities, "student", 200);
+        expect("POST", activities, "editor", 200);
+        expect("POST", activities, "student", 403);
+        expect("PUT", activities + "/4", "editor", 200);
+        expect("DELETE", activities + "/4", "editor", 200);
+    }
+
+    @Test
     @DisplayName("管理员可访问学习接口")
     void adminStudyAllowed() throws Exception {
         expect("PUT", "/1/enrollment", "admin", 200);
@@ -144,5 +156,30 @@ class CourseServletSecurityTest {
         expectAbsolute("GET", "/api/v1/learning/history/me", "student", 200);
         expectAbsolute("GET", "/api/v1/learning/history/me", "admin", 200);
         expectAbsolute("GET", "/api/v1/learning/history/me", null, 401);
+    }
+
+    @Test
+    @DisplayName("课程读取权限可请求个性化课程，不能被误判为课程创建")
+    void personalizedCourseUsesReadPermission() throws Exception {
+        expect("POST", "/personalized", "student", 200);
+        expect("POST", "/personalized", "editor", 403);
+    }
+
+    @Test
+    @DisplayName("已发布绘本公开访问，管理接口仅管理员可用")
+    void pictureBookAuthorization() throws Exception {
+        expectAbsolute("GET", "/api/v1/learning/picture-books/published", null, 200);
+        expectAbsolute("GET", "/api/v1/learning/picture-books/admin", "student", 403);
+        expectAbsolute("GET", "/api/v1/learning/picture-books/admin", "admin", 200);
+    }
+
+    @Test
+    @DisplayName("知识库检索试测仅管理员可用")
+    void teachingResourceSearchTestAuthorization() throws Exception {
+        String path = "/api/v1/learning/teaching-resources/search-test";
+        expectAbsolute("POST", path, "student", 403);
+        expectAbsolute("POST", path, "teacher", 403);
+        expectAbsolute("POST", path, "admin", 200);
+        expectAbsolute("POST", path, null, 401);
     }
 }

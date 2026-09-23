@@ -25,6 +25,9 @@ router = APIRouter(
 class CandidatePoint(ApiModel):
     code: str = Field(min_length=1, max_length=128)
     title: str = Field(default="", max_length=256)
+    category: str = Field(default="", max_length=128)
+    aliases: list[str] = Field(default_factory=list, max_length=20)
+    keywords: list[str] = Field(default_factory=list, max_length=30)
 
 
 class SuggestCoversRequest(ApiModel):
@@ -48,12 +51,14 @@ async def suggest_covers(
     if container.chat_model is None:
         return ApiResponse.ok(SuggestCoversResponse(codes=[], reasons={}))
 
-    allowed = {item.code: item.title for item in body.candidates if item.code}
+    allowed = {item.code: item for item in body.candidates if item.code}
     if not allowed:
         return ApiResponse.ok(SuggestCoversResponse(codes=[], reasons={}))
 
     catalog_lines = "\n".join(
-        f"- {code}: {title}" for code, title in list(allowed.items())[:120]
+        f"- {code}: {item.title}; 分类={item.category or '-'}; "
+        f"别名={','.join(item.aliases[:8]) or '-'}; 关键词={','.join(item.keywords[:10]) or '-'}"
+        for code, item in list(allowed.items())[:120]
     )
     content = (body.content or "")[:8000]
     prompt = (

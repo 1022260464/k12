@@ -1,0 +1,537 @@
+name: ${COMPOSE_PROJECT_NAME:-k12-platform}
+
+x-common-java-env: &common-java-env
+  TZ: ${TZ:-Asia/Shanghai}
+  JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=20.0 -Dfile.encoding=UTF-8}
+  K12_JWT_ISSUER: ${K12_JWT_ISSUER:-k12-platform}
+  K12_JWT_SECRET: ${K12_JWT_SECRET:?K12_JWT_SECRET must be configured}
+  K12_JWT_ACCESS_TOKEN_TTL: ${K12_JWT_ACCESS_TOKEN_TTL:-30m}
+  NACOS_DISCOVERY_ENABLED: ${NACOS_DISCOVERY_ENABLED:-false}
+  NACOS_CONFIG_ENABLED: ${NACOS_CONFIG_ENABLED:-false}
+  NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-nacos:8848}
+  NACOS_NAMESPACE: ${NACOS_NAMESPACE:-public}
+  NACOS_GROUP: ${NACOS_GROUP:-DEFAULT_GROUP}
+
+x-business-db-env: &business-db-env
+  K12_BUSINESS_DB_HOST: mysql
+  K12_BUSINESS_DB_PORT: 3306
+  K12_BUSINESS_DB_NAME: ${K12_BUSINESS_DB_NAME:-k12_business}
+  K12_BUSINESS_DB_USERNAME: ${MYSQL_APP_USER:-k12}
+  K12_BUSINESS_DB_PASSWORD: ${MYSQL_APP_PASSWORD:?MYSQL_APP_PASSWORD must be configured}
+  K12_DB_USE_SSL: "false"
+
+x-minio-java-env: &minio-java-env
+  K12_COURSE_MEDIA_ENABLED: "true"
+  K12_MINIO_ENDPOINT: http://minio:9000
+  K12_MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT must be configured}
+  K12_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be configured}
+  K12_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be configured}
+  K12_MINIO_BUCKET: ${MINIO_BUCKET:-k12-agent-artifacts}
+
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.0.46}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be configured}
+      MYSQL_DATABASE: ${K12_AUTH_DB_NAME:-k12_auth}
+      MYSQL_USER: ${MYSQL_APP_USER:-k12}
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:?MYSQL_APP_PASSWORD must be configured}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/conf.d/k12.cnf:/etc/mysql/conf.d/k12.cnf:ro
+      - ../../backend/sql/mysql:/opt/k12/sql/mysql:ro
+      - ./sql/mysql/00_full_schema.sql:/docker-entrypoint-initdb.d/10-k12-full-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    mem_limit: 1100m
+    networks: [k12]
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:0.8.0-pg16}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      POSTGRES_DB: ${POSTGRES_DB:-k12_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-k12rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be configured}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../ai-services/k12-agent-runtime/sql/001_init_pgvector.sql:/docker-entrypoint-initdb.d/10-init-pgvector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    mem_limit: 768m
+    networks: [k12]
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7.4-alpine}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD must be configured}", "--maxmemory", "192mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a '$${REDIS_PASSWORD}' ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be configured}
+    mem_limit: 256m
+    networks: [k12]
+
+  mongodb:
+    image: ${MONGO_IMAGE:-mongo:7.0-jammy}
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be configured}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-k12_agent}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:-k12agent}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD must be configured}
+    ports:
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongodb-init/10-create-app-user.js:/docker-entrypoint-initdb.d/10-create-app-user.js:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --host 127.0.0.1 -u '$${MONGO_INITDB_ROOT_USERNAME}' -p '$${MONGO_INITDB_ROOT_PASSWORD}' --authenticationDatabase admin --eval 'db.adminCommand({ping:1}).ok' | grep 1"]
+      interval: 15s
+      timeout: 8s
+      retries: 15
+      start_period: 30s
+    mem_limit: 512m
+    networks: [k12]
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4.2.8-management-alpine}
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-k12}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS must be configured}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_DEFAULT_VHOST:-k12}
+    ports:
+      - "127.0.0.1:${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    mem_limit: 640m
+    networks: [k12]
+
+  minio:
+    image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z}
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be configured}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be configured}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    mem_limit: 512m
+    networks: [k12]
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z}
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be configured}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be configured}
+      MINIO_BUCKET: ${MINIO_BUCKET:-k12-agent-artifacts}
+      MINIO_AVATAR_BUCKET: ${MINIO_AVATAR_BUCKET:-k12-user-avatars}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mc alias set k12 http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing "k12/$${MINIO_BUCKET}"
+        mc mb --ignore-existing "k12/$${MINIO_AVATAR_BUCKET}"
+    networks: [k12]
+
+  neo4j:
+    image: ${NEO4J_IMAGE:-neo4j:5.26-community}
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD must be configured}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    ports:
+      - "127.0.0.1:${NEO4J_HTTP_PORT:-7474}:7474"
+      - "127.0.0.1:${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:7474 || exit 1"]
+      interval: 15s
+      timeout: 8s
+      retries: 20
+      start_period: 45s
+    mem_limit: 1g
+    networks: [k12]
+
+  neo4j-init:
+    image: ${NEO4J_IMAGE:-neo4j:5.26-community}
+    restart: "no"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD must be configured}
+    volumes:
+      - ../../backend/sql/neo4j:/cypher:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        for file in /cypher/001_constraints.cypher /cypher/002_seed_ai_literacy.cypher /cypher/003_seed_demo_teaching_loop.cypher; do
+          echo "Applying $$file"
+          cypher-shell -a neo4j://neo4j:7687 -u neo4j -p "$${NEO4J_PASSWORD}" -f "$$file"
+        done
+    networks: [k12]
+
+  nacos:
+    image: ${NACOS_IMAGE:-nacos/nacos-server:v2.4.3}
+    profiles: ["nacos"]
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+      JVM_XMN: 128m
+    ports:
+      - "127.0.0.1:${NACOS_PORT:-8848}:8848"
+      - "127.0.0.1:${NACOS_GRPC_PORT:-9848}:9848"
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    mem_limit: 768m
+    networks: [k12]
+
+  agent-runtime:
+    profiles: ["app"]
+    image: k12/agent-runtime:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.python
+    restart: unless-stopped
+    env_file: .env
+    environment: &runtime-env
+      TZ: ${TZ:-Asia/Shanghai}
+      K12_AGENT_ENVIRONMENT: production
+      K12_AGENT_HOST: 0.0.0.0
+      K12_AGENT_PORT: 8090
+      K12_AGENT_INTERNAL_API_KEY: ${K12_AGENT_INTERNAL_API_KEY:?K12_AGENT_INTERNAL_API_KEY must be configured}
+      K12_AGENT_LLM_PROVIDER: ${K12_AGENT_LLM_PROVIDER:-dashscope}
+      K12_AGENT_LLM_BASE_URL: ${K12_AGENT_LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      K12_AGENT_LLM_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY must be configured}
+      K12_AGENT_LLM_MODEL: ${K12_AGENT_LLM_MODEL:-qwen-plus}
+      K12_AGENT_TTS_ENABLED: ${K12_AGENT_TTS_ENABLED:-true}
+      K12_AGENT_TTS_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY must be configured}
+      K12_AGENT_TTS_MODEL: ${K12_AGENT_TTS_MODEL:-cosyvoice-v3-flash}
+      K12_AGENT_TTS_VOICE: ${K12_AGENT_TTS_VOICE:-longanyang}
+      K12_AGENT_RAG_ENABLED: ${K12_AGENT_RAG_ENABLED:-true}
+      K12_AGENT_EMBEDDING_PROVIDER: ${K12_AGENT_EMBEDDING_PROVIDER:-dashscope}
+      K12_AGENT_EMBEDDING_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY must be configured}
+      K12_AGENT_EMBEDDING_MODEL: ${K12_AGENT_EMBEDDING_MODEL:-text-embedding-v4}
+      K12_AGENT_RERANKER_PROVIDER: ${K12_AGENT_RERANKER_PROVIDER:-dashscope}
+      K12_AGENT_RERANKER_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY must be configured}
+      K12_AGENT_RERANKER_MODEL: ${K12_AGENT_RERANKER_MODEL:-qwen3-rerank}
+      K12_AGENT_RAG_DATABASE_URL: postgresql://${POSTGRES_USER:-k12rag}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-k12_rag}
+      K12_AGENT_RAG_DATABASE_MAX_POOL_SIZE: ${K12_AGENT_RAG_DATABASE_MAX_POOL_SIZE:-5}
+      K12_AGENT_REDIS_ENABLED: "true"
+      K12_AGENT_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      K12_AGENT_MONGODB_ENABLED: "true"
+      K12_AGENT_MONGODB_URL: mongodb://${MONGO_APP_USERNAME:-k12agent}:${MONGO_APP_PASSWORD}@mongodb:27017/${MONGO_DATABASE:-k12_agent}?authSource=${MONGO_DATABASE:-k12_agent}
+      K12_AGENT_MONGODB_DATABASE: ${MONGO_DATABASE:-k12_agent}
+      K12_AGENT_MINIO_ENABLED: "true"
+      K12_AGENT_MINIO_ENDPOINT: minio:9000
+      K12_AGENT_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      K12_AGENT_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      K12_AGENT_MINIO_BUCKET: ${MINIO_BUCKET:-k12-agent-artifacts}
+      K12_AGENT_RABBITMQ_ENABLED: "true"
+      K12_AGENT_RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-k12}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/${RABBITMQ_DEFAULT_VHOST:-k12}
+      K12_AGENT_SANDBOX_ENABLED: ${K12_AGENT_SANDBOX_ENABLED:-false}
+      K12_AGENT_SANDBOX_PROVIDER: ${K12_AGENT_SANDBOX_PROVIDER:-tencent_agsx}
+      K12_AGENT_SANDBOX_TEMPLATE: ${K12_AGENT_SANDBOX_TEMPLATE:-k12-python-analysis-v1}
+      E2B_DOMAIN: ${E2B_DOMAIN:-}
+      E2B_API_KEY: ${E2B_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${AGENT_RUNTIME_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/internal/v1/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    mem_limit: 1536m
+    networks: [k12]
+
+  agent-worker:
+    profiles: ["app"]
+    image: k12/agent-runtime:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.python
+    command: ["k12-agent-worker"]
+    restart: unless-stopped
+    env_file: .env
+    environment: *runtime-env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    mem_limit: 1536m
+    networks: [k12]
+
+  iam:
+    profiles: ["app"]
+    image: k12/iam:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.java
+      args: { SERVICE: k12-iam-service }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: [*common-java-env, *minio-java-env]
+      K12_AUTH_DB_HOST: mysql
+      K12_AUTH_DB_PORT: 3306
+      K12_AUTH_DB_NAME: ${K12_AUTH_DB_NAME:-k12_auth}
+      K12_AUTH_DB_USERNAME: ${MYSQL_APP_USER:-k12}
+      K12_AUTH_DB_PASSWORD: ${MYSQL_APP_PASSWORD}
+      K12_AVATAR_MINIO_BUCKET: ${MINIO_AVATAR_BUCKET:-k12-user-avatars}
+    depends_on:
+      mysql: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 35s
+    mem_limit: 640m
+    networks: [k12]
+
+  learning:
+    profiles: ["app"]
+    image: k12/learning:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.java
+      args: { SERVICE: k12-learning-service }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: [*common-java-env, *business-db-env, *minio-java-env]
+      K12_REDIS_ENABLED: "true"
+      K12_REDIS_HOST: redis
+      K12_REDIS_PORT: 6379
+      K12_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      K12_NEO4J_ENABLED: "true"
+      K12_NEO4J_URI: bolt://neo4j:7687
+      K12_NEO4J_USERNAME: neo4j
+      K12_NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      K12_NEO4J_DATABASE: ${NEO4J_DATABASE:-neo4j}
+      K12_NEO4J_SEED_ON_STARTUP: "true"
+      K12_AGENT_RUNTIME_URL: http://agent-runtime:8090
+      K12_AGENT_INTERNAL_API_KEY: ${K12_AGENT_INTERNAL_API_KEY}
+      K12_IAM_TOKEN_STATE_URL: http://iam:8081/api/v1/iam/auth/token-state
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      neo4j-init: { condition: service_completed_successfully }
+      agent-runtime: { condition: service_healthy }
+      iam: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 35s
+    mem_limit: 768m
+    networks: [k12]
+
+  assessment:
+    profiles: ["app"]
+    image: k12/assessment:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.java
+      args: { SERVICE: k12-assessment-service }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: [*common-java-env, *business-db-env, *minio-java-env]
+      K12_ASSESSMENT_ATTACHMENTS_ENABLED: "true"
+      K12_IAM_SERVICE_URL: http://iam:8081
+      K12_AGENT_SERVICE_URL: http://agent:8083
+      K12_IAM_TOKEN_STATE_URL: http://iam:8081/api/v1/iam/auth/token-state
+    depends_on:
+      mysql: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+      iam: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8084/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 35s
+    mem_limit: 640m
+    networks: [k12]
+
+  agent:
+    profiles: ["app"]
+    image: k12/agent:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.java
+      args: { SERVICE: k12-agent-service }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: [*common-java-env, *business-db-env]
+      K12_AGENT_RUNTIME_URL: http://agent-runtime:8090
+      K12_AGENT_INTERNAL_API_KEY: ${K12_AGENT_INTERNAL_API_KEY}
+      K12_AGENT_RABBITMQ_ENABLED: "true"
+      K12_RABBITMQ_HOST: rabbitmq
+      K12_RABBITMQ_PORT: 5672
+      K12_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-k12}
+      K12_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      K12_RABBITMQ_VHOST: ${RABBITMQ_DEFAULT_VHOST:-k12}
+      K12_AGENT_CODE_QUOTA_ENABLED: "true"
+      K12_AGENT_CODE_DAILY_LIMIT: ${K12_AGENT_CODE_DAILY_LIMIT:-5}
+      K12_IAM_SERVICE_URL: http://iam:8081
+      K12_LEARNING_SERVICE_URL: http://learning:8082
+      K12_ASSESSMENT_SERVICE_URL: http://assessment:8084
+      K12_IAM_TOKEN_STATE_URL: http://iam:8081/api/v1/iam/auth/token-state
+    depends_on:
+      mysql: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      agent-runtime: { condition: service_healthy }
+      iam: { condition: service_healthy }
+      assessment: { condition: service_healthy }
+      learning: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 35s
+    mem_limit: 768m
+    networks: [k12]
+
+  gateway:
+    profiles: ["app"]
+    image: k12/gateway:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.java
+      args: { SERVICE: k12-gateway-service }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *common-java-env
+      K12_IAM_SERVICE_URI: http://iam:8081
+      K12_LEARNING_SERVICE_URI: http://learning:8082
+      K12_AGENT_SERVICE_URI: http://agent:8083
+      K12_ASSESSMENT_SERVICE_URI: http://assessment:8084
+    depends_on:
+      iam: { condition: service_healthy }
+      learning: { condition: service_healthy }
+      assessment: { condition: service_healthy }
+      agent: { condition: service_healthy }
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+      start_period: 35s
+    mem_limit: 512m
+    networks: [k12]
+
+  web:
+    profiles: ["app"]
+    image: k12/web:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      gateway: { condition: service_healthy }
+    ports:
+      - "${USER_WEB_PORT:-80}:80"
+      - "${ADMIN_WEB_PORT:-8088}:8088"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    mem_limit: 128m
+    networks: [k12]
+
+networks:
+  k12:
+    name: ${COMPOSE_PROJECT_NAME:-k12-platform}-network
+
+volumes:
+  mysql-data:
+  postgres-data:
+  redis-data:
+  mongodb-data:
+  rabbitmq-data:
+  minio-data:
+  neo4j-data:
+  neo4j-logs:
+  nacos-data:
+  nacos-logs:

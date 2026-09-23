@@ -44,6 +44,37 @@ class KnowledgeGraphServiceTest {
     }
 
     @Test
+    @DisplayName("章节覆盖建议应支持知识点别名和主题词")
+    void scoresLexicalCoversByAliasesAndKeywords() {
+        KnowledgePointResponse rag = new KnowledgePointResponse(
+                "ai_agents.rag_pipeline",
+                "RAG检索增强生成流程",
+                "初中、高中",
+                4,
+                "APPROVED",
+                "category.ai_agents",
+                "智能体与知识增强",
+                "TOPIC",
+                List.of("初中", "高中"),
+                List.of("知识库问答", "检索增强生成"),
+                List.of("文档切分", "向量检索", "重排")
+        );
+
+        List<KnowledgeCoverSuggestion> suggestions = KnowledgeGraphService.scoreAgainstCatalog(
+                "搭建知识库问答助手",
+                "资料需要先文档切分，再进行向量检索和重排。",
+                List.of(rag),
+                5
+        );
+
+        assertThat(suggestions).singleElement()
+                .satisfies(item -> {
+                    assertThat(item.code()).isEqualTo("ai_agents.rag_pipeline");
+                    assertThat(item.score()).isGreaterThanOrEqualTo(10);
+                });
+    }
+
+    @Test
     @DisplayName("章节 refKey 由课程与章节 ID 组成")
     void buildsChapterRefKey() {
         assertThat(KnowledgeGraphService.chapterRefKey(12, 34)).isEqualTo("12:34");

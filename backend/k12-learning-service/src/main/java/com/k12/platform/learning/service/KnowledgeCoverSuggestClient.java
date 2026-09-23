@@ -48,10 +48,13 @@ public class KnowledgeCoverSuggestClient {
             return List.of();
         }
         try {
-            List<Map<String, String>> payloadCandidates = candidates.stream()
+            List<Map<String, Object>> payloadCandidates = candidates.stream()
                     .map(point -> Map.of(
                             "code", point.code() == null ? "" : point.code(),
-                            "title", point.title() == null ? "" : point.title()
+                            "title", point.title() == null ? "" : point.title(),
+                            "category", point.categoryTitle() == null ? "" : point.categoryTitle(),
+                            "aliases", point.aliases(),
+                            "keywords", point.keywords()
                     ))
                     .toList();
             RemoteResponse response = client.post()
@@ -102,7 +105,7 @@ public class KnowledgeCoverSuggestClient {
     private record RemoteRequest(
             String title,
             String content,
-            List<Map<String, String>> candidates,
+            List<Map<String, Object>> candidates,
             int limit
     ) {
     }

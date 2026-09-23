@@ -1,13 +1,14 @@
 import { Bot, ChevronDown, Code2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TeachingAssistantChat } from "../components/TeachingAssistantChat.jsx";
+import { PrimaryLearningGuide } from "../components/PrimaryLearningGuide.jsx";
 import { topicsByCategory } from "../data/teachingTopics.js";
+import { EXPERIENCE } from "../experience/experience.js";
+import { visualsFor } from "../experience/visualAssets.js";
 
 const RAIL_MIN = 220;
 const RAIL_MAX = 440;
 const RAIL_DEFAULT = 280;
-const IDEA_DOODLE = "/assets/ai-studio-idea-doodle.png";
-
 export function AiStudioPage({
   session,
   displayName,
@@ -16,6 +17,7 @@ export function AiStudioPage({
   draftRequest,
   onDraftConsumed,
   onPracticeRecorded,
+  experience = EXPERIENCE.TEEN,
 }) {
   const [activeTopicId, setActiveTopicId] = useState(null);
   const [openCategoryId, setOpenCategoryId] = useState(null);
@@ -24,7 +26,9 @@ export function AiStudioPage({
   const dragging = useRef(false);
   const layoutRef = useRef(null);
   const clearSeed = useCallback(() => setSeedPrompt(null), []);
-  const topicGroups = topicsByCategory();
+  const primary = experience === EXPERIENCE.PRIMARY;
+  const topicGroups = primary ? [] : topicsByCategory("teen");
+  const visuals = visualsFor(experience);
 
   useEffect(() => {
     if (!draftRequest || !session) return;
@@ -72,12 +76,25 @@ export function AiStudioPage({
 
   function pickTopic(topic) {
     requireLogin(() => {
+      if (topic.route) {
+        navigate(topic.route);
+        return;
+      }
       setActiveTopicId(topic.id);
       setOpenCategoryId(topic.category);
       setSeedPrompt({
         prompt: topic.prompt,
         topicId: topic.id,
         preferDeterministic: true,
+      });
+    });
+  }
+
+  function askPrimaryTopic(topic) {
+    requireLogin(() => {
+      setSeedPrompt({
+        prompt: `我想继续学习「${topic}」。请用适合小学生的短句和生活例子讲解，再给我一个小挑战。`,
+        preferDeterministic: false,
       });
     });
   }
@@ -92,20 +109,20 @@ export function AiStudioPage({
     <div className="page inner-page ai-studio-page">
       <header className="ai-studio-hero">
         <div className="ai-studio-hero-copy">
-          <p className="eyebrow"><Sparkles size={14} /> AI 通识主课堂</p>
+          <p className="eyebrow"><Sparkles size={14} /> {primary ? "小智陪伴课堂" : "AI 通识主课堂"}</p>
           <h1 className="ai-studio-title">
-            <span>AI 学习台</span>
-            <img className="ai-studio-title-doodle" src={IDEA_DOODLE} alt="" width={72} height={72} />
+            <span>{primary ? "问问小智" : "AI 学习台"}</span>
+            <img className="ai-studio-title-doodle experience-title-sticker" src={visuals.ai} alt="" width={92} height={92} />
           </h1>
-          <p>选择左侧主题开始学习；右侧对话窗可随时提问、看讲解与小测。</p>
+          <p>{primary ? "挑一个好奇的问题，小智会用故事、例子和小挑战陪你学会它。" : "选择左侧主题开始学习；右侧对话窗可随时提问、看讲解与小测。"}</p>
         </div>
         <button
           className="button secondary"
           type="button"
-          onClick={() => requireLogin(() => navigate("code-lab"))}
+          onClick={() => requireLogin(() => navigate(primary ? "visual-code-lab" : "code-lab"))}
         >
           <Code2 size={16} />
-          打开编程实验
+          {primary ? "去图形编程" : "打开编程实验"}
         </button>
       </header>
 
@@ -114,7 +131,9 @@ export function AiStudioPage({
         ref={layoutRef}
         style={{ gridTemplateColumns: `${railWidth}px 6px minmax(0, 1fr)` }}
       >
-        <aside className="ai-topic-rail" aria-label="推荐学习主题">
+        {primary ? (
+          <PrimaryLearningGuide session={session} navigate={navigate} onAskTopic={askPrimaryTopic} />
+        ) : <aside className="ai-topic-rail" aria-label="推荐学习主题">
           <div className="ai-topic-rail-head">
             <Bot size={16} />
             <strong>主题目录</strong>
@@ -169,7 +188,7 @@ export function AiStudioPage({
           <div className="ai-topic-foot">
             <p>同一时间只展开一个分类；自由提问仍可在右侧输入。</p>
           </div>
-        </aside>
+        </aside>}
 
         <div
           className="ai-studio-resizer"
@@ -215,6 +234,7 @@ export function AiStudioPage({
               onTopicChange={setActiveTopicId}
               seedPrompt={seedPrompt}
               onSeedConsumed={clearSeed}
+              agentCode={primary ? "lower-primary-tutor" : "teaching-assistant"}
             />
           )}
         </div>

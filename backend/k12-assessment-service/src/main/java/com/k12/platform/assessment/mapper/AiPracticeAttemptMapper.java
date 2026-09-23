@@ -15,4 +15,7 @@ public interface AiPracticeAttemptMapper extends BaseMapper<AiPracticeAttempt> {
 
     List<AiPracticeAttempt> findRecentByStudent(@Param("studentUserId") Long studentUserId,
                                                 @Param("limit") int limit);
+
+    int canViewerAccessStudent(@Param("viewerUserId") Long viewerUserId,
+                               @Param("studentUserId") Long studentUserId);
 }

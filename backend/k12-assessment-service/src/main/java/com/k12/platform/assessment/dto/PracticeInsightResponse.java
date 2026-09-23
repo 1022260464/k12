@@ -8,6 +8,9 @@ public record PracticeInsightResponse(
         int sampleCount,
         int averageScorePercent,
         int latestScorePercent,
+        int latestHintCount,
+        long latestDurationMs,
+        String recentErrorType,
         String action,
         String suggestion,
         Instant lastPracticedTime

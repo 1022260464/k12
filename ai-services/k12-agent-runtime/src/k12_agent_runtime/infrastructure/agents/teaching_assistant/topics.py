@@ -1016,8 +1016,181 @@ _PRIVACY_BASICS = Topic(
 )
 
 
+_EMBEDDING_INTRO = Topic(
+    code="machine_learning.embedding_intro",
+    title="向量表示与 Embedding",
+    chapter="把含义变成可以比较的数字",
+    aliases=("embedding", "向量表示", "嵌入表示", "语义向量", "词向量"),
+    lessons=_lessons(
+        strategy="meaning-as-position",
+        goal=(
+            "知道电脑可以用一组数字表示内容。",
+            "能用远近比喻说明相似内容更接近。",
+            "理解 Embedding 用向量承载语义并支持相似度检索。",
+            "能解释向量空间、余弦相似度及表示模型的使用边界。",
+        ),
+        explanation=(
+            "电脑会把图片或文字变成一串数字，方便寻找相像的内容。",
+            "Embedding 像把内容放到一张含义地图上，相似的内容通常离得更近。",
+            "Embedding 把文本等对象编码成定长向量；比较向量相似度，可以做语义搜索与聚类。",
+            "Embedding 是学习得到的稠密向量表示。检索常用余弦相似度，但距离只反映模型学到的表示，不等于事实正确或因果关系。",
+        ),
+        example=(
+            "“小猫”和“猫咪”的数字位置可能很近。",
+            "搜索“怎么照顾宠物”，也能找到没有原句但含义相近的内容。",
+            "把问题与知识片段都编码成向量，再返回相似度最高的片段。",
+            "比较不同 Embedding 模型在领域术语、语言和向量维度上的召回差异。",
+        ),
+        check=(
+            "为什么要把内容变成数字？",
+            "相似内容在含义地图上通常怎样？",
+            "向量相似就一定说明事实正确吗？",
+            "为什么换表示模型后要重新评测或索引？",
+        ),
+    ),
+    questions=_stage_quiz(
+        ("电脑把文字变成一组数字，主要为了？", ("方便比较和寻找相似内容", "让文字消失", "保证永远正确"), "a", "数字表示便于计算相似性。"),
+        ("含义相近的两句话，它们的向量通常？", ("更接近", "一定完全一样", "一定最远"), "a", "Embedding 尝试保留语义相似性。"),
+        ("Embedding 在语义检索中的作用是？", ("把查询和文档编码成可比较向量", "直接证明答案真实", "替代所有数据库"), "a", "向量用于召回相近内容。"),
+        ("余弦相似度较高，最合理的解释是？", ("在当前表示模型下方向较相近", "两段内容事实必然相同", "两段内容存在因果关系"), "a", "相似度是表示空间中的信号，不是事实证明。"),
+    ),
+    common_question=("Embedding 最适合支持哪项能力？", ("语义相似内容检索", "保证回答零错误", "执行任意系统命令"), "a", "Embedding 常用于语义召回。"),
+    challenge=("领域术语召回差，优先怎么改进？", ("用领域评测集比较模型并优化数据", "只调大字体", "删除所有元数据"), "a", "先用代表性评测定位表示质量。"),
+)
+
+
+_RAG_BASICS = Topic(
+    code="generative_ai.rag_basics",
+    title="RAG 检索增强生成",
+    chapter="先查资料，再带着证据回答",
+    aliases=("rag", "检索增强生成", "知识库问答", "向量检索回答"),
+    lessons=_lessons(
+        strategy="retrieve-ground-answer",
+        goal=(
+            "知道回答问题前可以先找资料。",
+            "能说出先检索、再回答、还要核对来源。",
+            "理解 RAG 的检索、上下文组装、生成和引用流程。",
+            "能分析召回、重排、上下文窗口、引用一致性与无证据降级。",
+        ),
+        explanation=(
+            "像回答问题前先翻课本，AI 也可以先找可靠资料再回答。",
+            "RAG 先从知识库找相关内容，再让模型根据找到的资料作答，并显示来源。",
+            "RAG 将检索结果作为上下文交给生成模型；检索不到时应说明没有可靠资料，而不是编造。",
+            "生产 RAG 通常包含混合召回、元数据过滤、重排、上下文构造与引用校验。生成质量上限受检索证据约束。",
+        ),
+        example=(
+            "先在课本找到“小猫图片分类”一页，再用短句回答。",
+            "提问学校规则时，只搜索已审核的校内资料。",
+            "向量和关键词共同召回候选，重排后把实际使用的段落附为引用。",
+            "用命中率、答案忠实度和引用准确率分别评测检索与生成。",
+        ),
+        check=(
+            "回答前为什么要找资料？",
+            "RAG 的第一步是什么？",
+            "检索不到证据时应该怎样？",
+            "为什么只评答案流畅度不够？",
+        ),
+    ),
+    questions=_stage_quiz(
+        ("RAG 回答问题前先做什么？", ("找可靠资料", "随便猜", "删除课本"), "a", "先检索可以给回答提供依据。"),
+        ("资料里没有答案时，更合适的是？", ("说明没有可靠资料", "编一个听起来像真的答案", "隐藏来源"), "a", "无证据时应受控降级。"),
+        ("RAG 中重排的主要作用是？", ("把更相关的候选排在前面", "自动创造新证据", "跳过权限过滤"), "a", "重排提高送入模型的证据质量。"),
+        ("评测 RAG 时应分别关注？", ("检索命中、答案忠实度和引用", "只看回答字数", "只看界面颜色"), "a", "需要拆分链路定位误差。"),
+    ),
+    common_question=("RAG 的核心价值是？", ("让回答尽量依据可追溯资料", "保证模型永不犯错", "让模型直接改成绩"), "a", "证据增强不等于绝对正确。"),
+    challenge=("回答引用了未实际使用的文档，主要问题是？", ("引用不忠实，应做使用证据校验", "引用越多越好", "只需隐藏文档名"), "a", "引用必须对应实际证据。"),
+)
+
+
+_AGENT_BASICS = Topic(
+    code="generative_ai.agents_basics",
+    title="智能体：目标、工具与反馈",
+    chapter="让 AI 按步骤使用工具完成任务",
+    aliases=("智能体", "agent", "ai agent", "工具调用", "智能体流程"),
+    lessons=_lessons(
+        strategy="goal-plan-tool-feedback",
+        goal=(
+            "知道 AI 伙伴可以按步骤使用工具。",
+            "能说出目标、步骤和工具三部分。",
+            "理解智能体的规划、工具调用、状态记忆和反馈循环。",
+            "能设计带权限、确认、可观测性和失败收敛的智能体流程。",
+        ),
+        explanation=(
+            "智能体像会看任务清单的小助手：先知道目标，再选择合适工具，一步步检查结果。",
+            "智能体围绕目标规划步骤、调用工具，并根据工具结果决定下一步。它不能越过权限边界。",
+            "智能体把模型推理与检索、计算、数据库等工具连接起来；需要保存受控状态并处理失败与重试。",
+            "可靠智能体需要状态机、最小权限、结构化工具契约、幂等性、人工确认和全链路观测，不能把自然语言直接当系统命令。",
+        ),
+        example=(
+            "小智先找绘本，再播放朗读，最后检查分类答案。",
+            "学习助手先读课程进度，再选练习工具，完成后推荐下一课。",
+            "一个 RAG 智能体先检索知识、校验引用，再生成带证据回答。",
+            "用 LangGraph 节点表达校验、规划、工具、反馈与终态，并为写操作设置人工确认。",
+        ),
+        check=(
+            "小助手为什么要先知道目标？",
+            "工具返回失败时应该怎样？",
+            "为什么工具调用要有明确参数？",
+            "哪些写操作需要人工确认与幂等保护？",
+        ),
+    ),
+    questions=_stage_quiz(
+        ("智能体做任务前先要知道？", ("目标是什么", "随便点工具", "同学的密码"), "a", "目标决定后续步骤。"),
+        ("工具调用失败时，更合理的是？", ("记录失败并选择受控重试或降级", "假装已经成功", "无限重复"), "a", "失败要可见并有收敛策略。"),
+        ("智能体状态的作用是？", ("记录当前步骤与必要上下文", "存放任意隐私", "绕过权限"), "a", "受控状态帮助流程连续运行。"),
+        ("高风险写操作的可靠设计是？", ("最小权限、幂等和人工确认", "模型说做就直接做", "把密钥写进提示词"), "a", "权限和确认是智能体安全边界。"),
+    ),
+    common_question=("智能体与普通单轮回答的主要差别是？", ("能围绕目标维护状态并使用受控工具", "一定更聪明且不会错", "可以绕过权限"), "a", "关键是流程与工具协作。"),
+    challenge=("智能体重复创建同一任务，最需要补什么？", ("幂等键与结果状态检查", "更长的欢迎语", "去掉所有日志"), "a", "幂等避免重试造成重复副作用。"),
+)
+
+
+_OBJECT_DETECTION = Topic(
+    code="computer_vision.object_detection",
+    title="物体检测",
+    chapter="在图片里找到物体的位置",
+    aliases=("物体检测", "目标检测", "找出图片里的物体", "objectdetection"),
+    lessons=_lessons(
+        strategy="find-name-and-location",
+        goal=(
+            "知道 AI 不只会说图片里有什么，还能指出它在哪里。",
+            "能区分整张图片分类和给物体画框。",
+            "理解检测结果包含类别、位置框和置信度。",
+            "能解释检测标注、IoU、查准率与召回率的基本作用。",
+        ),
+        explanation=(
+            "图片分类像给整张照片贴名字；物体检测还会给小猫画一个框，告诉我们它在图片哪里。",
+            "物体检测会在一张图片中找出一个或多个目标，为每个目标预测类别和位置框。",
+            "检测模型同时回答‘是什么’和‘在哪里’，结果通常包含类别、边界框与置信度；遮挡和小目标更难识别。",
+            "物体检测需要类别与边界框标注。评估时比较预测框和真实框的重叠程度，并综合查准率、召回率与 mAP。",
+        ),
+        example=(
+            "在公园照片里，AI 给小猫画蓝框，给小狗画绿框。",
+            "一张教室图片里可以同时框出书本、桌子和学生。",
+            "摄像头画面中的安全帽检测需要同时返回人员位置和是否佩戴安全帽。",
+            "调整置信度阈值会改变漏检与误检，需要在真实场景数据上评估。",
+        ),
+        check=(
+            "给小猫画框比只说‘有小猫’多回答了什么？",
+            "一张图片里有三只猫，物体检测可以做什么？",
+            "置信度高就一定检测正确吗？",
+            "为什么只看准确率不足以评价检测模型？",
+        ),
+    ),
+    questions=_stage_quiz(
+        ("物体检测除了认出小猫，还会告诉我们？", ("小猫在哪里", "小猫的密码", "照片是谁拍的"), "a", "检测会给出目标类别和位置。"),
+        ("一张图里有猫和狗，物体检测更适合？", ("分别找出并画框", "只给整张图一个名字", "删除其中一个动物"), "a", "检测可以定位多个目标。"),
+        ("检测结果通常不包含哪一项？", ("边界框", "类别", "绝对正确保证"), "c", "检测仍可能误检或漏检。"),
+        ("提高置信度阈值通常会？", ("减少低置信预测并可能增加漏检", "保证召回率上升", "让标注自动正确"), "a", "阈值会影响误检与漏检的平衡。"),
+    ),
+    common_question=("物体检测和图像分类的主要差别是？", ("检测还要定位物体", "检测不需要图片", "分类一定能找到多个位置"), "a", "物体检测同时判断类别与位置。"),
+    challenge=("小猫被盒子挡住一半时经常漏检，下一步更合理的是？", ("补充并检查遮挡场景样例", "隐藏漏检结果", "只换按钮颜色"), "a", "应针对误差场景改进数据并重新评估。"),
+)
+
+
 TOPICS = (
     _IMAGE_CLASSIFICATION,
+    _OBJECT_DETECTION,
     _RESPONSIBLE_AI,
     _TRAIN_TEST_SPLIT,
     _NEURAL_NETWORK_BASICS,
@@ -1033,6 +1206,9 @@ TOPICS = (
     _COPYRIGHT_ORIGINALITY,
     _WHAT_IS_DATA,
     _PRIVACY_BASICS,
+    _EMBEDDING_INTRO,
+    _RAG_BASICS,
+    _AGENT_BASICS,
 )
 
 
@@ -1075,6 +1251,8 @@ def resolve_topic(question: str, context_topic: object) -> Topic | str | None:
             return "searching.linear_search"
         context_text = context_topic.casefold().replace(" ", "")
         for topic in TOPICS:
+            if context_text == topic.code.casefold().replace(" ", ""):
+                return topic
             if any(alias in context_text for alias in topic.aliases):
                 return topic
     return None
@@ -1098,10 +1276,13 @@ def quiz_for(topic: Topic, stage: str, mastery: int | None) -> dict[str, Any]:
         level = "REINFORCE"
         if stage in {"middle_school", "high_school"}:
             question_stage = "upper_primary"
-    questions = [
-        _question(f"{topic.code}.stage", topic.questions[question_stage]),
-        _question(f"{topic.code}.common", topic.common_question),
-    ]
+    if topic.code == "machine_learning.image_classification" and question_stage == "lower_primary":
+        questions = _lower_primary_image_classification_questions(topic.code)
+    else:
+        questions = [
+            _question(f"{topic.code}.stage", topic.questions[question_stage]),
+            _question(f"{topic.code}.common", topic.common_question),
+        ]
     if mastery is not None and mastery >= 80:
         level = "EXTEND"
         questions.append(_question(f"{topic.code}.challenge", topic.challenge))
@@ -1130,3 +1311,54 @@ def _question(identifier: str, data: tuple[str, tuple[str, ...], str, str]) -> d
         "explanation": explanation,
         "points": 10,
     }
+
+
+def _lower_primary_image_classification_questions(topic_code: str) -> list[dict[str, Any]]:
+    """低龄主演示使用的审定图片分类卡；答案仍只由 Assessment 服务判定。"""
+    return [
+        {
+            "id": f"{topic_code}.cat-card",
+            "prompt": "看看图片卡，它应该贴上哪个标签？",
+            "visual": {"kind": "emoji", "value": "🐱", "alt": "一只小猫"},
+            "options": [
+                {"id": "cat", "text": "小猫"},
+                {"id": "dog", "text": "小狗"},
+                {"id": "unsure", "text": "看不清"},
+            ],
+            "correctOptionId": "cat",
+            "hint": "先看图片里最明显的动物特征，再选择对应的名字。",
+            "errorType": "LABEL_MISMATCH",
+            "explanation": "这张卡是小猫。给图片贴上“小猫”标签，就是在准备带标签的学习例子。",
+            "points": 10,
+        },
+        {
+            "id": f"{topic_code}.dog-card",
+            "prompt": "再看一张图片卡，这次选哪个标签？",
+            "visual": {"kind": "emoji", "value": "🐶", "alt": "一只小狗"},
+            "options": [
+                {"id": "cat", "text": "小猫"},
+                {"id": "dog", "text": "小狗"},
+                {"id": "unsure", "text": "看不清"},
+            ],
+            "correctOptionId": "dog",
+            "hint": "比较耳朵、脸和嘴巴等线索，再选择标签。",
+            "errorType": "LABEL_MISMATCH",
+            "explanation": "这张卡是小狗。很多正确标注的猫狗图片能帮助 AI 学习不同线索。",
+            "points": 10,
+        },
+        {
+            "id": f"{topic_code}.blur-card",
+            "prompt": "图片太模糊，AI 和你都看不清时，怎样做更合适？",
+            "visual": {"kind": "emoji", "value": "🌫️❓", "alt": "一张模糊的未知动物图片"},
+            "options": [
+                {"id": "guess", "text": "随便猜一个"},
+                {"id": "check", "text": "先标成看不清，再请老师核对"},
+                {"id": "always", "text": "相信 AI 一定正确"},
+            ],
+            "correctOptionId": "check",
+            "hint": "看不清时，不必硬猜；想想怎样表达不确定。",
+            "errorType": "UNCERTAINTY_HANDLING",
+            "explanation": "机器也会猜错。看不清时先说明不确定，再找老师或清楚图片核对。",
+            "points": 10,
+        },
+    ]

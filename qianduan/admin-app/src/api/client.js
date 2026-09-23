@@ -129,6 +129,54 @@ export const coursesApi = {
   chapterAttachments: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/attachments`),
 };
 
+export const visualMissionsApi = {
+  list: (filters = {}) => api(`/api/v1/learning/visual-programming/admin/missions?${query(filters)}`),
+  get: (id) => api(`/api/v1/learning/visual-programming/admin/missions/${id}`),
+  templates: () => api("/api/v1/learning/visual-programming/admin/templates"),
+  create: (body) => api("/api/v1/learning/visual-programming/admin/missions", {
+    method: "POST", body: JSON.stringify(body),
+  }),
+  update: (id, body) => api(`/api/v1/learning/visual-programming/admin/missions/${id}`, {
+    method: "PUT", body: JSON.stringify(body),
+  }),
+  duplicate: (id, body) => api(`/api/v1/learning/visual-programming/admin/missions/${id}/duplicate`, {
+    method: "POST", body: JSON.stringify(body),
+  }),
+  publish: (id) => api(`/api/v1/learning/visual-programming/admin/missions/${id}/publish`, { method: "POST" }),
+  offline: (id) => api(`/api/v1/learning/visual-programming/admin/missions/${id}/offline`, { method: "POST" }),
+  reorder: (items) => api("/api/v1/learning/visual-programming/admin/missions/order", {
+    method: "PUT", body: JSON.stringify({ items }),
+  }),
+  remove: (id) => api(`/api/v1/learning/visual-programming/admin/missions/${id}`, { method: "DELETE" }),
+};
+
+export const pictureBooksAdminApi = {
+  list: () => api("/api/v1/learning/picture-books/admin"),
+  get: (id) => api(`/api/v1/learning/picture-books/admin/${id}`),
+  create: (body) => api("/api/v1/learning/picture-books/admin", {
+    method: "POST", body: JSON.stringify(body),
+  }),
+  update: (id, body) => api(`/api/v1/learning/picture-books/admin/${id}`, {
+    method: "PUT", body: JSON.stringify(body),
+  }),
+  submit: (id) => api(`/api/v1/learning/picture-books/admin/${id}/submit`, { method: "POST" }),
+  approve: (id, note = "") => api(`/api/v1/learning/picture-books/admin/${id}/approve`, {
+    method: "POST", body: JSON.stringify({ note }),
+  }),
+  reject: (id, note) => api(`/api/v1/learning/picture-books/admin/${id}/reject`, {
+    method: "POST", body: JSON.stringify({ note }),
+  }),
+  publish: (id) => api(`/api/v1/learning/picture-books/admin/${id}/publish`, { method: "POST" }),
+  offline: (id) => api(`/api/v1/learning/picture-books/admin/${id}/offline`, { method: "POST" }),
+  remove: (id) => api(`/api/v1/learning/picture-books/admin/${id}`, { method: "DELETE" }),
+};
+
+export const learningEvidenceApi = {
+  get: (studentUserId, limit = 20) => api(
+    `/api/v1/assessments/practice-attempts/students/${studentUserId}/evidence?${query({ limit })}`,
+  ),
+};
+
 export const teachingResourcesApi = {
   page: (filters = {}) => api(`/api/v1/learning/teaching-resources?${query(filters)}`),
   get: (id) => api(`/api/v1/learning/teaching-resources/${id}`),
@@ -150,6 +198,10 @@ export const teachingResourcesApi = {
   download: (id) => api(`/api/v1/learning/teaching-resources/${id}/download-url`),
   events: (id) => api(`/api/v1/learning/teaching-resources/${id}/events`),
   reopen: (id) => api(`/api/v1/learning/teaching-resources/${id}/reopen`, { method: "POST" }),
+  searchTest: (body) => api("/api/v1/learning/teaching-resources/search-test", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
 };
 
 export const knowledgeGraphApi = {

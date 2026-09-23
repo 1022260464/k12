@@ -32,6 +32,30 @@ export async function api(path, options = {}) {
   return payload?.data;
 }
 
+async function apiBlob(path, options = {}) {
+  const session = JSON.parse(readAuthRaw() || "null");
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    if (response.status === 401) clearAuthRaw();
+    const payload = await response.json().catch(() => null);
+    const error = new Error(friendlyRequestMessage(response.status, payload?.message));
+    error.status = response.status;
+    throw error;
+  }
+  return {
+    blob: await response.blob(),
+    model: response.headers.get("X-Speech-Model"),
+    voice: response.headers.get("X-Speech-Voice"),
+  };
+}
+
 /** 学生端展示用：去掉 HTTP 状态码与技术异常原文 */
 function friendlyRequestMessage(status, payloadMessage) {
   const raw = String(payloadMessage || "").trim();
@@ -79,6 +103,10 @@ export const coursesApi = {
   chapterAttachments: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/attachments`),
   list: () => api("/api/v1/learning/courses"),
   recommended: (limit = 8) => api(`/api/v1/learning/courses/recommended?${query({ limit })}`),
+  personalized: (mastery, limit = 6) => api("/api/v1/learning/courses/personalized", {
+    method: "POST",
+    body: JSON.stringify({ mastery, limit }),
+  }),
   page: (filters = {}) => api(`/api/v1/learning/courses/page?${query(filters)}`),
   history: (limit = 10) => api(`/api/v1/learning/history/me?${query({ limit })}`),
   get: (id) => api(`/api/v1/learning/courses/${id}`),
@@ -86,11 +114,17 @@ export const coursesApi = {
   chapter: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`),
   sections: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections`),
   section: (courseId, chapterId, sectionId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}`),
+  sectionActivities: (courseId, chapterId, sectionId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/activities`),
   enrollment: (courseId) => api(`/api/v1/learning/courses/${courseId}/enrollment`),
   enroll: (courseId) => api(`/api/v1/learning/courses/${courseId}/enrollment`, { method: "PUT" }),
   withdraw: (courseId) => api(`/api/v1/learning/courses/${courseId}/enrollment`, { method: "DELETE" }),
   progress: (courseId) => api(`/api/v1/learning/courses/${courseId}/progress`),
   updateProgress: (courseId, chapterId, progressPercent) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}/progress`, { method: "PUT", body: JSON.stringify({ progressPercent }) }),
+};
+
+export const pictureBooksApi = {
+  published: () => api("/api/v1/learning/picture-books/published", { public: true }),
+  getPublished: (bookCode) => api(`/api/v1/learning/picture-books/published/${encodeURIComponent(bookCode)}`, { public: true }),
 };
 
 export const teachingResourcesApi = {
@@ -101,6 +135,16 @@ export const teachingResourcesApi = {
 
 export const leaderboardApi = {
   get: (limit = 20) => api(`/api/v1/learning/leaderboard?${query({ limit })}`),
+};
+
+export const visualProgrammingApi = {
+  missions: () => api("/api/v1/learning/visual-programming/missions/published", { public: true }),
+  mission: (missionCode) => api(`/api/v1/learning/visual-programming/missions/published/${encodeURIComponent(missionCode)}`, { public: true }),
+  mine: () => api("/api/v1/learning/visual-programming/projects/me"),
+  save: (missionCode, workspace) => api(
+    `/api/v1/learning/visual-programming/projects/${encodeURIComponent(missionCode)}`,
+    { method: "PUT", body: JSON.stringify({ workspace }) },
+  ),
 };
 
 export const homeworksApi = {
@@ -134,6 +178,15 @@ export const knowledgeGraphApi = {
     return data;
   },
   points: (filters = {}) => api(`/api/v1/learning/knowledge-graph/points?${query(filters)}`),
+  prerequisiteGaps: (code, mastery = []) => {
+    const params = new URLSearchParams();
+    mastery.forEach((item) => {
+      if (!item?.knowledgeCode || item.masteryPercent == null) return;
+      params.append("mastery", `${item.knowledgeCode}:${item.masteryPercent}`);
+    });
+    const suffix = params.toString();
+    return api(`/api/v1/learning/knowledge-graph/points/${encodeURIComponent(code)}/prerequisite-gaps${suffix ? `?${suffix}` : ""}`);
+  },
   recommendNext: (body) => api("/api/v1/learning/knowledge-graph/recommendations/next", {
     method: "POST",
     body: JSON.stringify(body),
@@ -153,6 +206,13 @@ export const agentsApi = {
   ),
   cancel: (runId) => api(`/api/v1/agents/runs/${runId}/cancel`, { method: "POST" }),
   retry: (runId) => api(`/api/v1/agents/runs/${runId}/retry`, { method: "POST" }),
+};
+
+export const speechApi = {
+  synthesize: (text) => apiBlob("/api/v1/agents/speech/synthesize", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  }),
 };
 
 export { AUTH_STORAGE_KEY };

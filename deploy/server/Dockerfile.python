@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1.7
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM ${UV_IMAGE}
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH=/opt/venv/bin:$PATH
+
+WORKDIR /app
+COPY ai-services/k12-agent-runtime/pyproject.toml ./
+COPY ai-services/k12-agent-runtime/uv.lock ./
+COPY ai-services/k12-agent-runtime/README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY ai-services/k12-agent-runtime/src ./src
+RUN uv sync --frozen --no-dev
+
+RUN useradd --system --create-home --uid 10001 k12 \
+    && chown -R k12:k12 /app /opt/venv
+USER k12
+EXPOSE 8090
+CMD ["k12-agent-runtime"]
+

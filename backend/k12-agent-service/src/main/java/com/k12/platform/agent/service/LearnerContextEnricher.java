@@ -38,6 +38,7 @@ public class LearnerContextEnricher {
 
     private static final Logger log = LoggerFactory.getLogger(LearnerContextEnricher.class);
     private static final String TEACHING_ASSISTANT = "teaching-assistant";
+    private static final String LOWER_PRIMARY_TUTOR = "lower-primary-tutor";
     private static final int RECENT_RESULT_LIMIT = 5;
     private static final int MAX_FEEDBACK_LENGTH = 200;
     private static final BigDecimal WEAK_SCORE_THRESHOLD = new BigDecimal("60");
@@ -72,7 +73,7 @@ public class LearnerContextEnricher {
         Map<String, Object> context = requestContext == null
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(requestContext);
-        if (!TEACHING_ASSISTANT.equals(agentCode)) {
+        if (!TEACHING_ASSISTANT.equals(agentCode) && !LOWER_PRIMARY_TUTOR.equals(agentCode)) {
             return context;
         }
 

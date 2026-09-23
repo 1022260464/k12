@@ -2,6 +2,12 @@
 
 export const TOPIC_CATEGORIES = [
   {
+    id: "picture-books",
+    label: "互动绘本",
+    blurb: "听故事、看图片、做挑战",
+    tone: "sand",
+  },
+  {
     id: "algorithm",
     label: "算法入门",
     blurb: "排序、查找与步骤",
@@ -25,9 +31,23 @@ export const TOPIC_CATEGORIES = [
     blurb: "认识数据并保护自己",
     tone: "leaf",
   },
+  {
+    id: "systems",
+    label: "可信 AI 应用",
+    blurb: "Embedding、RAG 与智能体",
+    tone: "sky",
+  },
 ];
 
 export const TEACHING_TOPICS = [
+  {
+    id: "cat-picture-book",
+    category: "picture-books",
+    label: "AI 为什么能认出小猫",
+    hint: "绘本朗读 + 图片分类游戏",
+    route: "cat-lesson",
+    audiences: ["primary"],
+  },
   {
     id: "what-is-algorithm",
     category: "algorithm",
@@ -106,6 +126,14 @@ export const TEACHING_TOPICS = [
     prompt: "图像分类怎么学？",
   },
   {
+    id: "object-detection",
+    category: "ml",
+    label: "AI 怎样找到图片里的物体",
+    hint: "找位置 + 画框 + 小测",
+    prompt: "物体检测是什么？",
+    code: "computer_vision.object_detection",
+  },
+  {
     id: "train-test",
     category: "ml",
     label: "训练集与测试集",
@@ -175,11 +203,57 @@ export const TEACHING_TOPICS = [
     hint: "逐步讲解 + 小测",
     prompt: "隐私保护要注意什么？",
   },
+  {
+    id: "embedding-intro",
+    category: "systems",
+    label: "Embedding 向量表示",
+    hint: "高中 · 逐步讲解 + 小测",
+    prompt: "Embedding 向量表示是什么？",
+    audiences: ["teen"],
+  },
+  {
+    id: "rag-basics",
+    category: "systems",
+    label: "RAG 检索增强生成",
+    hint: "高中 · 证据流程 + 小测",
+    prompt: "RAG 检索增强生成怎么工作？",
+    audiences: ["teen"],
+  },
+  {
+    id: "agent-basics",
+    category: "systems",
+    label: "智能体目标与工具",
+    hint: "高中 · 流程设计 + 小测",
+    prompt: "AI 智能体怎样使用目标、工具和反馈？",
+    audiences: ["teen"],
+  },
 ];
 
-export function topicsByCategory() {
+export function topicsByCategory(audience) {
   return TOPIC_CATEGORIES.map((category) => ({
     ...category,
-    topics: TEACHING_TOPICS.filter((topic) => topic.category === category.id),
+    topics: TEACHING_TOPICS.filter((topic) => (
+      topic.category === category.id
+      && (!audience || !topic.audiences || topic.audiences.includes(audience))
+    )),
   })).filter((group) => group.topics.length > 0);
+}
+
+const TOPIC_CODES = Object.freeze({
+  "image-classification": "machine_learning.image_classification",
+  "object-detection": "computer_vision.object_detection",
+  "train-test": "machine_learning.train_test_split",
+  "neural-network": "machine_learning.neural_network_basics",
+  "supervised-learning": "machine_learning.supervised_learning",
+});
+
+export function topicCodeForId(topicId) {
+  const topic = TEACHING_TOPICS.find((item) => item.id === topicId);
+  return topic?.code || TOPIC_CODES[topicId] || null;
+}
+
+export function topicIdForKnowledgeCode(code) {
+  if (!code) return null;
+  const topic = TEACHING_TOPICS.find((item) => (item.code || TOPIC_CODES[item.id]) === code);
+  return topic?.id || null;
 }
