@@ -2,6 +2,7 @@ import { ArrowLeft, CheckCircle2, ChevronDown, LoaderCircle } from "lucide-react
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi } from "../api/client.js";
 import { CourseAttachmentList } from "./CourseAttachmentList.jsx";
+import { CourseActivityList } from "./CourseActivityList.jsx";
 import { HtmlContent } from "./HtmlContent.jsx";
 
 /**
@@ -15,6 +16,7 @@ export function CourseReader({
   onBack,
   onCompleted,
   onSelectChapter,
+  onLaunchActivity,
 }) {
   const [sectionsByChapter, setSectionsByChapter] = useState({});
   const [chapterDetails, setChapterDetails] = useState({});
@@ -22,6 +24,7 @@ export function CourseReader({
   const [active, setActive] = useState(null);
   const [body, setBody] = useState(null);
   const [visitedByChapter, setVisitedByChapter] = useState({});
+  const [activities, setActivities] = useState([]);
   const [loadingToc, setLoadingToc] = useState(true);
   const [loadingBody, setLoadingBody] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +49,7 @@ export function CourseReader({
     setVisitedByChapter({});
     setActive(null);
     setBody(null);
+    setActivities([]);
 
     (async () => {
       try {
@@ -92,6 +96,7 @@ export function CourseReader({
       const detail = await ensureChapterDetail(chapterId);
       setActive({ type: "chapter", chapterId });
       setBody({ title: detail.title, content: detail.content || "" });
+      setActivities([]);
       if (syncRoute) onSelectChapter?.(chapters.find((item) => item.id === chapterId));
     } catch (requestError) {
       setError(requestError.message);
@@ -104,9 +109,13 @@ export function CourseReader({
     setLoadingBody(true);
     setError("");
     try {
-      const section = await coursesApi.section(courseId, chapterId, sectionId);
+      const [section, sectionActivities] = await Promise.all([
+        coursesApi.section(courseId, chapterId, sectionId),
+        coursesApi.sectionActivities(courseId, chapterId, sectionId),
+      ]);
       setActive({ type: "section", chapterId, sectionId });
       setBody({ title: section.title, content: section.content || "" });
+      setActivities(sectionActivities);
       setVisitedByChapter((current) => {
         const prev = current[chapterId] || [];
         return {
@@ -233,6 +242,9 @@ export function CourseReader({
             ) : (
               !loadingToc && <p className="inline-empty">本章尚未添加教学内容，请联系教师。</p>
             )}
+            {active?.type === "section" ? (
+              <CourseActivityList activities={activities} onLaunch={onLaunchActivity} />
+            ) : null}
             {activeChapterId ? <CourseAttachmentList courseId={courseId} chapterId={activeChapterId} /> : null}
             {activeChapterId && (body?.content || sections.length > 0) ? (
               <button

@@ -118,6 +118,68 @@ buffer = BytesIO()
 fig.savefig(buffer, format="png", dpi=100)
 display(Image(data=buffer.getvalue()))
 plt.close(fig)` },
+  { id: "embedding-similarity", label: "Embedding 相似度", code: `# 实验目标：观察向量方向如何影响余弦相似度
+# 这里使用审定的小向量演示公式，不调用外部模型。
+from math import sqrt
+
+vectors = {
+    "小猫": [0.95, 0.80, 0.10],
+    "小狗": [0.90, 0.75, 0.15],
+    "数据库": [0.10, 0.20, 0.95],
+}
+
+def cosine(left, right):
+    dot = sum(a * b for a, b in zip(left, right))
+    length_left = sqrt(sum(value * value for value in left))
+    length_right = sqrt(sum(value * value for value in right))
+    return dot / (length_left * length_right)
+
+query = vectors["小猫"]
+for name in ("小狗", "数据库"):
+    score = cosine(query, vectors[name])
+    print(f"小猫 与 {name} 的余弦相似度: {score:.3f}")
+
+print("解释：越接近 1 表示方向越相似，但相似不等于事实正确。")` },
+  { id: "rag-retrieval", label: "RAG 检索与引用", code: `# 实验目标：只根据检索到的证据回答，并保留引用编号。
+documents = [
+    {"id": "D1", "text": "训练集用于让模型学习规律。"},
+    {"id": "D2", "text": "测试集用于评估模型对未见数据的表现。"},
+    {"id": "D3", "text": "不要把测试集答案提前泄露给训练过程。"},
+]
+question = "测试集有什么作用"
+keywords = {"测试集", "作用", "评估"}
+
+ranked = sorted(
+    documents,
+    key=lambda item: sum(word in item["text"] for word in keywords),
+    reverse=True,
+)
+evidence = [item for item in ranked if any(word in item["text"] for word in keywords)][:2]
+
+print("检索证据:")
+for item in evidence:
+    print(f"[{item['id']}] {item['text']}")
+print("回答: 测试集用来评估模型面对未见数据时的表现。[D2]")
+print("核验: 回答中的核心结论可在 D2 找到；没有证据时应拒绝编造。")` },
+  { id: "agent-tool-loop", label: "智能体工具循环", code: `# 实验目标：用有限状态和白名单工具观察智能体的计划、执行、反馈。
+TOOLS = {
+    "lookup_weather": lambda city: f"{city}今天 24°C，晴",
+    "make_reminder": lambda text: f"已生成待确认提醒：{text}",
+}
+
+state = {"goal": "查天气后准备提醒", "city": "杭州", "approved": False}
+trace = []
+
+trace.append(("PLAN", "先查天气，再生成提醒草稿"))
+weather = TOOLS["lookup_weather"](state["city"])
+trace.append(("TOOL", weather))
+draft = TOOLS["make_reminder"]("明早出门前查看天气")
+trace.append(("FEEDBACK", draft))
+trace.append(("HUMAN_CHECK", "未获人工确认，不发送真实提醒"))
+
+for step, detail in trace:
+    print(f"{step:12} | {detail}")
+print("结果：工具有白名单，外部写操作需要人工确认，重复执行也应有幂等保护。")` },
 ];
 
 const INITIAL_CODE = CODE_EXAMPLES[0].code;

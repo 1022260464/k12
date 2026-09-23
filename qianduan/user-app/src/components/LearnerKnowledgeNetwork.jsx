@@ -1,4 +1,4 @@
-import { BookOpen, Compass, LoaderCircle, Network, Sparkles } from "lucide-react";
+import { BookOpen, ChevronDown, Compass, LoaderCircle, Network, Sparkles, Target } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { GraphChart } from "echarts/charts";
@@ -6,6 +6,7 @@ import { TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { knowledgeGraphApi, coursesApi } from "../api/client.js";
 import { readKnowledgeGraphOverviewCache } from "../utils/knowledgeGraphCache.js";
+import { EXPERIENCE } from "../experience/experience.js";
 
 echarts.use([GraphChart, TooltipComponent, CanvasRenderer]);
 
@@ -18,7 +19,8 @@ const RELATED_COLOR = "#98a2b3";
  * 学生端：基于已学掌握度 + 图数据库邻居，展示关联知识网络，并推荐下一知识点与课程章节。
  * 不向学生展示内部 knowledge code。
  */
-export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, onPractice }) {
+export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, onPractice, experience = EXPERIENCE.TEEN }) {
+  const primary = experience === EXPERIENCE.PRIMARY;
   const cachedOverview = readKnowledgeGraphOverviewCache();
   const [overview, setOverview] = useState(cachedOverview);
   const [topicRecs, setTopicRecs] = useState([]);
@@ -152,8 +154,8 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
       <section className="report-panel learner-kg-panel">
         <header>
           <div>
-            <h2>我的知识网络</h2>
-            <p>根据已学内容找出相关主题，并推荐下一步练习与课程。</p>
+            <h2>{primary ? "正在准备下一步" : "我的知识网络"}</h2>
+            <p>{primary ? "小智正在整理练习记录和课程建议。" : "根据已学内容找出相关主题，并推荐下一步练习与课程。"}</p>
           </div>
         </header>
         <div className="learner-kg-loading"><LoaderCircle size={20} className="spin" />知识网络加载中…</div>
@@ -166,8 +168,8 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
       <section className="report-panel learner-kg-panel">
         <header>
           <div>
-            <h2>我的知识网络</h2>
-            <p>根据已学内容找出相关主题，并推荐下一步练习与课程。</p>
+            <h2>{primary ? "下一步学习" : "我的知识网络"}</h2>
+            <p>{primary ? "学习建议暂时无法读取。" : "根据已学内容找出相关主题，并推荐下一步练习与课程。"}</p>
           </div>
         </header>
         <p className="learner-kg-empty">{error}</p>
@@ -177,92 +179,115 @@ export function LearnerKnowledgeNetwork({ mastery = [], history = [], navigate, 
 
   const hasMastery = masteryHints.length > 0;
 
+  const recommendations = (
+    <div className="learner-recommendations">
+      <section className="learner-next-card">
+        <header><Target size={15} /><strong>{primary ? "下一步学什么" : "推荐知识点"}</strong></header>
+        {topicRecs.length ? (
+          <ul className="learner-rec-list">
+            {topicRecs.map((item) => (
+              <li key={item.code}>
+                <button type="button" onClick={() => setSelectedCode(item.code)}>
+                  <strong>{item.title || titleByCode.get(item.code) || "相关主题"}</strong>
+                  <small>{humanizeReason(item.reason)}</small>
+                </button>
+                {onPractice && (
+                  <button
+                    className="button secondary compact"
+                    type="button"
+                    onClick={() => onPractice(item.title || titleByCode.get(item.code) || "")}
+                  >
+                    <Compass size={13} />去学习
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="learner-kg-empty">
+            {hasMastery ? "暂无明确的下一主题推荐，可继续巩固已学内容。" : "完成一次课堂小测后，小智会安排下一步。"}
+          </p>
+        )}
+      </section>
+
+      <section>
+        <header><BookOpen size={15} /><strong>推荐课程章节</strong></header>
+        {courseRecs.length ? (
+          <ul className="learner-rec-list course">
+            {courseRecs.map((item) => (
+              <li key={`${item.courseId}-${item.chapterId}`}>
+                <div>
+                  <strong>{item.courseTitle}</strong>
+                  <small>{item.chapterTitle}{item.matchedTitle ? ` · 关联「${item.matchedTitle}」` : ""}</small>
+                </div>
+                <button
+                  className="button secondary compact"
+                  type="button"
+                  onClick={() => navigate?.(`courses/${item.courseId}/chapters/${item.chapterId}`)}
+                >
+                  去学习
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="learner-kg-empty">暂无匹配课程章节，可先在课程中心浏览。</p>
+        )}
+      </section>
+    </div>
+  );
+
+  const graph = (
+    <div className="learner-kg-graph-block">
+      <div className="learner-kg-legend">
+        <span><i style={{ background: MASTERED_COLOR }} />已掌握</span>
+        <span><i style={{ background: LEARNING_COLOR }} />练习中</span>
+        <span><i style={{ background: NEXT_COLOR }} />推荐主题</span>
+        <span><i style={{ background: RELATED_COLOR }} />关联知识点</span>
+      </div>
+      <LearnerForceGraph
+        nodes={subgraph.nodes}
+        links={subgraph.links}
+        selectedCode={selectedCode}
+        onSelect={setSelectedCode}
+        emptyHint={hasMastery ? "相关主题还不够，再完成几次小测后再来看看" : "先完成几次课堂小测，再回来看知识网络"}
+      />
+    </div>
+  );
+
   return (
-    <section className="report-panel learner-kg-panel">
+    <section className={`report-panel learner-kg-panel ${primary ? "primary-mode" : "teen-mode"}`}>
       <header>
         <div>
-          <h2>我的知识网络</h2>
+          <h2>{primary ? "小智为你安排的下一步" : "我的知识网络"}</h2>
           <p>
-            {hasMastery
-              ? "绿色为已掌握，蓝色为练习中，橙色为推荐下一主题；点选主题可查看相关内容。"
-              : "完成 AI 助教小测后，这里会根据掌握情况展示相关主题。"}
+            {primary
+              ? "根据最近练习找到薄弱点，再推荐适合的知识和课程。"
+              : hasMastery
+                ? "绿色为已掌握，蓝色为练习中，橙色为推荐下一主题。"
+                : "完成 AI 助教小测后，这里会根据掌握情况展示相关主题。"}
           </p>
         </div>
-        <strong><Network size={18} /></strong>
+        <strong>{primary ? <Sparkles size={18} /> : <Network size={18} />}</strong>
       </header>
 
-      <div className="learner-kg-body">
-        <LearnerForceGraph
-          nodes={subgraph.nodes}
-          links={subgraph.links}
-          selectedCode={selectedCode}
-          onSelect={setSelectedCode}
-          emptyHint={hasMastery ? "相关主题还不够，再完成几次小测后再来看看" : "先完成几次课堂小测，再回来看知识网络"}
-        />
-
-        <aside className="learner-kg-side">
-          <div className="learner-kg-legend">
-            <span><i style={{ background: MASTERED_COLOR }} />已掌握</span>
-            <span><i style={{ background: LEARNING_COLOR }} />练习中</span>
-            <span><i style={{ background: NEXT_COLOR }} />推荐主题</span>
-            <span><i style={{ background: RELATED_COLOR }} />关联知识点</span>
-          </div>
-
-          <section>
-            <header><Sparkles size={15} /><strong>推荐知识点</strong></header>
-            {topicRecs.length ? (
-              <ul className="learner-rec-list">
-                {topicRecs.map((item) => (
-                  <li key={item.code}>
-                    <button type="button" onClick={() => setSelectedCode(item.code)}>
-                      <strong>{item.title || titleByCode.get(item.code) || "相关主题"}</strong>
-                      <small>{humanizeReason(item.reason)}</small>
-                    </button>
-                    {onPractice && (
-                      <button
-                        className="button secondary compact"
-                        type="button"
-                        onClick={() => onPractice(item.title || titleByCode.get(item.code) || "")}
-                      >
-                        <Compass size={13} />去练习
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="learner-kg-empty">
-                {hasMastery ? "暂无明确的下一主题推荐，可继续巩固已学内容。" : "暂无推荐，完成练习后会生成。"}
-              </p>
-            )}
-          </section>
-
-          <section>
-            <header><BookOpen size={15} /><strong>推荐课程章节</strong></header>
-            {courseRecs.length ? (
-              <ul className="learner-rec-list course">
-                {courseRecs.map((item) => (
-                  <li key={`${item.courseId}-${item.chapterId}`}>
-                    <div>
-                      <strong>{item.courseTitle}</strong>
-                      <small>{item.chapterTitle}{item.matchedTitle ? ` · 关联「${item.matchedTitle}」` : ""}</small>
-                    </div>
-                    <button
-                      className="button secondary compact"
-                      type="button"
-                      onClick={() => navigate?.(`courses/${item.courseId}/chapters/${item.chapterId}`)}
-                    >
-                      去学习
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="learner-kg-empty">暂无匹配课程章节，可先在课程中心浏览。</p>
-            )}
-          </section>
-        </aside>
-      </div>
+      {primary ? (
+        <>
+          {recommendations}
+          <details className="learner-disclosure learner-graph-disclosure">
+            <summary><span><Network size={16} />查看我的知识网络</span><ChevronDown size={16} /></summary>
+            {graph}
+          </details>
+        </>
+      ) : (
+        <>
+          {graph}
+          <details className="learner-disclosure learner-rec-disclosure">
+            <summary><span><Sparkles size={16} />查看推荐知识点与课程</span><ChevronDown size={16} /></summary>
+            {recommendations}
+          </details>
+        </>
+      )}
     </section>
   );
 }

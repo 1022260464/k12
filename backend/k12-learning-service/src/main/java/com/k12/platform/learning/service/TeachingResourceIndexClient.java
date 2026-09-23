@@ -13,6 +13,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class TeachingResourceIndexClient {
@@ -68,6 +70,22 @@ public class TeachingResourceIndexClient {
         }
     }
 
+    public SearchResult search(SearchRequest request) {
+        requireKey();
+        try {
+            RemoteSearchResponse response = client.post().uri("/internal/v1/rag/search")
+                    .header("X-Internal-Api-Key", apiKey)
+                    .body(request)
+                    .retrieve().body(RemoteSearchResponse.class);
+            if (response == null || response.code() != 200 || response.data() == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "知识库检索响应无效");
+            }
+            return response.data();
+        } catch (RestClientResponseException | ResourceAccessException error) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Python 知识库服务暂不可用");
+        }
+    }
+
     private void requireKey() {
         if (!StringUtils.hasText(apiKey)) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -93,6 +111,14 @@ public class TeachingResourceIndexClient {
                                String description) {}
     public record IndexedResult(String documentId, int chunkCount, String embeddingModel) {}
     public record RemoteResponse(int code, String message, IndexedResult data) {}
+    public record SearchRequest(String query, Integer candidateCount, Integer topK,
+                                String stageCode, String grade, String textbook,
+                                String knowledgeCode) {}
+    public record SearchHit(String documentId, String text, double rerankScore,
+                            Map<String, Object> metadata, Double retrievalScore) {}
+    public record SearchResult(String query, String embeddingModel, int candidateCount,
+                               List<SearchHit> documents) {}
+    public record RemoteSearchResponse(int code, String message, SearchResult data) {}
 
     public static class IndexOutcomeUnknownException extends RuntimeException {
         public IndexOutcomeUnknownException() {

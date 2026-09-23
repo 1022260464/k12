@@ -80,6 +80,7 @@ class AgentServletSecurityTest {
     void invokePermissionMatchesRunCommands() throws Exception {
         expect("/api/v1/agents/demo-chart/runs", "invoker", 200);
         expect("/api/v1/agents/code-executions", "invoker", 200);
+        expect("/api/v1/agents/speech/synthesize", "invoker", 200);
         expect("/api/v1/agents/runs/run-1/cancel", "invoker", 200);
         expect("/api/v1/agents/runs/run-1/retry", "invoker", 200);
     }
@@ -89,6 +90,7 @@ class AgentServletSecurityTest {
     void createPermissionCannotCancelRun() throws Exception {
         expect("/api/v1/agents/runs/run-1/cancel", "creator", 403);
         expect("/api/v1/agents/code-executions", "creator", 403);
+        expect("/api/v1/agents/speech/synthesize", "creator", 403);
     }
 
     @Test
@@ -96,6 +98,7 @@ class AgentServletSecurityTest {
     void adminCanInvokeRuns() throws Exception {
         expect("/api/v1/agents/demo-chart/runs", "admin", 200);
         expect("/api/v1/agents/code-executions", "admin", 200);
+        expect("/api/v1/agents/speech/synthesize", "admin", 200);
         expect("/api/v1/agents/runs/run-1/cancel", "admin", 200);
         expect("/api/v1/agents/runs/run-1/retry", "admin", 200);
     }

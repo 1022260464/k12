@@ -1,0 +1,20 @@
+# syntax=docker/dockerfile:1.7
+ARG NODE_IMAGE=node:20-alpine
+ARG NGINX_IMAGE=nginx:1.27-alpine
+
+FROM ${NODE_IMAGE} AS builder
+WORKDIR /workspace/qianduan
+RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
+COPY qianduan/package.json qianduan/pnpm-lock.yaml qianduan/pnpm-workspace.yaml ./
+COPY qianduan/user-app/package.json ./user-app/package.json
+COPY qianduan/admin-app/package.json ./admin-app/package.json
+RUN pnpm install --frozen-lockfile
+COPY qianduan/ ./
+RUN pnpm build:user && pnpm build:admin
+
+FROM ${NGINX_IMAGE}
+COPY deploy/server/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /workspace/qianduan/user-app/dist /usr/share/nginx/user
+COPY --from=builder /workspace/qianduan/admin-app/dist /usr/share/nginx/admin
+EXPOSE 80 8088
+

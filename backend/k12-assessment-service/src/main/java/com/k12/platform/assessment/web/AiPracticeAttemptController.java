@@ -4,12 +4,17 @@ import com.k12.platform.assessment.dto.PracticeAttemptRequest;
 import com.k12.platform.assessment.dto.PracticeAttemptResponse;
 import com.k12.platform.assessment.dto.PracticeInsightResponse;
 import com.k12.platform.assessment.dto.KnowledgeMasteryResponse;
+import com.k12.platform.assessment.dto.StudentLearningEvidenceResponse;
 import com.k12.platform.assessment.service.AiPracticeAttemptService;
 import com.k12.platform.assessment.service.PracticeInsightService;
 import com.k12.platform.assessment.service.KnowledgeMasteryService;
+import com.k12.platform.assessment.service.StudentLearningEvidenceService;
 import com.k12.platform.common.api.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -29,12 +34,15 @@ public class AiPracticeAttemptController {
     private final AiPracticeAttemptService service;
     private final PracticeInsightService insightService;
     private final KnowledgeMasteryService masteryService;
+    private final StudentLearningEvidenceService evidenceService;
 
     public AiPracticeAttemptController(AiPracticeAttemptService service, PracticeInsightService insightService,
-                                       KnowledgeMasteryService masteryService) {
+                                       KnowledgeMasteryService masteryService,
+                                       StudentLearningEvidenceService evidenceService) {
         this.service = service;
         this.insightService = insightService;
         this.masteryService = masteryService;
+        this.evidenceService = evidenceService;
     }
 
     @PostMapping
@@ -55,6 +63,13 @@ public class AiPracticeAttemptController {
     @GetMapping("/me/mastery")
     public ApiResponse<List<KnowledgeMasteryResponse>> mastery() {
         return ApiResponse.ok(masteryService.myMastery());
+    }
+
+    @GetMapping("/students/{studentUserId}/evidence")
+    public ApiResponse<StudentLearningEvidenceResponse> evidence(
+            @PathVariable("studentUserId") @Positive long studentUserId,
+            @RequestParam(name = "limit", defaultValue = "20") @Min(1) @Max(50) int limit) {
+        return ApiResponse.ok(evidenceService.get(studentUserId, limit));
     }
 
     @GetMapping("/runs/{runId}/me")

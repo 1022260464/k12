@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from dataclasses import dataclass
 from hashlib import sha256
 
@@ -82,6 +83,8 @@ class SearchKnowledgeUseCase:
                 query_embedding=embedding_batch.vectors[0],
                 embedding_model=embedding_batch.model,
                 limit=max(command.candidate_count, command.top_k),
+                query_text=query,
+                lexical_terms=_lexical_terms(query),
                 stage_code=command.stage_code,
                 grade=command.grade,
                 textbook=command.textbook,
@@ -97,6 +100,8 @@ class SearchKnowledgeUseCase:
                     query_embedding=embedding_batch.vectors[0],
                     embedding_model=embedding_batch.model,
                     limit=max(command.candidate_count, command.top_k),
+                    query_text=query,
+                    lexical_terms=_lexical_terms(query),
                     knowledge_code=command.knowledge_code,
                     knowledge_codes=tuple(unique_codes),
                 )
@@ -137,3 +142,23 @@ class SearchKnowledgeUseCase:
             separators=(",", ":"),
         )
         return sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _lexical_terms(query: str) -> tuple[str, ...]:
+    """生成少量可解释关键词；中文使用二元词，英文保留完整单词。"""
+
+    terms: list[str] = []
+    for word in re.findall(r"[A-Za-z0-9_+-]{2,}", query.lower()):
+        terms.append(word)
+    for sequence in re.findall(r"[\u4e00-\u9fff]+", query):
+        if len(sequence) <= 4:
+            terms.append(sequence)
+        else:
+            terms.extend(sequence[index:index + 2] for index in range(len(sequence) - 1))
+    seen: set[str] = set()
+    unique: list[str] = []
+    for term in terms:
+        if term and term not in seen:
+            seen.add(term)
+            unique.append(term)
+    return tuple(unique[:16])

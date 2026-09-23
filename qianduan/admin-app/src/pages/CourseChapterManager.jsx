@@ -1,7 +1,7 @@
 import { Edit3, FileText, ListTree, Plus, RefreshCw, Save, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, knowledgeGraphApi, teachingResourcesApi } from "../api/client.js";
-import { AiSuggestButton, KnowledgePointPicker, mergeAiSuggestedCodes } from "../components/KnowledgePointPicker.jsx";
+import { AiSuggestButton, KnowledgePointPicker, KnowledgeSuggestionPreview } from "../components/KnowledgePointPicker.jsx";
 import { RichTextField } from "../components/RichTextField.jsx";
 import { Modal } from "../components/Modal.jsx";
 import { CourseSectionManager } from "./CourseSectionManager.jsx";
@@ -26,24 +26,47 @@ function localSuggestKnowledge(title, content, points, limit = 8) {
   const scored = [];
   for (const point of points) {
     let score = 0;
+    const reasons = [];
     const pointTitle = String(point.title || "").toLowerCase();
     const code = String(point.code || "").toLowerCase();
-    const category = String(point.categoryTitle || "").toLowerCase();
-    if (pointTitle && hay.includes(pointTitle)) score += 10;
-    if (category && hay.includes(category)) score += 4;
+    if (pointTitle && hay.includes(pointTitle)) {
+      score += 10;
+      reasons.push("title");
+    }
     for (const token of pointTitle.split(/[\s/、，,；;：:()（）\[\]|-]+/).filter((t) => t.length >= 2)) {
       if (hay.includes(token)) {
         score += 3;
+        reasons.push("title-token");
         break;
       }
     }
-    if (/python|程序|代码|编程|循环|算法|入门/.test(hay) && /computing\.|algorithm|loop|sorting\.|programming\./.test(code)) score += 5;
-    if (/数据|隐私/.test(hay) && /data_literacy/.test(code)) score += 4;
-    if (/机器学习|监督|分类|特征|标签|训练/.test(hay) && /machine_learning/.test(code)) score += 5;
-    if (/ai|智能|模型|提示|生成|幻觉/.test(hay) && /generative_ai|machine_learning|ai_overview/.test(code)) score += 4;
-    if (/视觉|图像|人脸|ocr/.test(hay) && /computer_vision|image/.test(code)) score += 4;
-    if (/伦理|安全|公平/.test(hay) && /ethics_safety/.test(code)) score += 4;
-    if (score > 0) scored.push({ code: point.code, score });
+    for (const alias of point.aliases || []) {
+      const normalized = String(alias || "").trim().toLowerCase();
+      if (normalized.length >= 2 && hay.includes(normalized)) {
+        score += 8;
+        reasons.push("alias");
+        break;
+      }
+    }
+    let keywordHits = 0;
+    for (const keyword of point.keywords || []) {
+      const normalized = String(keyword || "").trim().toLowerCase();
+      if (normalized.length >= 2 && hay.includes(normalized)) {
+        score += 2;
+        keywordHits += 1;
+        if (keywordHits >= 3) break;
+      }
+    }
+    if (keywordHits) reasons.push("keyword");
+    for (const segment of code.split(/[._-]+/).filter((item) => item.length >= 4)) {
+      if (hay.includes(segment)) {
+        score += 2;
+        reasons.push("code");
+        break;
+      }
+    }
+    // 必须命中该知识点自身的标题、别名、关键词或编码，不能只凭“大类”批量推荐。
+    if (score > 0 && reasons.length) scored.push({ code: point.code, score });
   }
   scored.sort((a, b) => b.score - a.score || a.code.localeCompare(b.code));
   return scored.slice(0, limit).map((item) => item.code);
@@ -237,16 +260,40 @@ export function CourseChapterManager({ course, notify, onClose, isAdmin = false 
         setSuggestNote("");
         return;
       }
-      const merged = mergeAiSuggestedCodes(selectedCodes, codes);
-      setSelectedCodes(merged.codes);
-      setAiSuggestedCodes(merged.pinned);
-      setSuggestNote(`${sourceLabel}建议 ${codes.length} 个（已自动勾选并置顶），请核对后保存绑定`);
-      notify(`已填入 ${sourceLabel}建议并置顶，请确认后保存`);
+      const catalogCodes = new Set(catalog.map((point) => point.code));
+      const previewCodes = [...new Set(codes)].filter((code) => catalogCodes.has(code));
+      if (!previewCodes.length) {
+        notify("建议结果不在当前知识点目录中，请刷新目录后重试", "error");
+        setAiSuggestedCodes([]);
+        setSuggestNote("");
+        return;
+      }
+      setAiSuggestedCodes(previewCodes);
+      setSuggestNote(`${sourceLabel}建议 ${previewCodes.length} 个，仅供预览；采纳后才会加入当前选择`);
+      notify(`${sourceLabel}建议已生成，请在预览区核对后采纳`);
     } catch (error) {
       notify(error.message, "error");
     } finally {
       setSuggesting(false);
     }
+  }
+
+  function acceptAiSuggestion(code) {
+    if (!code || selectedCodes.includes(code)) return;
+    setSelectedCodes((current) => [code, ...current.filter((item) => item !== code)]);
+  }
+
+  function acceptAllAiSuggestions() {
+    if (!aiSuggestedCodes.length) return;
+    setSelectedCodes((current) => [
+      ...aiSuggestedCodes.filter((code) => !current.includes(code)),
+      ...current,
+    ]);
+  }
+
+  function closeAiSuggestions() {
+    setAiSuggestedCodes([]);
+    setSuggestNote("");
   }
 
   async function saveCovers() {
@@ -272,6 +319,7 @@ export function CourseChapterManager({ course, notify, onClose, isAdmin = false 
       });
       await coursesApi.replaceChapterCovers(course.id, editing.id, selectedCodes);
       notify("知识点绑定已保存（导语已同步为图谱章节描述）");
+      setAiSuggestedCodes([]);
       setSuggestNote("");
       await load();
     } catch (error) { notify(error.message, "error"); }
@@ -451,7 +499,7 @@ export function CourseChapterManager({ course, notify, onClose, isAdmin = false 
                     <strong>本章知识点</strong>
                     <small>
                       {canEditKnowledge
-                        ? "导语写好后可用 AI 建议勾选，也可手工调整；保存绑定后可再审查。"
+                        ? "AI 建议会单独预览，采纳后进入当前选择；保存绑定后可再审查。"
                         : "仅可查看；改绑请联系管理员。"}
                     </small>
                   </div>
@@ -470,6 +518,15 @@ export function CourseChapterManager({ course, notify, onClose, isAdmin = false 
                   )}
                 </header>
                 {suggestNote && <p className="binding-hint">{suggestNote}</p>}
+                <KnowledgeSuggestionPreview
+                  points={knowledgePoints}
+                  suggestedCodes={aiSuggestedCodes}
+                  selectedCodes={selectedCodes}
+                  mode="multi"
+                  onAccept={acceptAiSuggestion}
+                  onAcceptAll={acceptAllAiSuggestions}
+                  onClose={closeAiSuggestions}
+                />
                 <KnowledgePointPicker
                   points={knowledgePoints}
                   selectedCodes={selectedCodes}

@@ -5,8 +5,10 @@ import com.k12.platform.agent.client.dto.RuntimeAgentRunResponse;
 import com.k12.platform.agent.client.dto.RuntimeCodeExecutionRequest;
 import com.k12.platform.agent.client.dto.RuntimeCodeExecutionResponse;
 import com.k12.platform.agent.client.dto.RuntimeDownloadUrlResponse;
+import com.k12.platform.agent.client.dto.RuntimeSpeechRequest;
 import com.k12.platform.agent.config.AgentRuntimeFeignConfiguration;
 import com.k12.platform.common.api.ApiResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,4 +47,8 @@ public interface AgentRuntimeClient {
     ApiResponse<RuntimeDownloadUrlResponse> createDownloadUrl(
             @RequestParam("objectKey") String objectKey
     );
+
+    /** 由 Java 鉴权后代理云语音，浏览器不会接触 Runtime 内部密钥。 */
+    @PostMapping("/internal/v1/speech/synthesize")
+    ResponseEntity<byte[]> synthesizeSpeech(@RequestBody RuntimeSpeechRequest request);
 }

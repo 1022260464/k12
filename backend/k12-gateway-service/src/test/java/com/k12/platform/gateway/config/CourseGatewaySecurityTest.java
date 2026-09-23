@@ -33,7 +33,8 @@ class CourseGatewaySecurityTest {
 
     @RestController
     static class ProbeController {
-        @RequestMapping("/api/v1/learning/courses/**")
+        @RequestMapping({"/api/v1/learning/courses/**", "/api/v1/learning/picture-books/**",
+                "/api/v1/learning/teaching-resources/**"})
         String probe() { return "ok"; }
     }
 
@@ -49,14 +50,65 @@ class CourseGatewaySecurityTest {
         expect("reader", 403);
     }
 
+    @Test
+    void courseUpdateCanManageSectionActivitiesButReadCannot() {
+        expectActivity("updater", 200);
+        expectActivity("reader", 403);
+    }
+
+    @Test
+    void courseReaderCanRequestPersonalizedCourses() {
+        client.post().uri("/api/v1/learning/courses/personalized")
+                .header("Authorization", "Bearer reader")
+                .exchange().expectStatus().isOk();
+    }
+
+    @Test
+    void publishedPictureBooksArePublicAndAdminRoutesStayProtected() {
+        client.get().uri("/api/v1/learning/picture-books/published")
+                .exchange().expectStatus().isOk();
+        client.get().uri("/api/v1/learning/picture-books/admin")
+                .header("Authorization", "Bearer reader")
+                .exchange().expectStatus().isForbidden();
+        client.get().uri("/api/v1/learning/picture-books/admin")
+                .header("Authorization", "Bearer admin")
+                .exchange().expectStatus().isOk();
+    }
+
+    @Test
+    void teachingResourceSearchTestIsAdminOnly() {
+        String path = "/api/v1/learning/teaching-resources/search-test";
+        client.post().uri(path)
+                .header("Authorization", "Bearer reader")
+                .exchange().expectStatus().isForbidden();
+        client.post().uri(path)
+                .header("Authorization", "Bearer updater")
+                .exchange().expectStatus().isForbidden();
+        client.post().uri(path)
+                .header("Authorization", "Bearer admin")
+                .exchange().expectStatus().isOk();
+        client.post().uri(path)
+                .exchange().expectStatus().isUnauthorized();
+    }
+
     private void expect(String token, int status) {
         client.post().uri("/api/v1/learning/courses/7/publish")
                 .header("Authorization", "Bearer " + token)
                 .exchange().expectStatus().isEqualTo(status);
     }
 
+    private void expectActivity(String token, int status) {
+        client.post().uri("/api/v1/learning/courses/7/chapters/8/sections/9/activities")
+                .header("Authorization", "Bearer " + token)
+                .exchange().expectStatus().isEqualTo(status);
+    }
+
     private static Jwt jwt(String token) {
-        List<String> authorities = "updater".equals(token) ? List.of("course:update") : List.of("course:read");
+        List<String> authorities = switch (token) {
+            case "updater" -> List.of("course:update");
+            case "admin" -> List.of("ROLE_ADMIN");
+            default -> List.of("course:read");
+        };
         return Jwt.withTokenValue(token).header("alg", "none").subject("test-user")
                 .claim("userId", "1").claim("authVersion", 1L).claim("authorities", authorities).build();
     }

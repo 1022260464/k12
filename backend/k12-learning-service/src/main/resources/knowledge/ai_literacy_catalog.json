@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "categories": [
     {
       "code": "category.ai_overview",
@@ -136,6 +136,54 @@
       "stages": [
         "小学高年级",
         "初中"
+      ]
+    },
+    {
+      "code": "category.visual_programming",
+      "title": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "CATEGORY",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ]
+    },
+    {
+      "code": "category.multimodal_learning",
+      "title": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "CATEGORY",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ]
+    },
+    {
+      "code": "category.ai_agents",
+      "title": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "CATEGORY",
+      "stages": [
+        "初中",
+        "高中"
+      ]
+    },
+    {
+      "code": "category.ai_project_practice",
+      "title": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "CATEGORY",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
       ]
     }
   ],
@@ -565,6 +613,15 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "数据预处理",
+        "Data Cleaning"
+      ],
+      "keywords": [
+        "缺失值",
+        "异常值",
+        "重复数据"
       ]
     },
     {
@@ -578,6 +635,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "数据可视化",
+        "Data Visualization"
+      ],
+      "keywords": [
+        "图表",
+        "趋势",
+        "分布",
+        "比较"
       ]
     },
     {
@@ -880,6 +947,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "算法",
+        "Algorithm"
+      ],
+      "keywords": [
+        "步骤",
+        "输入",
+        "输出",
+        "规则"
       ]
     },
     {
@@ -1279,6 +1356,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "冒泡法",
+        "Bubble Sort",
+        "气泡排序"
+      ],
+      "keywords": [
+        "相邻比较",
+        "交换",
+        "排序动画"
       ]
     },
     {
@@ -1357,6 +1444,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "二分法",
+        "折半查找",
+        "Binary Search"
+      ],
+      "keywords": [
+        "有序序列",
+        "中间值",
+        "查找"
       ]
     },
     {
@@ -1802,6 +1899,19 @@
         "小学低年级",
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "Scratch",
+        "Scratch编程",
+        "积木编程",
+        "Blockly",
+        "图形化编程"
+      ],
+      "keywords": [
+        "角色",
+        "舞台",
+        "积木",
+        "拖拽编程"
       ]
     },
     {
@@ -1815,6 +1925,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "Python",
+        "Python编程",
+        "派森"
+      ],
+      "keywords": [
+        "解释器",
+        "脚本",
+        "代码运行"
       ]
     },
     {
@@ -2276,6 +2396,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "有监督学习",
+        "Supervised Learning"
+      ],
+      "keywords": [
+        "标签",
+        "训练数据",
+        "分类",
+        "回归"
       ]
     },
     {
@@ -2289,6 +2419,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "分类问题",
+        "回归问题",
+        "Classification",
+        "Regression"
+      ],
+      "keywords": [
+        "离散类别",
+        "连续数值",
+        "预测"
       ]
     },
     {
@@ -2315,6 +2456,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "过度拟合",
+        "Overfitting"
+      ],
+      "keywords": [
+        "训练集",
+        "测试集",
+        "泛化",
+        "正则化"
       ]
     },
     {
@@ -2354,6 +2505,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "神经网络",
+        "Neural Network",
+        "ANN"
+      ],
+      "keywords": [
+        "神经元",
+        "权重",
+        "层",
+        "激活函数"
       ]
     },
     {
@@ -2367,6 +2529,15 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "无监督学习",
+        "Unsupervised Learning"
+      ],
+      "keywords": [
+        "无标签数据",
+        "聚类",
+        "降维"
       ]
     },
     {
@@ -2393,6 +2564,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "强化学习",
+        "Reinforcement Learning",
+        "RL"
+      ],
+      "keywords": [
+        "智能体",
+        "环境",
+        "奖励",
+        "策略"
       ]
     },
     {
@@ -2718,6 +2900,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "Embedding",
+        "嵌入",
+        "向量表示"
+      ],
+      "keywords": [
+        "语义向量",
+        "相似度",
+        "特征空间"
       ]
     },
     {
@@ -2848,6 +3040,17 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "Prompt",
+        "提示工程",
+        "提示语"
+      ],
+      "keywords": [
+        "指令",
+        "上下文",
+        "示例",
+        "约束"
       ]
     },
     {
@@ -2861,6 +3064,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "AI幻觉",
+        "模型幻觉",
+        "Hallucination"
+      ],
+      "keywords": [
+        "事实错误",
+        "编造",
+        "核验",
+        "可信度"
       ]
     },
     {
@@ -2900,6 +3114,17 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "LLM",
+        "大模型",
+        "Large Language Model"
+      ],
+      "keywords": [
+        "语言模型",
+        "参数",
+        "预训练",
+        "生成"
       ]
     },
     {
@@ -2978,6 +3203,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "RAG",
+        "检索增强生成",
+        "知识库问答"
+      ],
+      "keywords": [
+        "检索",
+        "向量库",
+        "文档切分",
+        "引用"
       ]
     },
     {
@@ -2991,6 +3227,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "Agent",
+        "AI智能体",
+        "智能代理"
+      ],
+      "keywords": [
+        "目标",
+        "规划",
+        "工具",
+        "记忆"
       ]
     },
     {
@@ -3004,6 +3251,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "工具调用",
+        "Function Calling",
+        "Tool Calling"
+      ],
+      "keywords": [
+        "函数",
+        "参数",
+        "API",
+        "执行结果"
       ]
     },
     {
@@ -3017,6 +3275,17 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "多模态大模型",
+        "Multimodal",
+        "VLM"
+      ],
+      "keywords": [
+        "文本",
+        "图像",
+        "音频",
+        "视频"
       ]
     },
     {
@@ -3030,6 +3299,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "文生图",
+        "AI绘画",
+        "Text-to-Image"
+      ],
+      "keywords": [
+        "图片生成",
+        "扩散模型",
+        "提示词"
       ]
     },
     {
@@ -3253,6 +3532,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "深度伪造",
+        "Deepfake",
+        "AI换脸"
+      ],
+      "keywords": [
+        "伪造视频",
+        "声音克隆",
+        "识别"
       ]
     },
     {
@@ -3423,6 +3712,15 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "目标识别",
+        "Object Detection"
+      ],
+      "keywords": [
+        "边界框",
+        "类别",
+        "定位"
       ]
     },
     {
@@ -3436,6 +3734,15 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "图像分割",
+        "Image Segmentation"
+      ],
+      "keywords": [
+        "像素分类",
+        "语义分割",
+        "实例分割"
       ]
     },
     {
@@ -3462,6 +3769,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "OCR",
+        "光学字符识别",
+        "图片文字识别"
+      ],
+      "keywords": [
+        "文字检测",
+        "文字识别",
+        "扫描文档"
       ]
     },
     {
@@ -3514,6 +3831,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "CNN",
+        "卷积网络",
+        "Convolutional Neural Network"
+      ],
+      "keywords": [
+        "卷积核",
+        "特征图",
+        "池化"
       ]
     },
     {
@@ -3725,6 +4052,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "词嵌入",
+        "Word Embedding",
+        "词向量"
+      ],
+      "keywords": [
+        "语义",
+        "向量",
+        "相似度"
       ]
     },
     {
@@ -3777,6 +4114,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "STT",
+        "ASR",
+        "自动语音识别"
+      ],
+      "keywords": [
+        "语音识别",
+        "转写",
+        "字幕"
       ]
     },
     {
@@ -3790,6 +4137,15 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "TTS",
+        "语音合成"
+      ],
+      "keywords": [
+        "文字转语音",
+        "音色",
+        "朗读"
       ]
     },
     {
@@ -3935,6 +4291,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "Transformer",
+        "变换器模型"
+      ],
+      "keywords": [
+        "注意力",
+        "编码器",
+        "解码器",
+        "并行"
       ]
     },
     {
@@ -3948,6 +4314,16 @@
       "stages": [
         "初中",
         "高中"
+      ],
+      "aliases": [
+        "Attention",
+        "注意力机制"
+      ],
+      "keywords": [
+        "查询",
+        "键",
+        "值",
+        "权重"
       ]
     },
     {
@@ -4039,6 +4415,16 @@
       "stages": [
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "算法公平",
+        "AI公平性",
+        "Fairness"
+      ],
+      "keywords": [
+        "偏见",
+        "歧视",
+        "群体差异"
       ]
     },
     {
@@ -4145,6 +4531,16 @@
         "小学低年级",
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "儿童安全",
+        "未成年人AI保护"
+      ],
+      "keywords": [
+        "适龄",
+        "隐私",
+        "内容安全",
+        "家长监护"
       ]
     },
     {
@@ -4710,6 +5106,16 @@
         "小学低年级",
         "小学高年级",
         "初中"
+      ],
+      "aliases": [
+        "传感器和执行器",
+        "Sensor and Actuator"
+      ],
+      "keywords": [
+        "感知",
+        "控制",
+        "电机",
+        "温湿度"
       ]
     },
     {
@@ -5151,6 +5557,1407 @@
       "kind": "TOPIC",
       "categoryCode": "category.computer_vision",
       "categoryTitle": "计算机视觉"
+    },
+    {
+      "code": "visual_programming.workspace",
+      "title": "积木编程工作区",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Blockly工作区",
+        "Scratch界面",
+        "积木区"
+      ],
+      "keywords": [
+        "工具箱",
+        "工作区",
+        "拖拽积木"
+      ]
+    },
+    {
+      "code": "visual_programming.sprite_stage",
+      "title": "角色与舞台",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Sprite",
+        "Scratch角色",
+        "舞台背景"
+      ],
+      "keywords": [
+        "角色",
+        "造型",
+        "背景",
+        "舞台"
+      ]
+    },
+    {
+      "code": "visual_programming.events",
+      "title": "事件与启动积木",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "绿旗事件",
+        "事件积木"
+      ],
+      "keywords": [
+        "当绿旗被点击",
+        "按键事件",
+        "消息事件"
+      ]
+    },
+    {
+      "code": "visual_programming.motion_coordinates",
+      "title": "运动与坐标",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Scratch运动",
+        "坐标系"
+      ],
+      "keywords": [
+        "移动",
+        "旋转",
+        "x坐标",
+        "y坐标",
+        "方向"
+      ]
+    },
+    {
+      "code": "visual_programming.looks_sound",
+      "title": "外观与声音",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "造型和声音",
+        "角色外观"
+      ],
+      "keywords": [
+        "造型",
+        "说话",
+        "音效",
+        "背景音乐"
+      ]
+    },
+    {
+      "code": "visual_programming.loops",
+      "title": "重复执行与循环积木",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 1,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "重复积木",
+        "Forever循环"
+      ],
+      "keywords": [
+        "重复执行",
+        "重复次数",
+        "无限循环"
+      ]
+    },
+    {
+      "code": "visual_programming.conditionals",
+      "title": "条件判断积木",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "如果那么",
+        "if积木"
+      ],
+      "keywords": [
+        "条件",
+        "如果",
+        "否则",
+        "布尔判断"
+      ]
+    },
+    {
+      "code": "visual_programming.variables",
+      "title": "变量与列表积木",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Scratch变量",
+        "列表积木"
+      ],
+      "keywords": [
+        "变量",
+        "计分",
+        "列表",
+        "数据存储"
+      ]
+    },
+    {
+      "code": "visual_programming.broadcast",
+      "title": "广播与角色协作",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "广播消息",
+        "角色通信"
+      ],
+      "keywords": [
+        "广播",
+        "接收消息",
+        "角色协作"
+      ]
+    },
+    {
+      "code": "visual_programming.sensing",
+      "title": "侦测与交互",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "侦测积木",
+        "传感积木"
+      ],
+      "keywords": [
+        "碰到",
+        "距离",
+        "鼠标",
+        "键盘",
+        "询问"
+      ]
+    },
+    {
+      "code": "visual_programming.clones",
+      "title": "克隆与批量角色",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Scratch克隆",
+        "克隆体"
+      ],
+      "keywords": [
+        "克隆自己",
+        "分身",
+        "批量角色"
+      ]
+    },
+    {
+      "code": "visual_programming.custom_blocks",
+      "title": "自制积木与过程抽象",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "自定义积木",
+        "过程积木"
+      ],
+      "keywords": [
+        "封装",
+        "参数",
+        "复用",
+        "模块化"
+      ]
+    },
+    {
+      "code": "visual_programming.pen_animation",
+      "title": "画笔、动画与创意表达",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Scratch画笔",
+        "逐帧动画"
+      ],
+      "keywords": [
+        "画笔",
+        "轨迹",
+        "动画",
+        "创意编程"
+      ]
+    },
+    {
+      "code": "visual_programming.game_design",
+      "title": "图形化游戏设计",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Scratch游戏",
+        "Blockly游戏"
+      ],
+      "keywords": [
+        "关卡",
+        "规则",
+        "得分",
+        "碰撞",
+        "游戏机制"
+      ]
+    },
+    {
+      "code": "visual_programming.debugging",
+      "title": "积木程序调试",
+      "categoryCode": "category.visual_programming",
+      "categoryTitle": "图形化编程与创意计算",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Scratch调试",
+        "积木查错"
+      ],
+      "keywords": [
+        "单步检查",
+        "错误定位",
+        "测试",
+        "修复"
+      ]
+    },
+    {
+      "code": "multimodal_learning.multimodal_concept",
+      "title": "多模态信息与人工智能",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "多模态AI",
+        "Multimodal AI"
+      ],
+      "keywords": [
+        "文本",
+        "图像",
+        "语音",
+        "视频",
+        "融合"
+      ]
+    },
+    {
+      "code": "multimodal_learning.image_text_understanding",
+      "title": "图文联合理解",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "看图问答",
+        "视觉问答",
+        "VQA"
+      ],
+      "keywords": [
+        "图片描述",
+        "图文问答",
+        "视觉语言模型"
+      ]
+    },
+    {
+      "code": "multimodal_learning.speech_interaction",
+      "title": "语音对话与语音助手",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "语音助手",
+        "语音交互"
+      ],
+      "keywords": [
+        "语音识别",
+        "语音合成",
+        "唤醒词",
+        "对话"
+      ]
+    },
+    {
+      "code": "multimodal_learning.ai_storybook",
+      "title": "AI绘本创作",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学低年级、小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学低年级",
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "智能绘本",
+        "图文故事生成"
+      ],
+      "keywords": [
+        "故事脚本",
+        "分镜",
+        "插图",
+        "角色一致性"
+      ]
+    },
+    {
+      "code": "multimodal_learning.concept_animation",
+      "title": "概念动画讲解",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "教学动画",
+        "动画解释"
+      ],
+      "keywords": [
+        "分镜",
+        "关键帧",
+        "旁白",
+        "抽象概念可视化"
+      ]
+    },
+    {
+      "code": "multimodal_learning.chart_generation",
+      "title": "数据图表生成与解读",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI图表",
+        "可视化生成"
+      ],
+      "keywords": [
+        "柱状图",
+        "折线图",
+        "图表解读",
+        "数据可视化"
+      ]
+    },
+    {
+      "code": "multimodal_learning.image_prompt",
+      "title": "图像生成提示词",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "绘图提示词",
+        "文生图提示词"
+      ],
+      "keywords": [
+        "主体",
+        "场景",
+        "风格",
+        "构图",
+        "负面提示词"
+      ]
+    },
+    {
+      "code": "multimodal_learning.audio_generation",
+      "title": "AI声音与音乐创作",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI配音",
+        "AI音乐"
+      ],
+      "keywords": [
+        "配音",
+        "音色",
+        "音乐生成",
+        "声音克隆风险"
+      ]
+    },
+    {
+      "code": "multimodal_learning.video_understanding",
+      "title": "视频内容理解",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "视频分析",
+        "Video Understanding"
+      ],
+      "keywords": [
+        "镜头",
+        "动作",
+        "字幕",
+        "时序理解"
+      ]
+    },
+    {
+      "code": "multimodal_learning.content_consistency",
+      "title": "多模态内容一致性",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "图文一致性",
+        "音画同步"
+      ],
+      "keywords": [
+        "事实一致",
+        "角色一致",
+        "图文对应",
+        "音画同步"
+      ]
+    },
+    {
+      "code": "multimodal_learning.accessibility",
+      "title": "多模态无障碍设计",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "无障碍内容",
+        "辅助技术"
+      ],
+      "keywords": [
+        "字幕",
+        "替代文本",
+        "语音播报",
+        "色彩对比"
+      ]
+    },
+    {
+      "code": "multimodal_learning.verification",
+      "title": "生成内容核验",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI内容查证",
+        "生成内容验证"
+      ],
+      "keywords": [
+        "事实核查",
+        "来源",
+        "深度伪造",
+        "水印"
+      ]
+    },
+    {
+      "code": "multimodal_learning.copyright",
+      "title": "多模态创作版权",
+      "categoryCode": "category.multimodal_learning",
+      "categoryTitle": "多模态AI与内容创作",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI作品版权",
+        "生成内容版权"
+      ],
+      "keywords": [
+        "版权",
+        "授权",
+        "署名",
+        "训练数据"
+      ]
+    },
+    {
+      "code": "ai_agents.agent_role",
+      "title": "智能体的目标、角色与边界",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI Agent",
+        "智能代理",
+        "智能体"
+      ],
+      "keywords": [
+        "目标",
+        "角色",
+        "自主决策",
+        "边界"
+      ]
+    },
+    {
+      "code": "ai_agents.perception_planning_action",
+      "title": "感知、规划与行动循环",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Agent Loop",
+        "智能体循环"
+      ],
+      "keywords": [
+        "感知",
+        "规划",
+        "行动",
+        "反馈"
+      ]
+    },
+    {
+      "code": "ai_agents.task_decomposition",
+      "title": "任务分解与步骤规划",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "任务拆解",
+        "计划生成"
+      ],
+      "keywords": [
+        "子任务",
+        "步骤",
+        "依赖",
+        "计划"
+      ]
+    },
+    {
+      "code": "ai_agents.tool_selection",
+      "title": "工具选择与函数调用",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Function Calling",
+        "Tool Calling",
+        "函数调用"
+      ],
+      "keywords": [
+        "工具描述",
+        "参数",
+        "调用结果",
+        "工具路由"
+      ]
+    },
+    {
+      "code": "ai_agents.memory_context",
+      "title": "智能体记忆与上下文管理",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Agent Memory",
+        "短期记忆",
+        "长期记忆"
+      ],
+      "keywords": [
+        "上下文",
+        "会话历史",
+        "记忆检索",
+        "摘要"
+      ]
+    },
+    {
+      "code": "ai_agents.knowledge_grounding",
+      "title": "知识约束与有据回答",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Grounding",
+        "知识接地"
+      ],
+      "keywords": [
+        "知识库",
+        "证据",
+        "引用",
+        "可信回答"
+      ]
+    },
+    {
+      "code": "ai_agents.rag_pipeline",
+      "title": "RAG检索增强生成流程",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "RAG",
+        "检索增强生成"
+      ],
+      "keywords": [
+        "文档切分",
+        "召回",
+        "重排",
+        "上下文构建",
+        "生成"
+      ]
+    },
+    {
+      "code": "ai_agents.vector_database",
+      "title": "向量数据库与相似度检索",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "向量库",
+        "Vector Database",
+        "pgvector"
+      ],
+      "keywords": [
+        "向量",
+        "余弦相似度",
+        "近邻搜索",
+        "索引"
+      ]
+    },
+    {
+      "code": "ai_agents.embedding",
+      "title": "文本嵌入与语义向量",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Embedding",
+        "嵌入模型",
+        "语义向量"
+      ],
+      "keywords": [
+        "向量化",
+        "语义相似度",
+        "BGE",
+        "维度"
+      ]
+    },
+    {
+      "code": "ai_agents.reranking",
+      "title": "召回结果重排",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Rerank",
+        "重排序",
+        "BGE Reranker"
+      ],
+      "keywords": [
+        "候选召回",
+        "相关性",
+        "交叉编码器",
+        "排序"
+      ]
+    },
+    {
+      "code": "ai_agents.multi_agent_collaboration",
+      "title": "多智能体协作",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Multi-Agent",
+        "多Agent"
+      ],
+      "keywords": [
+        "角色分工",
+        "通信",
+        "协调",
+        "冲突解决"
+      ]
+    },
+    {
+      "code": "ai_agents.human_confirmation",
+      "title": "人工确认与人在回路",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Human in the Loop",
+        "HITL",
+        "人工审核"
+      ],
+      "keywords": [
+        "确认",
+        "审批",
+        "纠错",
+        "高风险操作"
+      ]
+    },
+    {
+      "code": "ai_agents.guardrails",
+      "title": "智能体安全护栏",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Guardrails",
+        "安全边界"
+      ],
+      "keywords": [
+        "权限",
+        "输入过滤",
+        "输出审核",
+        "最小权限"
+      ]
+    },
+    {
+      "code": "ai_agents.evaluation_observability",
+      "title": "智能体评测与可观测性",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Agent Eval",
+        "智能体评估",
+        "Tracing"
+      ],
+      "keywords": [
+        "成功率",
+        "轨迹",
+        "延迟",
+        "成本",
+        "日志"
+      ]
+    },
+    {
+      "code": "ai_agents.teaching_agent",
+      "title": "教学智能体设计",
+      "categoryCode": "category.ai_agents",
+      "categoryTitle": "智能体与知识增强",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI教师",
+        "教学助手",
+        "Tutor Agent"
+      ],
+      "keywords": [
+        "学段适配",
+        "启发提问",
+        "反馈",
+        "学习路径"
+      ]
+    },
+    {
+      "code": "ai_project_practice.problem_definition",
+      "title": "发现问题与定义AI任务",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "问题定义",
+        "任务定义"
+      ],
+      "keywords": [
+        "用户需求",
+        "目标",
+        "约束",
+        "成功标准"
+      ]
+    },
+    {
+      "code": "ai_project_practice.learning_objectives",
+      "title": "学习目标与受众分析",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "教学目标",
+        "用户画像"
+      ],
+      "keywords": [
+        "学段",
+        "先备知识",
+        "学习目标",
+        "适龄"
+      ]
+    },
+    {
+      "code": "ai_project_practice.data_plan",
+      "title": "项目数据方案",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "数据计划",
+        "数据集方案"
+      ],
+      "keywords": [
+        "数据来源",
+        "采集",
+        "标注",
+        "许可",
+        "隐私"
+      ]
+    },
+    {
+      "code": "ai_project_practice.prototype",
+      "title": "AI原型设计",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "快速原型",
+        "MVP"
+      ],
+      "keywords": [
+        "原型",
+        "最小可行产品",
+        "交互流程",
+        "验证"
+      ]
+    },
+    {
+      "code": "ai_project_practice.baseline",
+      "title": "建立基线方案",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Baseline",
+        "基准方案"
+      ],
+      "keywords": [
+        "简单规则",
+        "基线模型",
+        "对照组",
+        "可比较"
+      ]
+    },
+    {
+      "code": "ai_project_practice.experiment",
+      "title": "设计可重复实验",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "实验设计",
+        "对照实验"
+      ],
+      "keywords": [
+        "变量",
+        "样本",
+        "对照",
+        "随机性",
+        "复现"
+      ]
+    },
+    {
+      "code": "ai_project_practice.metrics",
+      "title": "选择项目评价指标",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "评测指标",
+        "KPI"
+      ],
+      "keywords": [
+        "准确率",
+        "召回率",
+        "满意度",
+        "延迟",
+        "成本"
+      ]
+    },
+    {
+      "code": "ai_project_practice.error_analysis",
+      "title": "案例复盘与错误分析",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "失败案例分析",
+        "误差分析"
+      ],
+      "keywords": [
+        "错误分类",
+        "根因",
+        "边界案例",
+        "改进"
+      ]
+    },
+    {
+      "code": "ai_project_practice.iteration",
+      "title": "反馈驱动的迭代",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "产品迭代",
+        "持续改进"
+      ],
+      "keywords": [
+        "反馈",
+        "版本",
+        "优先级",
+        "验证"
+      ]
+    },
+    {
+      "code": "ai_project_practice.documentation",
+      "title": "项目文档与模型卡",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "Model Card",
+        "项目说明书"
+      ],
+      "keywords": [
+        "数据说明",
+        "能力边界",
+        "风险",
+        "使用方法"
+      ]
+    },
+    {
+      "code": "ai_project_practice.presentation",
+      "title": "AI项目展示与答辩",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "项目路演",
+        "作品答辩"
+      ],
+      "keywords": [
+        "演示",
+        "故事线",
+        "证据",
+        "现场答辩"
+      ]
+    },
+    {
+      "code": "ai_project_practice.deployment",
+      "title": "原型部署与API集成",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "模型部署",
+        "API对接"
+      ],
+      "keywords": [
+        "服务",
+        "接口",
+        "鉴权",
+        "配置",
+        "发布"
+      ]
+    },
+    {
+      "code": "ai_project_practice.monitoring",
+      "title": "运行监控与成本管理",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "初中、高中",
+      "difficulty": 4,
+      "kind": "TOPIC",
+      "stages": [
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI运维",
+        "LLMOps"
+      ],
+      "keywords": [
+        "日志",
+        "监控",
+        "Token成本",
+        "告警",
+        "质量漂移"
+      ]
+    },
+    {
+      "code": "ai_project_practice.ethics_review",
+      "title": "项目伦理与安全审查",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 3,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "AI伦理审查",
+        "风险评估"
+      ],
+      "keywords": [
+        "公平",
+        "隐私",
+        "安全",
+        "未成年人保护",
+        "责任"
+      ]
+    },
+    {
+      "code": "ai_project_practice.teamwork",
+      "title": "AI项目团队协作",
+      "categoryCode": "category.ai_project_practice",
+      "categoryTitle": "AI项目实践",
+      "stage": "小学高年级、初中、高中",
+      "difficulty": 2,
+      "kind": "TOPIC",
+      "stages": [
+        "小学高年级",
+        "初中",
+        "高中"
+      ],
+      "aliases": [
+        "项目分工",
+        "协作开发"
+      ],
+      "keywords": [
+        "角色",
+        "任务看板",
+        "版本管理",
+        "沟通"
+      ]
     }
   ],
   "edges": [
@@ -7242,6 +9049,371 @@
     {
       "from": "computer_vision.see_like_a_computer",
       "to": "ai_overview.ai_in_daily_life",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.workspace",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.sprite_stage",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.events",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.motion_coordinates",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.looks_sound",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.loops",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.conditionals",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.variables",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.broadcast",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.sensing",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.clones",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.custom_blocks",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.pen_animation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.game_design",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.visual_programming",
+      "to": "visual_programming.debugging",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.multimodal_concept",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.image_text_understanding",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.speech_interaction",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.ai_storybook",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.concept_animation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.chart_generation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.image_prompt",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.audio_generation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.video_understanding",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.content_consistency",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.accessibility",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.verification",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.multimodal_learning",
+      "to": "multimodal_learning.copyright",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.agent_role",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.perception_planning_action",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.task_decomposition",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.tool_selection",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.memory_context",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.knowledge_grounding",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.rag_pipeline",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.vector_database",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.embedding",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.reranking",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.multi_agent_collaboration",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.human_confirmation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.guardrails",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.evaluation_observability",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_agents",
+      "to": "ai_agents.teaching_agent",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.problem_definition",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.learning_objectives",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.data_plan",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.prototype",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.baseline",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.experiment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.metrics",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.error_analysis",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.iteration",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.documentation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.presentation",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.deployment",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.monitoring",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.ethics_review",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "category.ai_project_practice",
+      "to": "ai_project_practice.teamwork",
+      "relation": "HAS_CHILD"
+    },
+    {
+      "from": "programming.scratch_basics",
+      "to": "visual_programming.workspace",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "visual_programming.events",
+      "to": "visual_programming.game_design",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "visual_programming.loops",
+      "to": "visual_programming.game_design",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "generative_ai.multimodal",
+      "to": "multimodal_learning.multimodal_concept",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "multimodal_learning.multimodal_concept",
+      "to": "multimodal_learning.ai_storybook",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "generative_ai.agents_basics",
+      "to": "ai_agents.agent_role",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "generative_ai.rag_basics",
+      "to": "ai_agents.rag_pipeline",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "machine_learning.embedding_intro",
+      "to": "ai_agents.embedding",
+      "relation": "RELATED_TO"
+    },
+    {
+      "from": "ai_agents.embedding",
+      "to": "ai_agents.vector_database",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_agents.vector_database",
+      "to": "ai_agents.rag_pipeline",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_project_practice.problem_definition",
+      "to": "ai_project_practice.prototype",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_project_practice.prototype",
+      "to": "ai_project_practice.experiment",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_project_practice.experiment",
+      "to": "ai_project_practice.error_analysis",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_project_practice.error_analysis",
+      "to": "ai_project_practice.iteration",
+      "relation": "PREREQUISITE_OF"
+    },
+    {
+      "from": "ai_project_practice.ethics_review",
+      "to": "ethics_safety.ai_ethics_intro",
       "relation": "RELATED_TO"
     }
   ]

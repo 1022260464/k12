@@ -1,7 +1,7 @@
 import { Check, Database, Download, Edit3, Eye, FileText, GitBranch, Plus, RefreshCw, Search, Send, ShieldCheck, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, knowledgeGraphApi, teachingResourcesApi } from "../api/client.js";
-import { AiSuggestButton, KnowledgePointPicker } from "../components/KnowledgePointPicker.jsx";
+import { AiSuggestButton, KnowledgePointPicker, KnowledgeSuggestionPreview } from "../components/KnowledgePointPicker.jsx";
 import { Modal } from "../components/Modal.jsx";
 
 const statuses = { DRAFT: "草稿", PENDING_REVIEW: "待审核", APPROVED: "审核通过", REJECTED: "已驳回", PUBLISHED: "已发布", WITHDRAWN: "已撤回" };
@@ -126,6 +126,9 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
   const [reviewing, setReviewing] = useState(false);
   const [reviewItems, setReviewItems] = useState([]);
   const [reviewSummary, setReviewSummary] = useState("");
+  const [retrievalForm, setRetrievalForm] = useState({ query: "", stageCode: "", knowledgeCode: "" });
+  const [retrievalResult, setRetrievalResult] = useState(null);
+  const [retrieving, setRetrieving] = useState(false);
 
   const courseIds = useMemo(() => selectedCourseIds(form.bindings), [form.bindings]);
   const primaryCourse = courses.find((course) => course.id === courseIds[0]);
@@ -385,15 +388,33 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
         notify("暂无匹配建议，请在下方手工勾选主知识点", "error");
         return;
       }
-      setForm((current) => ({ ...current, knowledgeCode: codes[0] }));
-      setAiSuggestedCodes(codes);
-      setSuggestNote(`已建议主知识点并置顶：${codes[0]}${codes.length > 1 ? `（备选 ${codes.length - 1} 个已标 AI）` : ""}`);
-      notify("已填入知识点建议，请确认后保存");
+      const catalogCodes = new Set(knowledgePoints.map((point) => point.code));
+      const previewCodes = [...new Set(codes)].filter((code) => catalogCodes.has(code));
+      if (!previewCodes.length) {
+        notify("建议结果不在当前知识点目录中，请刷新目录后重试", "error");
+        setAiSuggestedCodes([]);
+        setSuggestNote("");
+        return;
+      }
+      setAiSuggestedCodes(previewCodes);
+      setSuggestNote(`AI 建议 ${previewCodes.length} 个，仅供预览；采纳后才会设置为主知识点`);
+      notify("知识点建议已生成，请在预览区核对后采纳");
     } catch (error) {
       notify(error.message, "error");
     } finally {
       setSuggesting(false);
     }
+  }
+
+  function acceptKnowledgeSuggestion(code) {
+    setForm((current) => ({ ...current, knowledgeCode: code }));
+    setReviewItems([]);
+    setReviewSummary("");
+  }
+
+  function closeKnowledgeSuggestions() {
+    setAiSuggestedCodes([]);
+    setSuggestNote("");
   }
 
   async function reviewKnowledge() {
@@ -477,6 +498,34 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
     catch (cause) { notify(cause.message, "error"); }
   }
 
+  async function testRetrieval(event) {
+    event.preventDefault();
+    const queryText = retrievalForm.query.trim();
+    if (!queryText) return;
+    setRetrieving(true);
+    try {
+      const result = await teachingResourcesApi.searchTest({
+        query: queryText,
+        candidateCount: 20,
+        topK: 5,
+        stageCode: retrievalForm.stageCode || null,
+        knowledgeCode: retrievalForm.knowledgeCode.trim() || null,
+      });
+      setRetrievalResult(result);
+    } catch (cause) {
+      notify(cause.message, "error");
+    } finally {
+      setRetrieving(false);
+    }
+  }
+
+  function sourceLocation(metadata = {}) {
+    if (metadata.pageStart) return `第 ${metadata.pageStart}${metadata.pageEnd !== metadata.pageStart ? `-${metadata.pageEnd}` : ""} 页`;
+    if (metadata.slideStart) return `第 ${metadata.slideStart}${metadata.slideEnd !== metadata.slideStart ? `-${metadata.slideEnd}` : ""} 张幻灯片`;
+    if (metadata.paragraphStart) return `第 ${metadata.paragraphStart}${metadata.paragraphEnd !== metadata.paragraphStart ? `-${metadata.paragraphEnd}` : ""} 段`;
+    return "来源位置待重新入库后生成";
+  }
+
   const chipBindings = useMemo(() => {
     const chips = [];
     for (const courseId of courseIds) {
@@ -491,7 +540,7 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
   }, [form.bindings, courseIds]);
 
   return <section className="page-section">
-    <header className="page-heading"><div><p className="eyebrow">教学资料</p><h1>教学资料</h1><p>上传资料并关联课程章节，供学生下载；填写简介与主知识点后，管理员可入库供 AI 讲解引用。已入库资料可点「同步到图谱」更新关联。</p></div><button className="button primary" type="button" onClick={openUpload}><Plus size={17} />上传资料</button></header>
+    <header className="page-heading"><div><p className="eyebrow">教学资料</p><h1>教学资料</h1><p>上传资料并关联课程章节，供学生下载；填写简介与主知识点后，管理员可入库供 AI 讲解引用。已入库资料可点「同步到图谱」更新关联。</p></div><div className="page-heading-actions">{isAdmin && <button className="button ghost" type="button" onClick={() => { setRetrievalResult(null); setModal({ type: "retrieval-test" }); }}><Search size={17} />检索试测</button>}<button className="button primary" type="button" onClick={openUpload}><Plus size={17} />上传资料</button></div></header>
     <div className="data-panel"><div className="table-toolbar material-toolbar"><form className="search-control" onSubmit={search}><Search size={17} /><input value={searchTerm} placeholder="搜索标题" onChange={(event) => setSearchTerm(event.target.value)} /></form><select aria-label="状态筛选" value={status} onChange={(event) => changeStatus(event.target.value)}><option value="">全部状态</option>{Object.entries(statuses).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><button className="icon-button" type="button" title="刷新" onClick={() => load()}><RefreshCw size={18} /></button></div>
       <div className="table-wrap"><table className="responsive-table"><thead><tr><th>资料</th><th>学段 / 学科</th><th>审核状态</th><th>知识库</th><th>更新时间</th><th>操作</th></tr></thead><tbody>{loading ? <tr><td colSpan="6" className="empty-cell">正在加载...</td></tr> : error ? <tr><td colSpan="6" className="empty-cell table-error">{error}</td></tr> : items.length ? items.map((item) => <tr key={item.id}>
         <td data-label="资料"><strong className="table-primary-text">{item.title}</strong><small className="table-description">{item.originalFilename}</small></td><td data-label="学段 / 学科">{item.stageCode} / {item.subject}</td><td data-label="审核状态"><span className={`status ${["DRAFT", "PENDING_REVIEW"].includes(item.status) ? "pending" : item.status === "PUBLISHED" ? "enabled" : "disabled"}`}>{statuses[item.status] || item.status}</span></td><td data-label="知识库">{indexStatuses[item.ragIndexStatus] || item.ragIndexStatus}</td><td data-label="更新时间">{date(item.updatedTime)}</td>
@@ -515,6 +564,18 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
         </div></td></tr>) : <tr><td colSpan="6" className="empty-cell">暂无资料</td></tr>}</tbody></table></div>
       <div className="material-pagination"><button className="button ghost" type="button" disabled={page <= 1 || loading} onClick={() => turnPage(page - 1)}>上一页</button><span>第 {page} 页</span><button className="button ghost" type="button" disabled={!hasMore || loading} onClick={() => turnPage(page + 1)}>下一页</button></div>
     </div>
+
+    {modal?.type === "retrieval-test" && <Modal title="知识库检索试测" description="以真实 RAG 链路执行混合召回和重排，检查片段内容、来源定位及过滤条件。" onClose={() => setModal(null)} width={820}>
+      <form className="retrieval-test" onSubmit={testRetrieval}>
+        <div className="retrieval-test-fields">
+          <label className="retrieval-query">测试问题<input value={retrievalForm.query} maxLength={4000} placeholder="例如：机器为什么能认出小猫？" onChange={(event) => setRetrievalForm((current) => ({ ...current, query: event.target.value }))} /></label>
+          <label>学段<select value={retrievalForm.stageCode} onChange={(event) => setRetrievalForm((current) => ({ ...current, stageCode: event.target.value }))}><option value="">不限</option><option value="lower_primary">小学低年级</option><option value="upper_primary">小学高年级</option><option value="middle_school">初中</option><option value="high_school">高中</option></select></label>
+          <label>知识点编码<input value={retrievalForm.knowledgeCode} maxLength={64} placeholder="可选" onChange={(event) => setRetrievalForm((current) => ({ ...current, knowledgeCode: event.target.value }))} /></label>
+          <button className="button primary" type="submit" disabled={retrieving || !retrievalForm.query.trim()}>{retrieving ? "检索中..." : "开始试测"}</button>
+        </div>
+        {retrievalResult && <div className="retrieval-results"><div className="retrieval-summary"><strong>候选 {retrievalResult.candidateCount} 条</strong><span>Embedding：{retrievalResult.embeddingModel}</span><span>返回 {retrievalResult.documents?.length || 0} 条</span></div>{retrievalResult.documents?.length ? retrievalResult.documents.map((document, index) => <article className="retrieval-hit" key={`${document.documentId}-${document.metadata?.chunkId || index}`}><header><strong>{index + 1}. {document.metadata?.title || document.documentId}</strong><div><span>重排 {Number(document.rerankScore || 0).toFixed(3)}</span><span>融合 {Number(document.retrievalScore || 0).toFixed(4)}</span>{document.metadata?.denseScore != null && <span>向量 {Number(document.metadata.denseScore).toFixed(3)}</span>}{document.metadata?.lexicalScore != null && <span>关键词 {Number(document.metadata.lexicalScore).toFixed(1)}</span>}</div></header><p>{document.text}</p><footer><span>{sourceLocation(document.metadata)}</span>{document.metadata?.heading && <span>标题：{document.metadata.heading}</span>}<code>{document.metadata?.knowledgeCode || "未绑定知识点"}</code></footer></article>) : <div className="retrieval-empty">没有命中资料。请检查资料是否已入库、学段和知识点过滤是否正确。</div>}</div>}
+      </form>
+    </Modal>}
 
     {["upload", "edit"].includes(modal?.type) && <Modal title={modal.type === "upload" ? "上传教学资料" : "编辑资料信息"} description="关联课程章节后学生可下载；选择主知识点并填写简介后，入库即可被 AI 讲解引用。" onClose={() => setModal(null)} width={720}>
       <form className="material-form resource-form" onSubmit={save}>
@@ -551,7 +612,7 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
               <strong>主知识点</strong>
               <small>
                 {isAdmin
-                  ? "可手工勾选或 AI 建议；保存后可审查是否与简介对应。"
+                  ? "AI 建议会单独预览，采纳后设置为主知识点；保存前可审查。"
                   : "仅可查看；改绑请联系管理员。"}
               </small>
             </div>
@@ -570,6 +631,14 @@ export function TeachingResourceManagement({ isAdmin, notify }) {
             )}
           </header>
           {suggestNote && <p className="binding-hint">{suggestNote}</p>}
+          <KnowledgeSuggestionPreview
+            points={knowledgePoints}
+            suggestedCodes={aiSuggestedCodes}
+            selectedCodes={form.knowledgeCode ? [form.knowledgeCode] : []}
+            mode="single"
+            onAccept={acceptKnowledgeSuggestion}
+            onClose={closeKnowledgeSuggestions}
+          />
           <KnowledgePointPicker
             mode="single"
             points={knowledgePoints}

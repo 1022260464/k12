@@ -173,4 +173,10 @@ public class TeachingResourceIndexService {
             }
         }
     }
+
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public TeachingResourceIndexClient.SearchResult testSearch(
+            TeachingResourceIndexClient.SearchRequest request) {
+        return client.search(request);
+    }
 }

@@ -22,9 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
@@ -32,7 +35,12 @@ import java.util.regex.Pattern;
 @Service
 public class AiPracticeAttemptService {
     private static final String QUIZ_MIME = "application/vnd.k12.quiz.v1+json";
+    private static final Set<String> QUIZ_AGENT_CODES = Set.of(
+            "teaching-assistant",
+            "lower-primary-tutor"
+    );
     private static final Pattern KNOWLEDGE_CODE = Pattern.compile("[a-z][a-z0-9_.-]{2,63}");
+    private static final Pattern ERROR_TYPE = Pattern.compile("[A-Z][A-Z0-9_]{2,63}");
 
     private final AgentQuizRunClient agentClient;
     private final AiPracticeAttemptMapper mapper;
@@ -60,7 +68,7 @@ public class AiPracticeAttemptService {
 
         AgentQuizRunResponse run = loadRun(request.runId());
         if (!request.runId().equals(run.runId()) || !userId.equals(run.userId())
-                || !"teaching-assistant".equals(run.agentCode()) || !"SUCCEEDED".equals(run.status())) {
+                || !QUIZ_AGENT_CODES.contains(run.agentCode()) || !"SUCCEEDED".equals(run.status())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "未找到可提交的本人教学小测");
         }
         AgentQuizRunResponse.QuizArtifactResponse artifact = run.artifacts() == null ? null
@@ -68,7 +76,9 @@ public class AiPracticeAttemptService {
         if (artifact == null || artifact.payload() == null || artifact.artifactId() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "该教学运行没有可提交的小测");
         }
-        AiPracticeAttempt attempt = grade(run, artifact, userId, answersJson);
+        AiPracticeAttempt attempt = grade(run, artifact, userId, answersJson,
+                request.hintCount() == null ? 0 : request.hintCount(),
+                request.durationMs() == null ? 0L : request.durationMs());
         try {
             mapper.insert(attempt);
         } catch (DuplicateKeyException exception) {
@@ -80,14 +90,14 @@ public class AiPracticeAttemptService {
                     attempt.getScore(), attempt.getMaxScore(),
                     (int) ((long) attempt.getScore() * 100 / attempt.getMaxScore()), attempt.getCreatedTime());
         }
-        return toResponse(attempt);
+        return toResponse(attempt, true);
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_READ + "')")
     public PracticeAttemptResponse findByRun(String runId) {
         AiPracticeAttempt attempt = mapper.findByRunAndStudent(runId, K12SecurityContext.requireUserId());
         // 未作答是常态查询结果，返回 null 而不是 404，避免学习台恢复历史时刷屏。
-        return attempt == null ? null : toResponse(attempt);
+        return attempt == null ? null : toResponse(attempt, false);
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_READ + "')")
@@ -96,7 +106,7 @@ public class AiPracticeAttemptService {
             throw new IllegalArgumentException("limit必须在1到20之间");
         }
         return mapper.findRecentByStudent(K12SecurityContext.requireUserId(), limit).stream()
-                .map(this::toResponse).toList();
+                .map(attempt -> toResponse(attempt, false)).toList();
     }
 
     private AgentQuizRunResponse loadRun(String runId) {
@@ -115,7 +125,7 @@ public class AiPracticeAttemptService {
 
     private AiPracticeAttempt grade(AgentQuizRunResponse run,
                                     AgentQuizRunResponse.QuizArtifactResponse artifact,
-                                    Long userId, String answersJson) {
+                                    Long userId, String answersJson, int hintCount, long durationMs) {
         JsonNode payload = artifact.payload();
         JsonNode questions = payload.path("questions");
         if (!"multiple-choice-quiz".equals(payload.path("gameType").asText())
@@ -130,6 +140,7 @@ public class AiPracticeAttemptService {
         int maxScore = 0;
         int correctCount = 0;
         String weakPoint = null;
+        Set<String> errorTypes = new LinkedHashSet<>();
         Map<String, Boolean> seen = new HashMap<>();
         for (JsonNode question : questions) {
             String id = question.path("id").asText("");
@@ -160,8 +171,15 @@ public class AiPracticeAttemptService {
             if (selected.equals(correct)) {
                 score += points;
                 correctCount++;
-            } else if (weakPoint == null) {
-                weakPoint = truncate(question.path("prompt").asText("该知识点需要巩固"), 255);
+            } else {
+                String errorType = question.path("errorType").asText("INCORRECT_SELECTION");
+                if (!ERROR_TYPE.matcher(errorType).matches()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "小测错误类型无效");
+                }
+                errorTypes.add(errorType);
+                if (weakPoint == null) {
+                    weakPoint = truncate(question.path("prompt").asText("该知识点需要巩固"), 255);
+                }
             }
         }
         AiPracticeAttempt attempt = new AiPracticeAttempt();
@@ -179,6 +197,9 @@ public class AiPracticeAttemptService {
         attempt.setCorrectCount(correctCount);
         attempt.setTotalQuestions(questions.size());
         attempt.setWeakPoint(weakPoint);
+        attempt.setHintCount(hintCount);
+        attempt.setDurationMs(durationMs);
+        attempt.setErrorTypesJson(writeErrorTypes(errorTypes));
         attempt.setAnswersJson(answersJson);
         attempt.setCreatedTime(Instant.now());
         return attempt;
@@ -212,14 +233,68 @@ public class AiPracticeAttemptService {
         if (existing == null || !readAnswers(answersJson).equals(readAnswers(existing.getAnswersJson()))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该次小测已提交，请开始新的教学轮次");
         }
-        return toResponse(existing);
+        return toResponse(existing, false);
     }
 
-    private PracticeAttemptResponse toResponse(AiPracticeAttempt attempt) {
+    private PracticeAttemptResponse toResponse(AiPracticeAttempt attempt, boolean newlyEarned) {
+        Badge badge = badgeFor(attempt);
         return new PracticeAttemptResponse(attempt.getId(), attempt.getRunId(), attempt.getTopic(),
                 attempt.getKnowledgeCode(),
                 attempt.getScore(), attempt.getMaxScore(), attempt.getCorrectCount(),
-                attempt.getTotalQuestions(), attempt.getWeakPoint(), attempt.getCreatedTime());
+                attempt.getTotalQuestions(), attempt.getWeakPoint(), defaultInt(attempt.getHintCount()),
+                defaultLong(attempt.getDurationMs()), readErrorTypes(attempt.getErrorTypesJson()),
+                attempt.getCreatedTime(),
+                badge == null ? null : badge.code(), badge == null ? null : badge.name(),
+                badge != null && newlyEarned);
+    }
+
+    private String writeErrorTypes(Set<String> values) {
+        try {
+            return objectMapper.writeValueAsString(values);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("无法保存练习错误类型", exception);
+        }
+    }
+
+    private List<String> readErrorTypes(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        try {
+            List<String> values = objectMapper.readValue(value,
+                    new com.fasterxml.jackson.core.type.TypeReference<>() {});
+            List<String> safe = new ArrayList<>();
+            for (String item : values) {
+                if (item != null && ERROR_TYPE.matcher(item).matches() && safe.size() < 10) {
+                    safe.add(item);
+                }
+            }
+            return List.copyOf(safe);
+        } catch (JsonProcessingException exception) {
+            return List.of();
+        }
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
+    }
+
+    /**
+     * 徽章资格从已持久化、服务端判分的练习记录推导，不接受前端传入的徽章或分数。
+     * 这样旧数据库无需新增奖励表，重复读取同一练习也能稳定恢复已获得的徽章。
+     */
+    private Badge badgeFor(AiPracticeAttempt attempt) {
+        if ("machine_learning.image_classification".equals(attempt.getKnowledgeCode())) {
+            return new Badge("CAT_PICTURE_DETECTIVE", "小猫图片侦探");
+        }
+        return null;
+    }
+
+    private record Badge(String code, String name) {
     }
 
     private String truncate(String value, int limit) {

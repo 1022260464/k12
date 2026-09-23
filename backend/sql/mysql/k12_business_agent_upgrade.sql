@@ -168,6 +168,13 @@ CREATE TABLE IF NOT EXISTS agent_artifact (
   COMMENT = 'Agent generated artifacts';
 
 INSERT INTO agent_config (code, name, type, description, status)
+SELECT 'lower-primary-tutor', '小学低年级 AI 小老师', 'TEACHING',
+       '面向小学低年级的短句、绘本、图片任务与即时反馈教学智能体', 'ENABLED'
+WHERE NOT EXISTS (
+    SELECT 1 FROM agent_config WHERE code = 'lower-primary-tutor'
+);
+
+INSERT INTO agent_config (code, name, type, description, status)
 SELECT 'study-plan', 'Study Plan Agent', 'TEACHING', 'Generate a structured study plan', 'ENABLED'
 WHERE NOT EXISTS (
     SELECT 1 FROM agent_config WHERE code = 'study-plan'

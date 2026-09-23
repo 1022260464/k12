@@ -11,7 +11,10 @@ from k12_agent_runtime.application.rag.index_teaching_resource import (
     IndexTeachingResourceCommand,
     IndexTeachingResourceUseCase,
 )
-from k12_agent_runtime.application.rag.teaching_resource_text import extract_text
+from k12_agent_runtime.application.rag.teaching_resource_text import (
+    extract_document,
+    extract_text,
+)
 from k12_agent_runtime.core.config import Settings
 from k12_agent_runtime.domain.rag import IndexedDocument
 from k12_agent_runtime.interfaces.api.app import create_app
@@ -42,6 +45,23 @@ def test_extract_pptx_slide_text() -> None:
         "<a:p><a:r><a:t>算法步骤</a:t></a:r></a:p></p:sld>",
     )
     assert extract_text(content, "pptx") == "算法步骤"
+
+
+def test_extract_pptx_preserves_slide_location_and_diagnostics() -> None:
+    content = _office_file(
+        "ppt/slides/slide1.xml",
+        '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        "<a:p><a:r><a:t>训练集与测试集</a:t></a:r></a:p>"
+        "<a:p><a:r><a:t>测试集用于检查模型是否能处理新数据。</a:t></a:r></a:p></p:sld>",
+    )
+
+    extracted = extract_document(content, "pptx")
+
+    assert extracted.sections[0].slide_number == 1
+    assert extracted.sections[0].heading == "训练集与测试集"
+    assert extracted.diagnostics["slideCount"] == 1
+    assert extracted.diagnostics["sourceFormat"] == "pptx"
 
 
 def test_reject_empty_office_text() -> None:
@@ -91,6 +111,8 @@ def test_index_uses_stable_document_id_and_stage() -> None:
     assert document.metadata["knowledgeCode"] == "machine_learning.datasets"
     assert document.source_uri == f"s3://materials/{command.object_key}"
     assert document.content == "向量检索"
+    assert document.sections[0].paragraph_number == 1
+    assert document.metadata["extraction"]["sourceFormat"] == "docx"
 
 
 def test_reject_unapproved_object_key_without_reading() -> None:

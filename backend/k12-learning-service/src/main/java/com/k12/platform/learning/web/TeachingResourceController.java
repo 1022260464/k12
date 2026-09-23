@@ -5,8 +5,10 @@ import com.k12.platform.learning.dto.TeachingResourceMetadata;
 import com.k12.platform.learning.dto.TeachingResourcePage;
 import com.k12.platform.learning.dto.TeachingResourceResponse;
 import com.k12.platform.learning.dto.TeachingResourceReview;
+import com.k12.platform.learning.dto.KnowledgeRetrievalTestRequest;
 import com.k12.platform.learning.service.TeachingResourceService;
 import com.k12.platform.learning.service.TeachingResourceIndexService;
+import com.k12.platform.learning.service.TeachingResourceIndexClient;
 import com.k12.platform.learning.model.TeachingResourceEvent;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -138,5 +140,13 @@ public class TeachingResourceController {
     @PostMapping("/{id}/reopen")
     public ApiResponse<TeachingResourceResponse> reopen(@PathVariable("id") @Positive long id) {
         return ApiResponse.ok(service.reopen(id));
+    }
+
+    @PostMapping("/search-test")
+    public ApiResponse<TeachingResourceIndexClient.SearchResult> searchTest(
+            @Valid @RequestBody KnowledgeRetrievalTestRequest request) {
+        return ApiResponse.ok(indexService.testSearch(new TeachingResourceIndexClient.SearchRequest(
+                request.query(), request.candidateCount(), request.topK(), request.stageCode(),
+                request.grade(), request.textbook(), request.knowledgeCode())));
     }
 }

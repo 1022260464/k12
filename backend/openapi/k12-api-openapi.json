@@ -2165,6 +2165,38 @@
         }
       }
     },
+    "/api/v1/agents/speech/synthesize": {
+      "post": {
+        "tags": ["04-AI智能体服务"],
+        "summary": "合成低龄课程朗读语音",
+        "operationId": "synthesizeLessonSpeech",
+        "description": "需要ROLE_ADMIN或agent:invoke权限。仅在学生明确点击朗读时调用；Java限制文本和音频大小并代理内部Runtime，浏览器不会接触云服务或内部API密钥。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/SpeechSynthesisRequest"},
+              "example": {"text": "小智今天要学习分辨小猫和小狗。"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "合成后的音频字节",
+            "headers": {
+              "X-Speech-Model": {"schema": {"type": "string"}},
+              "X-Speech-Voice": {"schema": {"type": "string"}}
+            },
+            "content": {"audio/mpeg": {"schema": {"type": "string", "format": "binary"}}}
+          },
+          "400": {"$ref": "#/components/responses/BadRequest"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "403": {"$ref": "#/components/responses/Forbidden"},
+          "502": {"$ref": "#/components/responses/BadGateway"},
+          "503": {"$ref": "#/components/responses/ServiceUnavailable"}
+        }
+      }
+    },
     "/api/v1/agents/{agentCode}/runs": {
       "post": {
         "tags": [
@@ -2622,7 +2654,7 @@
       "post": {
         "tags": ["07-作业与批改服务"],
         "summary": "提交 AI 课堂小测",
-        "description": "需要 agent:read。由服务端读取本人已完成的教学运行及题目判分；同一运行只允许提交一次。形成性练习不计入作业成绩。",
+        "description": "需要 agent:read。由服务端读取本人已完成的教学运行及题目判分；同一运行只允许提交一次。可附带受限的提示次数和完成时长，错误类型由服务端题目元数据推导。形成性练习不计入作业成绩。",
         "operationId": "submitAiPracticeAttempt",
         "requestBody": {
           "required": true,
@@ -2710,6 +2742,79 @@
           "403": {"$ref": "#/components/responses/Forbidden"},
           "404": {"$ref": "#/components/responses/NotFound"}
         }
+      }
+    },
+    "/api/v1/learning/picture-books/published": {
+      "get": {
+        "tags": ["02-课程资源服务"],
+        "summary": "查询已发布互动绘本",
+        "operationId": "listPublishedPictureBooks",
+        "security": [],
+        "responses": {"200": {"description": "已发布绘本", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookListApiResponse"}}}}}
+      }
+    },
+    "/api/v1/learning/picture-books/published/{bookCode}": {
+      "get": {
+        "tags": ["02-课程资源服务"],
+        "summary": "查询已发布互动绘本详情",
+        "operationId": "getPublishedPictureBook",
+        "security": [],
+        "parameters": [{"name": "bookCode", "in": "path", "required": true, "schema": {"type": "string", "maxLength": 64}}],
+        "responses": {"200": {"description": "绘本详情", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookApiResponse"}}}}, "404": {"$ref": "#/components/responses/NotFound"}}
+      }
+    },
+    "/api/v1/learning/picture-books/admin": {
+      "get": {
+        "tags": ["02-课程资源服务"], "summary": "管理端查询互动绘本", "operationId": "listPictureBooksForAdmin",
+        "responses": {"200": {"description": "全部绘本", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookListApiResponse"}}}}, "403": {"$ref": "#/components/responses/Forbidden"}}
+      },
+      "post": {
+        "tags": ["02-课程资源服务"], "summary": "新建互动绘本草稿", "operationId": "createPictureBook",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"allOf": [{"$ref": "#/components/schemas/PictureBookWriteRequest"}, {"type": "object", "required": ["bookCode"]}]}}}},
+        "responses": {"200": {"description": "创建成功", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookApiResponse"}}}}, "403": {"$ref": "#/components/responses/Forbidden"}}
+      }
+    },
+    "/api/v1/learning/picture-books/admin/{id}": {
+      "get": {
+        "tags": ["02-课程资源服务"], "summary": "管理端查询绘本详情", "operationId": "getPictureBookForAdmin",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}],
+        "responses": {"200": {"description": "绘本详情", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookApiResponse"}}}}, "403": {"$ref": "#/components/responses/Forbidden"}}
+      },
+      "put": {
+        "tags": ["02-课程资源服务"], "summary": "更新互动绘本草稿", "operationId": "updatePictureBook",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"allOf": [{"$ref": "#/components/schemas/PictureBookWriteRequest"}, {"type": "object", "required": ["lockVersion"], "properties": {"lockVersion": {"type": "integer"}}}]}}}},
+        "responses": {"200": {"description": "更新成功", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookApiResponse"}}}}, "409": {"$ref": "#/components/responses/Conflict"}}
+      },
+      "delete": {
+        "tags": ["02-课程资源服务"], "summary": "删除互动绘本草稿", "operationId": "deletePictureBook",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}],
+        "responses": {"204": {"description": "删除成功"}, "409": {"$ref": "#/components/responses/Conflict"}}
+      }
+    },
+    "/api/v1/learning/picture-books/admin/{id}/{action}": {
+      "post": {
+        "tags": ["02-课程资源服务"], "summary": "流转互动绘本状态", "operationId": "transitionPictureBook",
+        "description": "action 支持 submit、approve、reject、publish、offline；approve/reject 可提交 note。仅管理员。",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}, {"name": "action", "in": "path", "required": true, "schema": {"type": "string", "enum": ["submit", "approve", "reject", "publish", "offline"]}}],
+        "requestBody": {"required": false, "content": {"application/json": {"schema": {"type": "object", "properties": {"note": {"type": "string", "maxLength": 1000}}}}}},
+        "responses": {"200": {"description": "状态流转成功", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PictureBookApiResponse"}}}}, "409": {"$ref": "#/components/responses/Conflict"}}
+      }
+    },
+    "/api/v1/learning/courses/personalized": {
+      "post": {
+        "tags": ["02-课程资源服务"], "summary": "根据掌握度生成跨课程推荐", "operationId": "getPersonalizedCourses",
+        "description": "需要 course:read。通过知识图谱查找覆盖薄弱知识点的已发布章节，并返回推荐原因。",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonalizedCourseRequest"}}}},
+        "responses": {"200": {"description": "跨课程推荐", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonalizedCourseListApiResponse"}}}}, "403": {"$ref": "#/components/responses/Forbidden"}}
+      }
+    },
+    "/api/v1/assessments/practice-attempts/students/{studentUserId}/evidence": {
+      "get": {
+        "tags": ["07-作业与批改服务"], "summary": "教师查询学生形成性学习证据", "operationId": "getStudentLearningEvidence",
+        "description": "需要 homework:grade；教师只能查看自己授课或作业覆盖的学生，管理员不受数据范围限制。",
+        "parameters": [{"name": "studentUserId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64", "minimum": 1}}, {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 50, "default": 20}}],
+        "responses": {"200": {"description": "学生过程证据", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/StudentLearningEvidenceApiResponse"}}}}, "403": {"$ref": "#/components/responses/Forbidden"}}
       }
     },
     "/api/v1/assessments/health": {
@@ -4047,6 +4152,107 @@
           }
         }
       }
+    },
+    "/api/v1/learning/courses/{courseId}/chapters/{chapterId}/sections/{sectionId}/activities": {
+      "parameters": [
+        {"name":"courseId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}},
+        {"name":"chapterId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}},
+        {"name":"sectionId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}}
+      ],
+      "get": {
+        "tags": ["02-课程资源服务"],
+        "summary": "查询正式小节的受控活动",
+        "description": "需要 course:read，并且为课程创建人、管理员或已报名学生。只返回站内活动类型与引用键，不返回任意 URL。",
+        "operationId": "listCourseSectionActivities",
+        "responses": {
+          "200": {"description":"操作成功","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SectionActivityListApiResponse"}}}},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "403": {"$ref":"#/components/responses/Forbidden"},
+          "404": {"$ref":"#/components/responses/NotFound"}
+        }
+      },
+      "post": {
+        "tags": ["02-课程资源服务"],
+        "summary": "为正式小节新增受控活动",
+        "description": "需要 course:update 且为课程创建人，或管理员。每个小节最多 20 个有效活动。",
+        "operationId": "createCourseSectionActivity",
+        "requestBody": {"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SectionActivityRequest"}}}},
+        "responses": {
+          "201": {"description":"创建成功","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SectionActivityApiResponse"}}}},
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "403": {"$ref":"#/components/responses/Forbidden"},
+          "404": {"$ref":"#/components/responses/NotFound"},
+          "409": {"$ref":"#/components/responses/Conflict"}
+        }
+      }
+    },
+    "/api/v1/learning/courses/{courseId}/chapters/{chapterId}/sections/{sectionId}/activities/{activityId}": {
+      "parameters": [
+        {"name":"courseId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}},
+        {"name":"chapterId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}},
+        {"name":"sectionId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}},
+        {"name":"activityId","in":"path","required":true,"schema":{"type":"integer","format":"int64","minimum":1}}
+      ],
+      "put": {
+        "tags": ["02-课程资源服务"],
+        "summary": "修改正式小节活动",
+        "operationId": "updateCourseSectionActivity",
+        "requestBody": {"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SectionActivityRequest"}}}},
+        "responses": {
+          "200": {"description":"操作成功","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SectionActivityApiResponse"}}}},
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "403": {"$ref":"#/components/responses/Forbidden"},
+          "404": {"$ref":"#/components/responses/NotFound"}
+        }
+      },
+      "delete": {
+        "tags": ["02-课程资源服务"],
+        "summary": "删除正式小节活动",
+        "operationId": "deleteCourseSectionActivity",
+        "responses": {
+          "200": {"description":"操作成功","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ApiResponseBase"}}}},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "403": {"$ref":"#/components/responses/Forbidden"},
+          "404": {"$ref":"#/components/responses/NotFound"}
+        }
+      }
+    },
+    "/api/v1/learning/teaching-resources/search-test": {
+      "post": {
+        "tags": ["03-知识库与RAG服务"],
+        "summary": "管理员执行知识库检索试测",
+        "description": "通过 Learning Service 安全转发到内部 Runtime，返回混合召回、重排和来源定位信息；仅管理员可用。",
+        "operationId": "testTeachingResourceRetrieval",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": {"type":"string","minLength":1,"maxLength":4000},
+                  "candidateCount": {"type":"integer","minimum":1,"maximum":100,"default":20},
+                  "topK": {"type":"integer","minimum":1,"maximum":20,"default":5},
+                  "stageCode": {"type":"string","maxLength":32,"nullable":true},
+                  "grade": {"type":"string","maxLength":32,"nullable":true},
+                  "textbook": {"type":"string","maxLength":255,"nullable":true},
+                  "knowledgeCode": {"type":"string","maxLength":64,"nullable":true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description":"检索成功"},
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "403": {"$ref":"#/components/responses/Forbidden"},
+          "503": {"description":"Python 知识库服务暂不可用"}
+        }
+      }
     }
   },
   "components": {
@@ -4230,6 +4436,8 @@
         "required": ["runId", "answers"],
         "properties": {
           "runId": {"type": "string", "maxLength": 64},
+          "hintCount": {"type": "integer", "minimum": 0, "maximum": 20, "default": 0, "description": "学生端本轮主动打开提示的次数"},
+          "durationMs": {"type": "integer", "format": "int64", "minimum": 0, "maximum": 3600000, "default": 0, "description": "学生端记录的本轮作答时长，服务端仅作为形成性过程证据"},
           "answers": {
             "type": "array",
             "minItems": 1,
@@ -4257,7 +4465,13 @@
           "correctCount": {"type": "integer"},
           "totalQuestions": {"type": "integer"},
           "weakPoint": {"type": "string", "nullable": true},
-          "createdTime": {"type": "string", "format": "date-time"}
+          "hintCount": {"type": "integer", "minimum": 0},
+          "durationMs": {"type": "integer", "format": "int64", "minimum": 0},
+          "errorTypes": {"type": "array", "items": {"type": "string"}, "description": "服务端依据答错题目的受控元数据推导的错误类型"},
+          "createdTime": {"type": "string", "format": "date-time"},
+          "badgeCode": {"type": "string", "nullable": true, "example": "CAT_PICTURE_DETECTIVE"},
+          "badgeName": {"type": "string", "nullable": true, "example": "小猫图片侦探"},
+          "newlyEarned": {"type": "boolean", "description": "本次提交是否刚获得徽章；历史查询始终为false"}
         }
       },
       "PracticeAttemptApiResponse": {
@@ -4279,6 +4493,9 @@
           "sampleCount": {"type": "integer", "minimum": 1, "maximum": 5},
           "averageScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
           "latestScorePercent": {"type": "integer", "minimum": 0, "maximum": 100},
+          "latestHintCount": {"type": "integer", "minimum": 0},
+          "latestDurationMs": {"type": "integer", "format": "int64", "minimum": 0},
+          "recentErrorType": {"type": "string", "nullable": true},
           "action": {"type": "string", "enum": ["REVIEW", "PRACTICE", "APPLY"]},
           "suggestion": {"type": "string"},
           "lastPracticedTime": {"type": "string", "format": "date-time", "nullable": true}
@@ -4860,6 +5077,40 @@
           }
         }
       },
+      "SectionActivityRequest": {
+        "type": "object",
+        "required": ["activityType","referenceKey","title","sortOrder","required"],
+        "properties": {
+          "activityType": {"type":"string","enum":["CAT_LESSON","TEACHING_TOPIC","PYTHON_LAB"]},
+          "referenceKey": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[a-z0-9][a-z0-9._-]{0,127}$"},
+          "title": {"type":"string","minLength":1,"maxLength":128},
+          "description": {"type":"string","maxLength":500,"nullable":true},
+          "sortOrder": {"type":"integer","minimum":0,"maximum":10000},
+          "required": {"type":"boolean"}
+        }
+      },
+      "SectionActivity": {
+        "allOf": [
+          {"$ref":"#/components/schemas/SectionActivityRequest"},
+          {"type":"object","required":["id","sectionId","updatedTime"],"properties":{
+            "id":{"type":"integer","format":"int64","minimum":1},
+            "sectionId":{"type":"integer","format":"int64","minimum":1},
+            "updatedTime":{"type":"string","format":"date-time"}
+          }}
+        ]
+      },
+      "SectionActivityApiResponse": {
+        "allOf": [
+          {"$ref":"#/components/schemas/ApiResponseBase"},
+          {"type":"object","required":["data"],"properties":{"data":{"$ref":"#/components/schemas/SectionActivity"}}}
+        ]
+      },
+      "SectionActivityListApiResponse": {
+        "allOf": [
+          {"$ref":"#/components/schemas/ApiResponseBase"},
+          {"type":"object","required":["data"],"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/SectionActivity"}}}}
+        ]
+      },
       "ChapterRequest": {
         "type": "object",
         "required": [
@@ -5425,6 +5676,18 @@
             "default": "SYNC",
             "nullable": true,
             "description": "SYNC同步等待执行结果；ASYNC进入RabbitMQ后返回PENDING"
+          }
+        }
+      },
+      "SpeechSynthesisRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "需要朗读的已审核课程文字"
           }
         }
       },
@@ -6845,6 +7108,23 @@
           }
         }
       },
+      "PictureBookPage": {
+        "type": "object",
+        "properties": {"id": {"type": "integer", "format": "int64"}, "pageNo": {"type": "integer"}, "title": {"type": "string"}, "narration": {"type": "string"}, "prompt": {"type": "string", "nullable": true}, "imageObjectKey": {"type": "string", "nullable": true}, "imageFallbackUrl": {"type": "string", "nullable": true}, "imageUrl": {"type": "string"}, "altText": {"type": "string"}, "interaction": {"type": "object", "nullable": true, "additionalProperties": true}}
+      },
+      "PictureBook": {
+        "type": "object",
+        "properties": {"id": {"type": "integer", "format": "int64"}, "bookCode": {"type": "string"}, "title": {"type": "string"}, "subtitle": {"type": "string", "nullable": true}, "summary": {"type": "string"}, "stageCode": {"type": "string"}, "knowledgeCode": {"type": "string"}, "coverObjectKey": {"type": "string", "nullable": true}, "coverFallbackUrl": {"type": "string", "nullable": true}, "coverUrl": {"type": "string"}, "challengeType": {"type": "string", "enum": ["CAT_LESSON", "VISUAL_MISSION", "AI_TOPIC"]}, "challengeReference": {"type": "string"}, "sortOrder": {"type": "integer"}, "status": {"type": "string", "enum": ["DRAFT", "PENDING_REVIEW", "APPROVED", "PUBLISHED", "OFFLINE"]}, "reviewNote": {"type": "string", "nullable": true}, "contentVersion": {"type": "integer"}, "lockVersion": {"type": "integer"}, "pages": {"type": "array", "items": {"$ref": "#/components/schemas/PictureBookPage"}}}
+      },
+      "PictureBookWriteRequest": {
+        "type": "object", "required": ["title", "summary", "stageCode", "knowledgeCode", "challengeType", "challengeReference", "pages"],
+        "properties": {"bookCode": {"type": "string", "pattern": "^[a-z0-9-]{1,64}$"}, "title": {"type": "string", "maxLength": 100}, "subtitle": {"type": "string", "maxLength": 200}, "summary": {"type": "string", "maxLength": 600}, "stageCode": {"type": "string"}, "knowledgeCode": {"type": "string"}, "coverObjectKey": {"type": "string", "nullable": true}, "coverFallbackUrl": {"type": "string", "nullable": true}, "challengeType": {"type": "string", "enum": ["CAT_LESSON", "VISUAL_MISSION", "AI_TOPIC"]}, "challengeReference": {"type": "string"}, "sortOrder": {"type": "integer", "minimum": 0}, "pages": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"$ref": "#/components/schemas/PictureBookPage"}}}
+      },
+      "PictureBookApiResponse": {"allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/PictureBook"}}}]},
+      "PictureBookListApiResponse": {"allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/PictureBook"}}}}]},
+      "PersonalizedCourseRequest": {"type": "object", "properties": {"mastery": {"type": "array", "maxItems": 30, "items": {"type": "object", "required": ["knowledgeCode", "masteryPercent"], "properties": {"knowledgeCode": {"type": "string", "maxLength": 128}, "masteryPercent": {"type": "integer", "minimum": 0, "maximum": 100}}}}, "limit": {"type": "integer", "minimum": 1, "maximum": 12}}},
+      "PersonalizedCourseListApiResponse": {"allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"type": "array", "items": {"type": "object", "properties": {"course": {"$ref": "#/components/schemas/Course"}, "chapterId": {"type": "integer", "format": "int64", "nullable": true}, "chapterTitle": {"type": "string", "nullable": true}, "knowledgeCode": {"type": "string", "nullable": true}, "masteryPercent": {"type": "integer", "nullable": true}, "reason": {"type": "string"}}}}}}]},
+      "StudentLearningEvidenceApiResponse": {"allOf": [{"$ref": "#/components/schemas/ApiResponseBase"}, {"type": "object", "properties": {"data": {"type": "object", "properties": {"studentUserId": {"type": "integer", "format": "int64"}, "mastery": {"type": "array", "items": {"$ref": "#/components/schemas/KnowledgeMastery"}}, "recentAttempts": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer", "format": "int64"}, "runId": {"type": "string"}, "topic": {"type": "string"}, "knowledgeCode": {"type": "string"}, "score": {"type": "integer"}, "maxScore": {"type": "integer"}, "hintCount": {"type": "integer"}, "durationMs": {"type": "integer", "format": "int64"}, "weakPoint": {"type": "string", "nullable": true}, "errorTypes": {"type": "array", "items": {"type": "string"}}, "createdTime": {"type": "string", "format": "date-time"}}}}, "evidenceNotice": {"type": "string"}}}}}]},
       "SubmissionDetailApiResponse": {
         "allOf": [
           {

@@ -9,7 +9,7 @@ const fallbackImageFor = (course, index = 0) =>
   visualCourses.find((item) => item.subject === course?.subject)?.image
   || visualCourses[index % visualCourses.length].image;
 
-export function CourseDetailPage({ session, requireLogin, navigate, courseId, chapterId }) {
+export function CourseDetailPage({ session, requireLogin, navigate, courseId, chapterId, onLaunchActivity }) {
   const [course, setCourse] = useState(null);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -166,6 +166,7 @@ export function CourseDetailPage({ session, requireLogin, navigate, courseId, ch
             )}
             onBack={() => navigate(`courses/${courseId}`)}
             onCompleted={refreshProgress}
+            onLaunchActivity={onLaunchActivity}
             onSelectChapter={(next) => {
               if (next && String(next.id) !== String(activeChapter?.id)) {
                 navigate(`courses/${courseId}/chapters/${next.id}`);

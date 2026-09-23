@@ -178,7 +178,7 @@ public class K12ServletSecurityAutoConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/iam/audits/**").hasAuthority(K12Authorities.ROLE_ADMIN)
                         /* Assessment 仅可校验学生身份，不能读取完整用户资料。 */
                         .requestMatchers(HttpMethod.POST, "/api/v1/iam/users/students/validate").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/iam/users/students").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/iam/users/students").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.HOMEWORK_UPDATE, K12Authorities.HOMEWORK_GRADE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_READ)
                         .requestMatchers(HttpMethod.POST, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_CREATE)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/iam/users/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.USER_UPDATE)
@@ -189,11 +189,24 @@ public class K12ServletSecurityAutoConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/progress").access(studyAccess)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/enrollment", "/api/v1/learning/courses/*/chapters/*/progress").access(studyAccess)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/enrollment").access(studyAccess)
+                        /* 图形化关卡管理必须先于通用 learning 规则；已发布列表允许游客试玩。 */
+                        .requestMatchers("/api/v1/learning/visual-programming/admin/**").hasAuthority(K12Authorities.ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/learning/visual-programming/missions/published",
+                                "/api/v1/learning/visual-programming/missions/published/**").permitAll()
+                        .requestMatchers("/api/v1/learning/picture-books/admin/**").hasAuthority(K12Authorities.ROLE_ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/learning/picture-books/published",
+                                "/api/v1/learning/picture-books/published/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/learning/teaching-resources/search-test")
+                                .hasAuthority(K12Authorities.ROLE_ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/v1/learning/leaderboard").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters", "/api/v1/learning/courses/*/chapters/*/sections").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/personalized").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/chapters", "/api/v1/learning/courses/*/chapters/*/sections",
+                                "/api/v1/learning/courses/*/chapters/*/sections/*/activities").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/*/publish").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/chapters/*/sections/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*", "/api/v1/learning/courses/*/chapters/*/sections/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/*/chapters/*/sections/*",
+                                "/api/v1/learning/courses/*/chapters/*/sections/*/activities/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/learning/courses/*/chapters/*", "/api/v1/learning/courses/*/chapters/*/sections/*",
+                                "/api/v1/learning/courses/*/chapters/*/sections/*/activities/*").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
                         .requestMatchers(HttpMethod.GET, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_READ)
                         .requestMatchers(HttpMethod.POST, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_CREATE)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/learning/courses/**").hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.COURSE_UPDATE)
@@ -203,6 +216,7 @@ public class K12ServletSecurityAutoConfiguration {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/agents/*/runs",
                                 "/api/v1/agents/code-executions",
+                                "/api/v1/agents/speech/synthesize",
                                 "/api/v1/agents/runs/*/cancel",
                                 "/api/v1/agents/runs/*/retry"
                         ).hasAnyAuthority(K12Authorities.ROLE_ADMIN, K12Authorities.AGENT_INVOKE)

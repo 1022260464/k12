@@ -2,6 +2,7 @@
 
 from k12_agent_runtime.domain.rag.models import (
     DocumentCandidate,
+    DocumentSection,
     EmbeddingBatch,
     IndexedDocument,
     KnowledgeChunk,
@@ -19,6 +20,7 @@ from k12_agent_runtime.domain.rag.ports import (
 
 __all__ = [
     "DocumentCandidate",
+    "DocumentSection",
     "DocumentReranker",
     "EmbeddingBatch",
     "IndexedDocument",

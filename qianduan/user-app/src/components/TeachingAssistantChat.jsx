@@ -12,6 +12,7 @@ import { agentsApi, practiceApi, profileApi, teachingResourcesApi } from "../api
 import { BubbleSortAnimation } from "./BubbleSortAnimation.jsx";
 import { MarkdownContent } from "./MarkdownContent.jsx";
 import { TeachingSteps } from "./TeachingSteps.jsx";
+import { topicCodeForId } from "../data/teachingTopics.js";
 
 export { TEACHING_TOPICS, TOPIC_CATEGORIES, topicsByCategory } from "../data/teachingTopics.js";
 
@@ -24,22 +25,26 @@ const stageCodes = {
   SENIOR_HIGH: "high_school",
 };
 
-const greeting = {
-  role: "assistant",
-  text: "你好，我是你的 AI 学习助教。可以从左侧选择主题，或直接输入问题开始学习。",
-};
+function greetingFor(agentCode) {
+  return {
+    role: "assistant",
+    text: agentCode === "lower-primary-tutor"
+      ? "嗨，我是小智！我会一次陪你学一小步。准备好了吗？"
+      : "你好，我是你的 AI 学习助教。可以从左侧选择主题，或直接输入问题开始学习。",
+  };
+}
 
 function createSessionId() {
   return `web-${globalThis.crypto?.randomUUID?.() || Date.now()}`;
 }
 
-function sessionStorageKey(session) {
-  return `k12-teaching-session:${session?.username || session?.user?.username || "anonymous"}`;
+function sessionStorageKey(session, agentCode) {
+  return `k12-teaching-session:${agentCode}:${session?.username || session?.user?.username || "anonymous"}`;
 }
 
-function getOrCreateSessionId(session) {
+function getOrCreateSessionId(session, agentCode) {
   if (!session) return createSessionId();
-  const key = sessionStorageKey(session);
+  const key = sessionStorageKey(session, agentCode);
   const stored = sessionStorage.getItem(key);
   if (stored) return stored;
   const created = createSessionId();
@@ -324,6 +329,7 @@ function PracticeQuiz({ artifact, runId, onPracticeRecorded }) {
         return (
           <fieldset key={question.id} disabled={submitted}>
             <legend>{questionIndex + 1}. {question.prompt}</legend>
+            <QuestionVisual visual={question.visual} />
             {question.options.map((option) => (
               <label
                 className={
@@ -370,6 +376,57 @@ function PracticeQuiz({ artifact, runId, onPracticeRecorded }) {
   );
 }
 
+function QuestionVisual({ visual }) {
+  if (!visual?.value) return null;
+
+  if (visual.kind === "image") {
+    return (
+      <div className="practice-quiz-visual image">
+        <img src={visual.value} alt={visual.alt || "题目图片"} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="practice-quiz-visual emoji" role="img" aria-label={visual.alt || "题目图片卡"}>
+      {visual.value}
+    </div>
+  );
+}
+
+function GuidedChoices({ guidedTurn, active, disabled, onChoose }) {
+  if (!guidedTurn || !Array.isArray(guidedTurn.choices)) return null;
+  const current = Number(guidedTurn.progressCurrent) || 1;
+  const total = Number(guidedTurn.progressTotal) || 3;
+  const phaseLabels = { LOOK: "先看看", THINK: "想一想", TRY: "试一试" };
+
+  return (
+    <section className="guided-turn" aria-label="小智互动选择">
+      <header>
+        <span>{phaseLabels[guidedTurn.phase] || "一起学"}</span>
+        <div className="guided-progress" aria-label={`第 ${current} 步，共 ${total} 步`}>
+          {Array.from({ length: total }, (_, index) => (
+            <i className={index < current ? "complete" : ""} key={index} />
+          ))}
+        </div>
+      </header>
+      {guidedTurn.encouragement && <p>{guidedTurn.encouragement}</p>}
+      <div className="guided-choice-list">
+        {guidedTurn.choices.slice(0, 3).map((choice) => (
+          <button
+            type="button"
+            key={choice.id || choice.label}
+            disabled={!active || disabled}
+            onClick={() => onChoose(choice.value || choice.label)}
+          >
+            {choice.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** 共用教学对话区：学习台整页与悬浮入口复用同一会话键。 */
 export function TeachingAssistantChat({
   session,
@@ -382,18 +439,23 @@ export function TeachingAssistantChat({
   onTopicChange,
   seedPrompt,
   onSeedConsumed,
+  agentCode = "teaching-assistant",
 }) {
+  const greeting = greetingFor(agentCode);
   const [question, setQuestion] = useState("");
   const [sending, setSending] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [historyReady, setHistoryReady] = useState(false);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
-  const [sessionId, setSessionId] = useState(() => getOrCreateSessionId(session));
+  const [sessionId, setSessionId] = useState(() => getOrCreateSessionId(session, agentCode));
   const [conversation, setConversation] = useState([greeting]);
   const [lastTopicCode, setLastTopicCode] = useState(null);
   const conversationRef = useRef(null);
+  const proactiveSessionRef = useRef("");
   const stageCode = stageCodes[profile?.schoolStage];
   const isPage = variant === "page";
+  const isLowerPrimary = agentCode === "lower-primary-tutor";
 
   useEffect(() => {
     const pane = conversationRef.current;
@@ -407,8 +469,12 @@ export function TeachingAssistantChat({
   }, [session]);
 
   useEffect(() => {
-    setSessionId(getOrCreateSessionId(session));
-  }, [session]);
+    setHistoryReady(false);
+    setSessionId(getOrCreateSessionId(session, agentCode));
+    setConversation([greetingFor(agentCode)]);
+    setLastTopicCode(null);
+    proactiveSessionRef.current = "";
+  }, [session, agentCode]);
 
   useEffect(() => {
     let active = true;
@@ -435,13 +501,14 @@ export function TeachingAssistantChat({
     if (!session) {
       setConversation([greeting]);
       setRestoring(false);
+      setHistoryReady(true);
       return () => {
         active = false;
       };
     }
 
     setRestoring(true);
-    agentsApi.sessionHistory("teaching-assistant", sessionId)
+    agentsApi.sessionHistory(agentCode, sessionId)
       .then((value) => {
         if (!active) return;
         const restored = (value?.turns || []).flatMap((turn) => {
@@ -459,6 +526,7 @@ export function TeachingAssistantChat({
               text: turn.assistantMessage,
               grounding: metadata.knowledgeGrounding || null,
               courseRecommendations: metadata.courseRecommendations || [],
+              guidedTurn: metadata.guidedConversation || null,
               animationArtifact,
               gameArtifact,
               runId: turn.runId,
@@ -471,16 +539,20 @@ export function TeachingAssistantChat({
         if (active) setConversation([greeting]);
       })
       .finally(() => {
-        if (active) setRestoring(false);
+        if (active) {
+          setRestoring(false);
+          setHistoryReady(true);
+        }
       });
     return () => {
       active = false;
     };
-  }, [session, sessionId]);
+  }, [session, sessionId, agentCode]);
 
   function startNewConversation() {
     const nextSessionId = createSessionId();
-    if (session) sessionStorage.setItem(sessionStorageKey(session), nextSessionId);
+    if (session) sessionStorage.setItem(sessionStorageKey(session, agentCode), nextSessionId);
+    setHistoryReady(false);
     setSessionId(nextSessionId);
     setConversation([greeting]);
     setError("");
@@ -500,7 +572,7 @@ export function TeachingAssistantChat({
     setConversation((current) => [...current, { role: "user", text: content }]);
     setSending(true);
     try {
-      const run = await agentsApi.run("teaching-assistant", {
+      const run = await agentsApi.run(agentCode, {
         inputText: content,
         sessionId,
         executionMode: "SYNC",
@@ -511,7 +583,7 @@ export function TeachingAssistantChat({
           textbook: profile?.textbook || undefined,
           preferredInteraction: ["对话问答"],
           preferDeterministic: Boolean(preferDeterministic),
-          topicCode: lastTopicCode || undefined,
+          topicCode: topicCodeForId(topicId) || lastTopicCode || undefined,
         },
       });
       const metadata = run.outputMetadata || run.metadata || {};
@@ -527,6 +599,7 @@ export function TeachingAssistantChat({
         text: run.outputText || "讲解还在准备中，请稍后再问一次。",
         grounding: metadata.knowledgeGrounding || null,
         courseRecommendations: metadata.courseRecommendations || [],
+        guidedTurn: metadata.guidedConversation || null,
         animationArtifact,
         gameArtifact,
         runId: run.runId,
@@ -546,6 +619,26 @@ export function TeachingAssistantChat({
     ask(prompt, { topicId, preferDeterministic: Boolean(preferDeterministic) });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only fire when seed arrives
   }, [seedPrompt, restoring, sending]);
+
+  useEffect(() => {
+    if (
+      !isPage
+      || !isLowerPrimary
+      || !session
+      || !historyReady
+      || restoring
+      || sending
+      || seedPrompt?.prompt
+      || conversation.length !== 1
+      || proactiveSessionRef.current === sessionId
+    ) return;
+    proactiveSessionRef.current = sessionId;
+    ask("小智，带我开始今天的 AI 探索。", {
+      topicId: "image-classification",
+      preferDeterministic: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- each restored session starts at most once
+  }, [historyReady, sessionId, conversation.length, isLowerPrimary, isPage]);
 
   function submit(event) {
     event.preventDefault();
@@ -569,15 +662,23 @@ export function TeachingAssistantChat({
     : hasConversationMemory
       ? "正在结合当前对话记忆思考…"
       : "正在思考…";
+  const visibleConversation = conversation.slice(-30);
+  const lastAssistantIndex = visibleConversation.reduce(
+    (latest, message, index) => (message.role === "assistant" ? index : latest),
+    -1,
+  );
 
   return (
-    <section className={`teaching-chat ${isPage ? "page-variant" : "floating-variant"}`} aria-label="AI 学习对话">
+    <section
+      className={`teaching-chat ${isPage ? "page-variant" : "floating-variant"} ${isLowerPrimary ? "lower-primary-chat" : ""}`}
+      aria-label={isLowerPrimary ? "小智陪学对话" : "AI 学习对话"}
+    >
       <header className="teaching-chat-head">
         <span className="assistant-avatar">
           <img src={ASSISTANT_ICON} alt="" width={28} height={28} />
         </span>
         <div>
-          <strong>{isPage ? "AI 通识讲解" : "AI 学习助教"}</strong>
+          <strong>{isLowerPrimary ? "小智陪学模式" : isPage ? "AI 通识讲解" : "AI 学习助教"}</strong>
           <small className={statusBusy ? "status-busy" : undefined}>
             <i />
             {statusLabel}
@@ -596,7 +697,7 @@ export function TeachingAssistantChat({
       </header>
 
       <div className="conversation" ref={conversationRef} aria-live="polite">
-        {conversation.slice(-30).map((message, index) => (
+        {visibleConversation.map((message, index) => (
           <div
             className={`message ${message.role} ${message.animationArtifact ? "has-animation" : ""}`}
             key={`${message.runId || "local"}-${message.role}-${index}`}
@@ -612,23 +713,31 @@ export function TeachingAssistantChat({
               ) : (
                 <p>{message.text}</p>
               )}
-              {message.role === "assistant" && <KnowledgeGrounding grounding={message.grounding} />}
-              {message.role === "assistant" && (
+              {message.role === "assistant" && !isLowerPrimary && <KnowledgeGrounding grounding={message.grounding} />}
+              {message.role === "assistant" && !isLowerPrimary && (
                 <CourseRecommendations items={message.courseRecommendations} />
               )}
-              {message.role === "assistant" && <BubbleSortAnimation artifact={message.animationArtifact} />}
-              {message.role === "assistant" && <TeachingSteps artifact={message.animationArtifact} />}
-              {message.role === "assistant" && (
+              {message.role === "assistant" && !isLowerPrimary && <BubbleSortAnimation artifact={message.animationArtifact} />}
+              {message.role === "assistant" && !isLowerPrimary && <TeachingSteps artifact={message.animationArtifact} />}
+              {message.role === "assistant" && (!isLowerPrimary || message.guidedTurn?.showPractice) && (
                 <PracticeQuiz
                   artifact={message.gameArtifact}
                   runId={message.runId}
                   onPracticeRecorded={onPracticeRecorded}
                 />
               )}
-              {message.role === "assistant" && (
+              {message.role === "assistant" && !isLowerPrimary && (
                 <MultimodalNextSteps
                   animationArtifact={message.animationArtifact}
                   onOpenCodeLab={openCodeLab}
+                />
+              )}
+              {message.role === "assistant" && isLowerPrimary && (
+                <GuidedChoices
+                  guidedTurn={message.guidedTurn}
+                  active={index === lastAssistantIndex}
+                  disabled={sending || restoring}
+                  onChoose={(value) => ask(value, { preferDeterministic: true })}
                 />
               )}
             </div>
@@ -655,15 +764,15 @@ export function TeachingAssistantChat({
         <input
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder={restoring ? "正在恢复历史对话" : "输入问题，按 Enter 发送"}
-          aria-label="向 AI 助教提问"
+          placeholder={restoring ? "正在恢复历史对话" : isLowerPrimary ? "告诉小智你的想法" : "输入问题，按 Enter 发送"}
+          aria-label={isLowerPrimary ? "告诉小智你的想法" : "向 AI 助教提问"}
           disabled={restoring}
         />
         <button className="send-button" type="submit" title="发送问题" disabled={sending || restoring}>
           <Send size={17} />
         </button>
       </form>
-      <footer>AI 回答仅供学习参考</footer>
+      <footer>{isLowerPrimary ? "一次学一点，答错也没关系" : "AI 回答仅供学习参考"}</footer>
     </section>
   );
 }

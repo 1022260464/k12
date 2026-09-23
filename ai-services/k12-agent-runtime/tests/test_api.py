@@ -89,13 +89,14 @@ def test_teaching_assistant_is_registered_and_adapts_to_stage() -> None:
     agent_codes = {item["code"] for item in agents.json()["data"]}
     data = response.json()["data"]
     assert "teaching-assistant" in agent_codes
+    assert "lower-primary-tutor" in agent_codes
     assert response.status_code == 200
     assert data["metadata"]["stage"] == "小学高年级"
     assert data["artifacts"][0]["kind"] == "ANIMATION"
     assert data["artifacts"][0]["payload"]["schemaVersion"] == "1.0"
 
 
-def test_teaching_assistant_new_topic_returns_only_matching_quiz() -> None:
+def test_teaching_assistant_new_topic_returns_matching_steps_and_quiz() -> None:
     with TestClient(create_app(Settings(_env_file=None))) as client:
         response = client.post(
             "/internal/v1/agents/teaching-assistant/invoke",
@@ -108,8 +109,9 @@ def test_teaching_assistant_new_topic_returns_only_matching_quiz() -> None:
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["metadata"]["topicCode"] == "machine_learning.image_classification"
-    assert [artifact["kind"] for artifact in data["artifacts"]] == ["GAME"]
-    assert data["artifacts"][0]["payload"]["knowledgeCode"] == data["metadata"]["topicCode"]
+    assert [artifact["kind"] for artifact in data["artifacts"]] == ["ANIMATION", "GAME"]
+    quiz = next(artifact for artifact in data["artifacts"] if artifact["kind"] == "GAME")
+    assert quiz["payload"]["knowledgeCode"] == data["metadata"]["topicCode"]
 
 
 def test_unknown_agent_returns_standard_error() -> None:

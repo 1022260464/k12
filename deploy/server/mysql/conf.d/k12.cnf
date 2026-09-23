@@ -1,0 +1,12 @@
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+max_allowed_packet=64M
+wait_timeout=600
+interactive_timeout=600
+innodb_buffer_pool_size=512M
+skip_name_resolve=ON
+
+[client]
+default-character-set=utf8mb4
+

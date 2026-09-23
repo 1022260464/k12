@@ -55,6 +55,9 @@ public class PracticeInsightService {
                 sample.latestPercent = percent(score, attempt.getMaxScore());
                 sample.latestTime = attempt.getCreatedTime();
                 sample.weakPoint = attempt.getWeakPoint();
+                sample.latestHintCount = attempt.getHintCount() == null ? 0 : attempt.getHintCount();
+                sample.latestDurationMs = attempt.getDurationMs() == null ? 0L : attempt.getDurationMs();
+                sample.recentErrorType = firstErrorType(attempt.getErrorTypesJson());
             }
             sample.count++;
             sample.totalScore += score;
@@ -67,20 +70,45 @@ public class PracticeInsightService {
         int averagePercent = percent(sample.totalScore, sample.totalMaxScore);
         String action;
         String suggestion;
+        boolean needsScaffolding = sample.latestHintCount >= 2 || sample.latestDurationMs >= 180_000;
         if (sample.latestPercent < 60 || averagePercent < 60) {
             action = "REVIEW";
             suggestion = StringUtils.hasText(sample.weakPoint)
                     ? "回看讲解，重点复习「" + sample.weakPoint + "」，再做一轮练习。"
                     : "回看讲解与动画，再做一轮练习。";
-        } else if (sample.latestPercent < 80 || averagePercent < 80) {
+        } else if (sample.latestPercent < 80 || averagePercent < 80 || needsScaffolding) {
             action = "PRACTICE";
-            suggestion = "再做一轮练习，并试着用自己的话解释这个知识点。";
+            suggestion = needsScaffolding
+                    ? "这次需要较多提示或较长时间。下一轮先做更短的分步练习，再用自己的话解释。"
+                    : "再做一轮练习，并试着用自己的话解释这个知识点。";
         } else {
             action = "APPLY";
             suggestion = "尝试解释完整步骤，或完成相关编程练习。";
         }
+        suggestion = addErrorFocus(suggestion, sample.recentErrorType);
         return new PracticeInsightResponse(topic, sample.count, averagePercent, sample.latestPercent,
+                sample.latestHintCount, sample.latestDurationMs, sample.recentErrorType,
                 action, suggestion, sample.latestTime);
+    }
+
+    private String firstErrorType(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        int firstQuote = value.indexOf('"');
+        int secondQuote = firstQuote < 0 ? -1 : value.indexOf('"', firstQuote + 1);
+        return firstQuote >= 0 && secondQuote > firstQuote + 1
+                ? value.substring(firstQuote + 1, secondQuote) : null;
+    }
+
+    private String addErrorFocus(String suggestion, String errorType) {
+        if ("LABEL_MISMATCH".equals(errorType)) {
+            return suggestion + " 重点比较图片线索与标签是否匹配。";
+        }
+        if ("UNCERTAINTY_HANDLING".equals(errorType)) {
+            return suggestion + " 看不清时先说明不确定，再找清楚图片或请老师核对。";
+        }
+        return suggestion;
     }
 
     private int percent(long score, long maxScore) {
@@ -103,6 +131,9 @@ public class PracticeInsightService {
         private int latestPercent;
         private Instant latestTime;
         private String weakPoint;
+        private int latestHintCount;
+        private long latestDurationMs;
+        private String recentErrorType;
 
         private TopicSample(String topic) {
             this.topic = topic;

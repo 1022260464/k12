@@ -91,6 +91,27 @@ CREATE TABLE IF NOT EXISTS learning_course_section (
     CONSTRAINT fk_section_chapter FOREIGN KEY (chapter_id) REFERENCES learning_course_chapter(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS learning_course_section_activity (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    section_id BIGINT UNSIGNED NOT NULL,
+    activity_type VARCHAR(32) NOT NULL COMMENT 'CAT_LESSON, TEACHING_TOPIC or PYTHON_LAB',
+    reference_key VARCHAR(128) NOT NULL COMMENT 'Controlled in-product activity identifier, never an arbitrary URL',
+    title VARCHAR(128) NOT NULL,
+    description VARCHAR(500) DEFAULT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    required TINYINT(1) NOT NULL DEFAULT 1,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_section_activity_ref (section_id, activity_type, reference_key, deleted),
+    KEY idx_section_activity_order (section_id, deleted, sort_order, id),
+    CONSTRAINT fk_section_activity_section FOREIGN KEY (section_id)
+        REFERENCES learning_course_section(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT chk_section_activity_type CHECK (activity_type IN ('CAT_LESSON', 'TEACHING_TOPIC', 'PYTHON_LAB'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Controlled activities bound to formal course sections';
+
 CREATE TABLE IF NOT EXISTS learning_course_enrollment (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     course_id BIGINT UNSIGNED NOT NULL,
@@ -116,6 +137,25 @@ CREATE TABLE IF NOT EXISTS learning_chapter_progress (
     CONSTRAINT fk_progress_enrollment FOREIGN KEY (enrollment_id) REFERENCES learning_course_enrollment(id),
     CONSTRAINT fk_progress_chapter FOREIGN KEY (chapter_id) REFERENCES learning_course_chapter(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS learning_visual_programming_project (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    student_user_id BIGINT UNSIGNED NOT NULL COMMENT 'Logical IAM user ID',
+    mission_code VARCHAR(64) NOT NULL,
+    workspace_json MEDIUMTEXT NOT NULL COMMENT 'Blockly JSON workspace',
+    status VARCHAR(16) NOT NULL DEFAULT 'IN_PROGRESS',
+    best_stars TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    attempt_count INT UNSIGNED NOT NULL DEFAULT 0,
+    completed_time DATETIME(3) DEFAULT NULL,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_visual_project_student_mission (student_user_id, mission_code),
+    KEY idx_visual_project_student_status (student_user_id, status, updated_time),
+    CONSTRAINT chk_visual_project_stars CHECK (best_stars <= 3),
+    CONSTRAINT chk_visual_project_status CHECK (status IN ('IN_PROGRESS', 'COMPLETED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Student Blockly AI mission workspace and result';
 
 CREATE TABLE IF NOT EXISTS agent_config (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Agent primary key',
@@ -356,6 +396,13 @@ CREATE TABLE IF NOT EXISTS assessment_submission_answer (
   COMMENT = 'Structured answers and grading state';
 
 /* Runtime codes must match Python AgentExecutor.code values. */
+INSERT INTO agent_config (code, name, type, description, status)
+SELECT 'lower-primary-tutor', '小学低年级 AI 小老师', 'TEACHING',
+       '面向小学低年级的短句、绘本、图片任务与即时反馈教学智能体', 'ENABLED'
+WHERE NOT EXISTS (
+    SELECT 1 FROM agent_config WHERE code = 'lower-primary-tutor'
+);
+
 INSERT INTO agent_config (code, name, type, description, status)
 SELECT 'study-plan', 'Study Plan Agent', 'TEACHING', 'Generate a structured study plan', 'ENABLED'
 WHERE NOT EXISTS (

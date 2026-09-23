@@ -46,6 +46,18 @@ class KnowledgeDocument:
     textbook: str | None = None
     chapter: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    sections: tuple["DocumentSection", ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentSection:
+    """解析后保留来源位置的文档语义段。"""
+
+    text: str
+    heading: str | None = None
+    page_number: int | None = None
+    slide_number: int | None = None
+    paragraph_number: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +84,8 @@ class KnowledgeSearchQuery:
     query_embedding: tuple[float, ...]
     embedding_model: str
     limit: int
+    query_text: str = ""
+    lexical_terms: tuple[str, ...] = ()
     stage_code: str | None = None
     grade: str | None = None
     textbook: str | None = None

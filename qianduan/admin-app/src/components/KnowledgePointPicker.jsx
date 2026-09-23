@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Maximize2, Pin, Search, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, Maximize2, Pin, Plus, Search, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Modal } from "./Modal.jsx";
 
@@ -501,6 +501,74 @@ export function KnowledgePointPicker({
   );
 }
 
+/**
+ * AI 建议只读预览区。
+ * 建议和当前选择保持为两份状态，必须由管理员明确采纳后才会进入待保存数据。
+ */
+export function KnowledgeSuggestionPreview({
+  points = [],
+  suggestedCodes = [],
+  selectedCodes = [],
+  mode = "multi",
+  onAccept,
+  onAcceptAll,
+  onClose,
+}) {
+  if (!suggestedCodes.length) return null;
+  const selectedSet = new Set(selectedCodes);
+  const allAccepted = suggestedCodes.every((code) => selectedSet.has(code));
+
+  return (
+    <section className="knowledge-suggestion-preview" aria-label="AI 知识点建议预览">
+      <header>
+        <div>
+          <span className="knowledge-suggestion-icon"><Sparkles size={15} /></span>
+          <div>
+            <strong>AI 建议预览</strong>
+            <small>建议不会自动写入绑定，请核对后采纳。</small>
+          </div>
+        </div>
+        <div className="knowledge-suggestion-actions">
+          {mode === "multi" && (
+            <button
+              className="button ghost compact"
+              type="button"
+              disabled={allAccepted}
+              onClick={onAcceptAll}
+            >
+              <Check size={14} />全部采纳
+            </button>
+          )}
+          <button className="icon-button" type="button" title="关闭建议预览" onClick={onClose}>
+            <X size={15} />
+          </button>
+        </div>
+      </header>
+      <div className="knowledge-suggestion-list">
+        {suggestedCodes.map((code) => {
+          const point = points.find((item) => item.code === code);
+          const accepted = selectedSet.has(code);
+          return (
+            <article key={code} className={accepted ? "is-accepted" : ""}>
+              <div>
+                <strong>{point?.title || code}</strong>
+                <code>{code}</code>
+              </div>
+              {accepted ? (
+                <span className="knowledge-suggestion-accepted"><Check size={13} />已在当前选择</span>
+              ) : (
+                <button className="button ghost compact" type="button" onClick={() => onAccept?.(code)}>
+                  <Plus size={14} />采纳
+                </button>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 /** AI 建议合并：新建议勾选并排到最前。 */
 export function mergeAiSuggestedCodes(currentSelected, suggested) {
   const incoming = (suggested || []).filter(Boolean);
@@ -515,7 +583,7 @@ export function AiSuggestButton({ suggesting, onClick, disabled }) {
       className="button primary compact"
       type="button"
       disabled={disabled || suggesting}
-      title="根据导语/简介自动勾选相关知识点，并置顶显示；不会直接写库"
+      title="根据导语或简介生成知识点建议"
       onClick={onClick}
     >
       <Sparkles size={15} />{suggesting ? "建议中..." : "AI 建议"}

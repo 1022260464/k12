@@ -15,11 +15,17 @@ public record KnowledgePointResponse(
         String categoryTitle,
         String kind,
         /** 适用学段列表（可多选）；旧数据可能只有 stage 字符串。 */
-        List<String> stages
+        List<String> stages,
+        /** 常见别名、英文名和教材中的其他叫法，用于资料自动绑定。 */
+        List<String> aliases,
+        /** 能描述该知识点的稳定关键词，避免仅靠标题召回。 */
+        List<String> keywords
 ) {
     public KnowledgePointResponse {
         List<String> resolved = normalizeStages(stages, stage);
         stages = resolved;
+        aliases = normalizeTerms(aliases);
+        keywords = normalizeTerms(keywords);
         if ((stage == null || stage.isBlank()) && !resolved.isEmpty()) {
             stage = joinStages(resolved);
         }
@@ -29,7 +35,7 @@ public record KnowledgePointResponse(
     public KnowledgePointResponse(
             String code, String title, String stage, Integer difficulty, String reviewStatus
     ) {
-        this(code, title, stage, difficulty, reviewStatus, null, null, "TOPIC", null);
+        this(code, title, stage, difficulty, reviewStatus, null, null, "TOPIC", null, null, null);
     }
 
     /** 兼容旧调用：无 stages 列表。 */
@@ -43,7 +49,22 @@ public record KnowledgePointResponse(
             String categoryTitle,
             String kind
     ) {
-        this(code, title, stage, difficulty, reviewStatus, categoryCode, categoryTitle, kind, null);
+        this(code, title, stage, difficulty, reviewStatus, categoryCode, categoryTitle, kind, null, null, null);
+    }
+
+    /** 兼容旧调用：没有别名和关键词字段。 */
+    public KnowledgePointResponse(
+            String code,
+            String title,
+            String stage,
+            Integer difficulty,
+            String reviewStatus,
+            String categoryCode,
+            String categoryTitle,
+            String kind,
+            List<String> stages
+    ) {
+        this(code, title, stage, difficulty, reviewStatus, categoryCode, categoryTitle, kind, stages, null, null);
     }
 
     public List<String> resolvedStages() {
@@ -81,6 +102,17 @@ public record KnowledgePointResponse(
             return null;
         }
         return String.join("、", stages);
+    }
+
+    private static List<String> normalizeTerms(List<String> terms) {
+        if (terms == null || terms.isEmpty()) {
+            return List.of();
+        }
+        return terms.stream()
+                .filter(item -> item != null && !item.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
     }
 
     public boolean matchesStageFilter(String stageFilter) {

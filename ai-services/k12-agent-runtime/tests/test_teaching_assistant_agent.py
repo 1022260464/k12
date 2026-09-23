@@ -13,6 +13,7 @@ from k12_agent_runtime.domain.agents.models import (
 from k12_agent_runtime.domain.llm import ChatRequest, ChatResponse
 from k12_agent_runtime.domain.rag import KnowledgeSearchResult, RankedDocument
 from k12_agent_runtime.infrastructure.agents.teaching_assistant import (
+    LowerPrimaryTutorAgent,
     TeachingAssistantAgent,
 )
 
@@ -44,6 +45,85 @@ def run_topic(question: str, context: dict[str, object]):
             )
         )
     )
+
+
+def test_lower_primary_tutor_has_separate_code_and_enforces_child_policy() -> None:
+    result = asyncio.run(
+        LowerPrimaryTutorAgent().invoke(
+            AgentRunInput(
+                run_id="run-lower-primary-1",
+                agent_code="lower-primary-tutor",
+                input_text="继续讲图像分类",
+                user_id="student-1",
+                context={
+                    "stage": "high_school",
+                    "topicCode": "machine_learning.image_classification",
+                },
+            )
+        )
+    )
+
+    assert result.agent_code == "lower-primary-tutor"
+    assert result.metadata["stageCode"] == "lower_primary"
+    assert result.metadata["topicCode"] == "machine_learning.image_classification"
+    assert result.metadata["workflow"] == "lower-primary-guided-v1"
+    guided = result.metadata["guidedConversation"]
+    assert guided["mode"] == "SHORT_TURN"
+    assert guided["phase"] == "LOOK"
+    assert guided["progressCurrent"] == 1
+    assert guided["showPractice"] is False
+    assert 1 <= len(guided["choices"]) <= 3
+    assert "### 概念解释" not in result.output_text
+    assert "图片里的线索" in result.output_text or "猫和狗" in result.output_text
+
+
+@pytest.mark.parametrize(
+    ("previous_turn_count", "phase", "progress", "show_practice"),
+    [
+        (1, "THINK", 2, False),
+        (2, "TRY", 3, True),
+        (7, "TRY", 3, True),
+    ],
+)
+def test_lower_primary_tutor_advances_short_guided_turns(
+    previous_turn_count: int,
+    phase: str,
+    progress: int,
+    show_practice: bool,
+) -> None:
+    result = asyncio.run(
+        LowerPrimaryTutorAgent().invoke(
+            AgentRunInput(
+                run_id=f"run-lower-primary-{previous_turn_count}",
+                agent_code="lower-primary-tutor",
+                input_text="我想继续学",
+                user_id="student-1",
+                context={
+                    "topicCode": "machine_learning.image_classification",
+                    "conversation": {"previousTurnCount": previous_turn_count},
+                },
+            )
+        )
+    )
+
+    guided = result.metadata["guidedConversation"]
+    assert guided["phase"] == phase
+    assert guided["progressCurrent"] == progress
+    assert guided["showPractice"] is show_practice
+    assert guided["progressTotal"] == 3
+    assert len(guided["choices"]) == 3
+    assert all(choice["label"] for choice in guided["choices"])
+
+
+def test_object_detection_is_a_reviewed_follow_up_topic() -> None:
+    result = run_topic(
+        "请继续讲物体检测",
+        {"stage": "lower_primary", "topicCode": "computer_vision.object_detection"},
+    )
+
+    assert result.metadata["topicSupported"] is True
+    assert result.metadata["topicCode"] == "computer_vision.object_detection"
+    assert result.artifacts
 
 
 @pytest.mark.parametrize(
@@ -84,8 +164,19 @@ def test_new_topics_provide_stage_specific_lesson_and_recorded_practice(
     assert quiz.kind is AgentArtifactKind.GAME
     assert quiz.payload["knowledgeCode"] == code
     assert quiz.payload["scoringMode"] == "RECORDED_PRACTICE"
-    assert quiz.payload["maxScore"] == 20
-    assert len(quiz.payload["questions"]) == 2
+    expected_count = 3 if code == "machine_learning.image_classification" and stage == "lower_primary" else 2
+    assert quiz.payload["maxScore"] == expected_count * 10
+    assert len(quiz.payload["questions"]) == expected_count
+    if expected_count == 3:
+        assert quiz.payload["questions"][0]["visual"] == {
+            "kind": "emoji",
+            "value": "🐱",
+            "alt": "一只小猫",
+        }
+        assert quiz.payload["questions"][2]["correctOptionId"] == "check"
+        assert quiz.payload["questions"][0]["errorType"] == "LABEL_MISMATCH"
+        assert quiz.payload["questions"][2]["errorType"] == "UNCERTAINTY_HANDLING"
+        assert all(question["hint"] for question in quiz.payload["questions"])
 
 
 def test_new_topic_mastery_selects_reinforcement_and_extension() -> None:
@@ -114,6 +205,28 @@ def test_new_topic_mastery_selects_reinforcement_and_extension() -> None:
     assert strong_quiz.payload["practiceLevel"] == "EXTEND"
     assert strong_quiz.payload["maxScore"] == 30
     assert strong.metadata["knowledgeMasteryPercent"] == 85
+
+
+@pytest.mark.parametrize(
+    ("question", "code"),
+    [
+        ("Embedding 向量表示是什么？", "machine_learning.embedding_intro"),
+        ("RAG 检索增强生成怎么工作？", "generative_ai.rag_basics"),
+        ("AI 智能体怎样使用目标、工具和反馈？", "generative_ai.agents_basics"),
+    ],
+)
+def test_high_school_trustworthy_ai_course_topics_are_stable_and_gradable(
+    question: str, code: str
+) -> None:
+    result = run_topic(question, {"stage": "high_school", "preferDeterministic": True})
+
+    assert result.status is AgentRunStatus.SUCCEEDED
+    assert result.metadata["topicCode"] == code
+    assert result.metadata["stageCode"] == "high_school"
+    quiz = next(item for item in result.artifacts if item.kind is AgentArtifactKind.GAME)
+    assert quiz.payload["knowledgeCode"] == code
+    assert quiz.payload["scoringMode"] == "RECORDED_PRACTICE"
+    assert len(quiz.payload["questions"]) == 2
 
 
 def test_unknown_topic_does_not_generate_mislabeled_lesson_or_artifacts() -> None:
@@ -259,6 +372,30 @@ def test_explicit_replay_request_resends_animation() -> None:
     assert result.metadata["demoOmitted"] is False
     assert result.artifacts[0].kind is AgentArtifactKind.ANIMATION
     assert result.artifacts[0].payload["animationType"] == "bubble-sort"
+
+
+def test_lesson_activity_keeps_practice_artifact_when_topic_was_already_shown() -> None:
+    result = run_topic(
+        "继续学习图像分类",
+        {
+            "stage": "lower_primary",
+            "preferDeterministic": True,
+            "requirePracticeArtifact": True,
+            "topicCode": "machine_learning.image_classification",
+            "shownDemoTopics": ["machine_learning.image_classification"],
+            "conversationHistory": [
+                {
+                    "user": "图像分类是什么？",
+                    "assistant": "机器会观察图片里的线索。",
+                }
+            ],
+        },
+    )
+
+    assert result.metadata["demoOmitted"] is False
+    quiz = next(item for item in result.artifacts if item.kind is AgentArtifactKind.GAME)
+    assert quiz.mime_type == "application/vnd.k12.quiz.v1+json"
+    assert len(quiz.payload["questions"]) == 3
 
 
 def test_catalog_preset_skips_model_and_uses_deterministic_steps() -> None:

@@ -6,12 +6,13 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
-    "test": "node --test src/data/animation.test.js src/data/teachingSteps.test.js src/utils/passwordValidation.test.js",
+    "test": "node --test src/data/animation.test.js src/data/blocklyMissions.test.js src/data/catRecognitionLesson.test.js src/data/courseActivities.test.js src/data/dailyLearningPlan.test.js src/data/teachingSteps.test.js src/data/teachingTopics.test.js src/utils/passwordValidation.test.js",
     "preview": "vite preview --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@vitejs/plugin-react": "5.0.4",
+    "blockly": "^13.3.0",
     "dompurify": "^3.4.15",
     "duma-icons-react": "^0.1.0",
     "echarts": "^5.6.0",

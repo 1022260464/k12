@@ -325,11 +325,15 @@ public class KnowledgeGraphService {
                                    OR (p.stages IS NULL AND p.stage CONTAINS $stage))
                               AND ($q = '' OR toLower(p.code) CONTAINS $q
                                    OR toLower(coalesce(p.title, '')) CONTAINS $q
-                                   OR toLower(coalesce(p.categoryTitle, '')) CONTAINS $q)
+                                   OR toLower(coalesce(p.categoryTitle, '')) CONTAINS $q
+                                   OR any(alias IN coalesce(p.aliases, []) WHERE toLower(alias) CONTAINS $q)
+                                   OR any(keyword IN coalesce(p.keywords, []) WHERE toLower(keyword) CONTAINS $q))
                             RETURN p.code AS code, p.title AS title, p.stage AS stage, p.stages AS stages,
                                    p.difficulty AS difficulty, p.reviewStatus AS reviewStatus,
                                    p.categoryCode AS categoryCode, p.categoryTitle AS categoryTitle,
-                                   coalesce(p.kind, 'TOPIC') AS kind
+                                   coalesce(p.kind, 'TOPIC') AS kind,
+                                   coalesce(p.aliases, []) AS aliases,
+                                   coalesce(p.keywords, []) AS keywords
                             ORDER BY coalesce(p.categoryTitle, ''), p.code
                             LIMIT $limit
                             """, Values.parameters("stage", stageFilter, "q", q, "limit", capped));
@@ -662,6 +666,8 @@ public class KnowledgeGraphService {
             row.put("categoryCode", meta.categoryCode());
             row.put("categoryTitle", meta.categoryTitle());
             row.put("kind", StringUtils.hasText(meta.kind()) ? meta.kind() : "TOPIC");
+            row.put("aliases", meta.aliases());
+            row.put("keywords", meta.keywords());
             rows.add(row);
         }
         if (rows.isEmpty()) return;
@@ -680,6 +686,8 @@ public class KnowledgeGraphService {
                             p.categoryCode = coalesce(row.categoryCode, p.categoryCode),
                             p.categoryTitle = coalesce(row.categoryTitle, p.categoryTitle),
                             p.kind = coalesce(row.kind, p.kind, 'TOPIC'),
+                            p.aliases = CASE WHEN size(coalesce(row.aliases, [])) > 0 THEN row.aliases ELSE coalesce(p.aliases, []) END,
+                            p.keywords = CASE WHEN size(coalesce(row.keywords, [])) > 0 THEN row.keywords ELSE coalesce(p.keywords, []) END,
                             p.reviewStatus = coalesce(p.reviewStatus, 'APPROVED'),
                             p.updatedAt = datetime()
                         """, Values.parameters("rows", rows));
@@ -741,6 +749,8 @@ public class KnowledgeGraphService {
             row.put("categoryCode", point.categoryCode());
             row.put("categoryTitle", point.categoryTitle());
             row.put("kind", point.kind() != null ? point.kind() : "TOPIC");
+            row.put("aliases", point.aliases());
+            row.put("keywords", point.keywords());
             rows.add(row);
         }
         List<Map<String, Object>> edgeRows = new ArrayList<>();
@@ -766,6 +776,8 @@ public class KnowledgeGraphService {
                             p.categoryCode = row.categoryCode,
                             p.categoryTitle = row.categoryTitle,
                             p.kind = row.kind,
+                            p.aliases = coalesce(row.aliases, []),
+                            p.keywords = coalesce(row.keywords, []),
                             p.reviewStatus = 'APPROVED',
                             p.updatedAt = datetime()
                         """, Values.parameters("rows", rows));
@@ -927,6 +939,24 @@ public class KnowledgeGraphService {
                         reasons.add("关键词「" + token + "」");
                         break;
                     }
+                }
+            }
+            for (String alias : point.aliases()) {
+                if (StringUtils.hasText(alias) && haystack.contains(normalizeText(alias))) {
+                    score += 8;
+                    reasons.add("别名「" + alias + "」");
+                    break;
+                }
+            }
+            int keywordHits = 0;
+            for (String keyword : point.keywords()) {
+                if (StringUtils.hasText(keyword) && haystack.contains(normalizeText(keyword))) {
+                    score += 2;
+                    keywordHits++;
+                    if (keywordHits <= 2) {
+                        reasons.add("主题词「" + keyword + "」");
+                    }
+                    if (keywordHits >= 3) break;
                 }
             }
             for (String segment : point.code().split("[._-]")) {
@@ -1749,6 +1779,8 @@ public class KnowledgeGraphService {
                 ? record.get("stage").asString(null)
                 : null;
         List<String> stages = readStringList(record, "stages");
+        List<String> aliases = readStringList(record, "aliases");
+        List<String> keywords = readStringList(record, "keywords");
         KnowledgePointResponse builtin = catalogStore.find(code);
         if (builtin != null) {
             if (!StringUtils.hasText(categoryCode)) {
@@ -1764,6 +1796,12 @@ public class KnowledgeGraphService {
                 stages = builtin.resolvedStages();
                 stage = builtin.stage();
             }
+            if (aliases.isEmpty()) {
+                aliases = builtin.aliases();
+            }
+            if (keywords.isEmpty()) {
+                keywords = builtin.keywords();
+            }
         }
         return new KnowledgePointResponse(
                 code,
@@ -1774,7 +1812,9 @@ public class KnowledgeGraphService {
                 categoryCode,
                 categoryTitle,
                 kind != null ? kind : "TOPIC",
-                stages.isEmpty() ? null : stages
+                stages.isEmpty() ? null : stages,
+                aliases,
+                keywords
         );
     }
 

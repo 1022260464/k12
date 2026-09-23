@@ -105,6 +105,24 @@ class PracticeInsightServiceTest {
         });
     }
 
+    @Test
+    void highScoreWithHeavyScaffoldingKeepsNextPracticeShortAndGuided() {
+        AiPracticeAttempt guided = attempt("图像分类课堂小测", 9, 10, null, 1);
+        guided.setHintCount(3);
+        guided.setDurationMs(240_000L);
+        guided.setErrorTypesJson("[\"UNCERTAINTY_HANDLING\"]");
+        when(mapper.findRecentByStudent(42L, 50)).thenReturn(List.of(guided));
+
+        var insight = service.myInsights().get(0);
+
+        assertThat(insight.latestScorePercent()).isEqualTo(90);
+        assertThat(insight.latestHintCount()).isEqualTo(3);
+        assertThat(insight.latestDurationMs()).isEqualTo(240_000L);
+        assertThat(insight.recentErrorType()).isEqualTo("UNCERTAINTY_HANDLING");
+        assertThat(insight.action()).isEqualTo("PRACTICE");
+        assertThat(insight.suggestion()).contains("更短的分步练习", "先说明不确定");
+    }
+
     private AiPracticeAttempt attempt(String topic, int score, int maxScore, String weakPoint, int seconds) {
         AiPracticeAttempt attempt = new AiPracticeAttempt();
         attempt.setTopic(topic);

@@ -1,17 +1,9 @@
-import { LogOut, Menu, X } from "lucide-react";
+import { GraduationCap, LogOut, Menu, Shapes, X } from "lucide-react";
 import { useState } from "react";
 import { HeaderSearch } from "./HeaderSearch.jsx";
 import { NotificationBell } from "./NotificationBell.jsx";
-
-const navigation = [
-  ["home", "学习首页"],
-  ["ai-studio", "AI 学习台"],
-  ["courses", "课程中心"],
-  ["tasks", "作业练习"],
-  ["code-lab", "编程实验"],
-  ["leaderboard", "学习排行"],
-  ["progress", "学习报告"],
-];
+import { EXPERIENCE, experienceNavigation } from "../experience/experience.js";
+import { visualsFor } from "../experience/visualAssets.js";
 
 export function SiteHeader({
   page,
@@ -25,16 +17,40 @@ export function SiteHeader({
   onLogin,
   onRegister,
   onLogout,
+  experience,
+  onExperienceChange,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   function go(nextPage) { navigate(nextPage); setMenuOpen(false); }
   const initial = (displayName || "同").slice(0, 1).toUpperCase();
+  const navigation = experienceNavigation[experience] || experienceNavigation[EXPERIENCE.TEEN];
+  const brandMascot = visualsFor(experience).mascot;
 
   return (
-    <header className="site-header">
+    <header className={`site-header${session ? " authenticated" : ""}`}>
       <button className="brand brand-button" type="button" onClick={() => go("home")} aria-label="返回学习首页">
-        <span className="brand-mark"><img src="/assets/brand-face-doodle.png" alt="" /></span><span>EduGraph AI</span>
+        <span className="brand-mark"><img src={brandMascot} alt="" /></span><span>EduGraph AI</span>
       </button>
+      <div className="experience-switcher" role="group" aria-label="切换学生端界面">
+        <button
+          className={experience === EXPERIENCE.PRIMARY ? "active" : ""}
+          type="button"
+          title="切换到小学端"
+          aria-pressed={experience === EXPERIENCE.PRIMARY}
+          onClick={() => onExperienceChange(EXPERIENCE.PRIMARY)}
+        >
+          <Shapes size={15} />小学端
+        </button>
+        <button
+          className={experience === EXPERIENCE.TEEN ? "active" : ""}
+          type="button"
+          title="切换到初高中端"
+          aria-pressed={experience === EXPERIENCE.TEEN}
+          onClick={() => onExperienceChange(EXPERIENCE.TEEN)}
+        >
+          <GraduationCap size={15} />初高中端
+        </button>
+      </div>
       <nav className={menuOpen ? "open" : ""} aria-label="主导航">
         {navigation.map(([id, label]) => (
           <button className={page === id ? "active" : ""} type="button" key={id} onClick={() => go(id)}>{label}</button>
