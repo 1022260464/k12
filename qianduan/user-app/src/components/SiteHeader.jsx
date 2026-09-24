@@ -2,7 +2,7 @@ import { GraduationCap, LogOut, Menu, Shapes, X } from "lucide-react";
 import { useState } from "react";
 import { HeaderSearch } from "./HeaderSearch.jsx";
 import { NotificationBell } from "./NotificationBell.jsx";
-import { EXPERIENCE, experienceNavigation } from "../experience/experience.js";
+import { EXPERIENCE, experienceNavigation, learningProfileLabel } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
 
 export function SiteHeader({
@@ -18,6 +18,7 @@ export function SiteHeader({
   onRegister,
   onLogout,
   experience,
+  learningProfile,
   onExperienceChange,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -50,6 +51,9 @@ export function SiteHeader({
         >
           <GraduationCap size={15} />初高中端
         </button>
+        {learningProfile?.schoolStage && (
+          <span className="profile-stage-chip" title="当前学习档案">{learningProfileLabel(learningProfile)}</span>
+        )}
       </div>
       <nav className={menuOpen ? "open" : ""} aria-label="主导航">
         {navigation.map(([id, label]) => (

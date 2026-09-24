@@ -3,13 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { coursesApi } from "../api/client.js";
 import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { courses as visualCourses } from "../data/learningData.js";
-import { EXPERIENCE } from "../experience/experience.js";
+import {
+  courseMatchesLearningScope,
+  EXPERIENCE,
+  experienceForSchoolStage,
+  learningProfileLabel,
+} from "../experience/experience.js";
 
-const subjects = ["全部", "信息科技", "数学", "科学", "英语", "拓展课程"];
 const fallbackImageFor = (course, index) => visualCourses.find((item) => item.subject === course.subject)?.image || visualCourses[index % visualCourses.length].image;
 const imageFor = (course, index) => course.coverUrl || fallbackImageFor(course, index);
 
-export function CoursesPage({ session, requireLogin, navigate, experience = EXPERIENCE.TEEN }) {
+export function CoursesPage({ session, requireLogin, navigate, experience = EXPERIENCE.TEEN, learningProfile }) {
   const [subject, setSubject] = useState("全部");
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState([]);
@@ -37,19 +41,44 @@ export function CoursesPage({ session, requireLogin, navigate, experience = EXPE
       .finally(() => setLoading(false));
   }, [session]);
 
+  useEffect(() => setSubject("全部"), [experience, learningProfile?.schoolStage]);
+
+  const stageCourses = useMemo(
+    () => courses.filter((course) => courseMatchesLearningScope(
+      course.gradeLevel,
+      learningProfile?.schoolStage,
+      experience,
+    )),
+    [courses, experience, learningProfile?.schoolStage],
+  );
+  const subjects = useMemo(
+    () => ["全部", ...new Set(stageCourses.map((course) => course.subject).filter(Boolean))],
+    [stageCourses],
+  );
+
   const filtered = useMemo(
-    () => courses.filter((course) => (
+    () => stageCourses.filter((course) => (
       (subject === "全部" || course.subject === subject)
       && (!query.trim() || course.title.toLowerCase().includes(query.trim().toLowerCase()))
     )),
-    [courses, subject, query],
+    [stageCourses, subject, query],
   );
-  const historyByCourse = useMemo(() => new Map(history.map((item) => [String(item.courseId), item])), [history]);
-  const activeCourse = history.find((item) => Number(item.progressPercent || 0) < 100) || history[0];
-  const completedChapters = history.reduce((sum, item) => sum + Number(item.completedChapters || 0), 0);
-  const averageProgress = history.length
-    ? Math.round(history.reduce((sum, item) => sum + Number(item.progressPercent || 0), 0) / history.length)
+  const scopedHistory = useMemo(() => history.filter((item) => courseMatchesLearningScope(
+    item.gradeLevel,
+    learningProfile?.schoolStage,
+    experience,
+  )), [history, experience, learningProfile?.schoolStage]);
+  const historyByCourse = useMemo(() => new Map(scopedHistory.map((item) => [String(item.courseId), item])), [scopedHistory]);
+  const activeCourse = scopedHistory.find((item) => Number(item.progressPercent || 0) < 100) || scopedHistory[0];
+  const completedChapters = scopedHistory.reduce((sum, item) => sum + Number(item.completedChapters || 0), 0);
+  const averageProgress = scopedHistory.length
+    ? Math.round(scopedHistory.reduce((sum, item) => sum + Number(item.progressPercent || 0), 0) / scopedHistory.length)
     : 0;
+  const profileMatchesExperience = learningProfile?.schoolStage
+    && experienceForSchoolStage(learningProfile.schoolStage) === experience;
+  const learningScopeLabel = profileMatchesExperience
+    ? learningProfileLabel(learningProfile)
+    : (experience === EXPERIENCE.PRIMARY ? "小学阶段预览" : "初高中阶段预览");
 
   function openCourse(course) {
     if (!session) {
@@ -60,7 +89,7 @@ export function CoursesPage({ session, requireLogin, navigate, experience = EXPE
   }
 
   return (
-    <div className="page inner-page">
+    <div className="page inner-page courses-page">
       <ExperiencePageHeader
         experience={experience}
         eyebrow={experience === EXPERIENCE.PRIMARY ? "探索课程" : "课程中心"}
@@ -70,6 +99,10 @@ export function CoursesPage({ session, requireLogin, navigate, experience = EXPE
           : "浏览已发布课程，报名后即可查看章节与学习进度。"}
         imageKey="courses"
       />
+      <div className="stage-scope-banner" role="status">
+        <span><BookOpen size={17} /></span>
+        <div><strong>当前课程范围：{learningScopeLabel}</strong><p>课程、进度与推荐已按当前学习阶段筛选，可在个人中心修改学习档案。</p></div>
+      </div>
       {session && !loading && (
         <section className="course-overview" aria-label="我的课程概览">
           <div className="course-overview-next">
@@ -77,7 +110,7 @@ export function CoursesPage({ session, requireLogin, navigate, experience = EXPE
             <div><small>继续学习</small><strong>{activeCourse?.courseTitle || "选择一门课程开始"}</strong><p>{activeCourse ? `当前进度 ${Number(activeCourse.progressPercent || 0)}%，最近学习 ${formatDate(activeCourse.lastLearningTime)}` : "报名后会在这里保留最近学习位置。"}</p></div>
             <button type="button" onClick={() => activeCourse ? navigate(`courses/${activeCourse.courseId}`) : null} disabled={!activeCourse} title="继续最近课程"><ArrowRight size={18} /></button>
           </div>
-          <div className="course-overview-stat"><Clock3 size={18} /><span><strong>{history.length}</strong><small>在学课程</small></span></div>
+          <div className="course-overview-stat"><Clock3 size={18} /><span><strong>{scopedHistory.length}</strong><small>在学课程</small></span></div>
           <div className="course-overview-stat"><CheckCircle2 size={18} /><span><strong>{completedChapters}</strong><small>完成章节</small></span></div>
           <div className="course-overview-stat"><TrendingUp size={18} /><span><strong>{averageProgress}%</strong><small>平均进度</small></span></div>
         </section>

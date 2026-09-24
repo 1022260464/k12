@@ -4,7 +4,7 @@ import { coursesApi, homeworksApi, practiceApi, profileApi } from "../api/client
 import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { LearnerKnowledgeNetwork } from "../components/LearnerKnowledgeNetwork.jsx";
 import { LearningRhythm } from "../components/LearningRhythm.jsx";
-import { EXPERIENCE } from "../experience/experience.js";
+import { courseMatchesLearningScope, EXPERIENCE, learningProfileLabel } from "../experience/experience.js";
 
 const stages = [["PRIMARY_LOWER", "小学低年级"], ["PRIMARY_UPPER", "小学高年级"], ["JUNIOR_HIGH", "初中"], ["SENIOR_HIGH", "高中"]];
 function ProgressHeader({ experience }) {
@@ -22,8 +22,8 @@ function ProgressHeader({ experience }) {
   );
 }
 
-export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, onPractice, practiceRevision, experience = EXPERIENCE.TEEN }) {
-  const [profile, setProfile] = useState(null);
+export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, onPractice, practiceRevision, experience = EXPERIENCE.TEEN, activeLearningProfile }) {
+  const [profile, setProfile] = useState(activeLearningProfile || null);
   const [history, setHistory] = useState([]);
   const [results, setResults] = useState([]);
   const [practiceInsights, setPracticeInsights] = useState([]);
@@ -55,16 +55,22 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
       .then(([profileResult, historyResult, homeworkResult, practiceResult, masteryResult]) => {
         if (!active) return;
         const failedSources = [];
+        const profileValue = profileResult.status === "fulfilled" ? profileResult.value : activeLearningProfile;
 
         if (profileResult.status === "fulfilled") {
-          setProfile(profileResult.value);
+          setProfile(profileValue);
         } else {
-          setProfile(null);
+          setProfile(profileValue || null);
           failedSources.push("学习档案");
         }
 
         if (historyResult.status === "fulfilled") {
-          setHistory(historyResult.value?.items || []);
+          const rows = historyResult.value?.items || [];
+          setHistory(rows.filter((item) => courseMatchesLearningScope(
+            item.gradeLevel,
+            profileValue?.schoolStage,
+            experience,
+          )));
         } else {
           setHistory([]);
           failedSources.push("课程进度");
@@ -95,7 +101,7 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [session, practiceRevision]);
+  }, [session, practiceRevision, experience, activeLearningProfile]);
 
   const metrics = useMemo(() => {
     const graded = results.filter((item) => item.status === "GRADED" && item.score != null);
@@ -115,14 +121,26 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
     [results],
   );
 
-  if (!session) return <div className="page inner-page"><ProgressHeader experience={experience} /><section className="empty-state"><BarChart3 size={28} /><h2>{experience === EXPERIENCE.PRIMARY ? "登录后查看成长记录" : "登录后查看学习报告"}</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
-  if (loading) return <div className="page inner-page"><div className="loading-state"><LoaderCircle size={22} />正在生成学习报告</div></div>;
+  if (!session) return <div className="page inner-page report-page"><ProgressHeader experience={experience} /><section className="empty-state"><BarChart3 size={28} /><h2>{experience === EXPERIENCE.PRIMARY ? "登录后查看成长记录" : "登录后查看学习报告"}</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
+  if (loading) return <div className="page inner-page report-page"><div className="loading-state"><LoaderCircle size={22} />正在生成学习报告</div></div>;
 
   return (
-    <div className="page inner-page">
+    <div className="page inner-page report-page">
       <ProgressHeader experience={experience} />
       {error && <p className="page-error" role="alert">{error}</p>}
       <section className="report-stats"><article><span><BookOpen /></span><div><strong>{metrics.courses} 门</strong><small>在学课程</small></div></article><article><span><CheckCircle2 /></span><div><strong>{metrics.completedChapters}/{metrics.totalChapters}</strong><small>已完成章节</small></div></article><article><span><TrendingUp /></span><div><strong>{metrics.averageProgress}%</strong><small>平均课程进度</small></div></article><article><span><ClipboardCheck /></span><div><strong>{metrics.averageScore == null ? "暂无" : `${metrics.averageScore} 分`}</strong><small>已批改作业均分</small></div></article></section>
+
+      <section className="report-overview-banner" aria-label="当前阶段学习概览">
+        <span><TrendingUp size={24} /></span>
+        <div>
+          <small>{learningProfileLabel(profile)}</small>
+          <h2>{metrics.courses ? "你的学习正在形成连续记录" : "从一门适合当前学段的课程开始"}</h2>
+          <p>{metrics.courses
+            ? `当前阶段已完成 ${metrics.completedChapters} 个章节，平均课程进度 ${metrics.averageProgress}%。继续完成课程、练习和作业，推荐会更加准确。`
+            : "课程开始后，这里会汇总进度、练习表现、薄弱知识点和下一步建议。"}</p>
+        </div>
+        <button className="button secondary" type="button" onClick={() => navigate("courses")}><BookOpen size={16} />查看阶段课程</button>
+      </section>
 
       <LearningRhythm session={session} navigate={navigate} experience={experience} history={history} results={results} className="report-learning-rhythm" />
 

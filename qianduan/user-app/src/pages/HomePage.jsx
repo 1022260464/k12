@@ -1,16 +1,16 @@
-import { ArrowRight, ChevronLeft, ChevronRight, LoaderCircle, Play, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, LoaderCircle, MessageCircle, Play, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { coursesApi } from "../api/client.js";
 import { DailyLearningPlan } from "../components/DailyLearningPlan.jsx";
 import { LearningRhythm } from "../components/LearningRhythm.jsx";
 import { courses as fallbackCourses } from "../data/learningData.js";
-import { EXPERIENCE } from "../experience/experience.js";
+import { courseMatchesLearningScope, EXPERIENCE } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
 
 const fallbackImageFor = (course, index) => fallbackCourses.find((item) => item.subject === course.subject)?.image
   || fallbackCourses[index % fallbackCourses.length].image;
 
-export function HomePage({ session, displayName, navigate, requireLogin, onAskTopic, experience = EXPERIENCE.TEEN }) {
+export function HomePage({ session, displayName, navigate, requireLogin, onAskTopic, experience = EXPERIENCE.TEEN, schoolStage }) {
   const railRef = useRef(null);
   const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(Boolean(session));
@@ -38,8 +38,15 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
     return () => { active = false; };
   }, [session]);
 
-  const showcase = recommended.length
-    ? recommended.map((course, index) => ({
+  const scopedRecommendations = recommended.filter((course) => (
+    courseMatchesLearningScope(course.gradeLevel, schoolStage, experience)
+  ));
+  const scopedFallbackCourses = fallbackCourses.filter((course) => (
+    courseMatchesLearningScope(course.grade, schoolStage, experience)
+  ));
+  const showcaseSource = scopedRecommendations.length ? scopedRecommendations : scopedFallbackCourses;
+  const showcase = scopedRecommendations.length
+    ? showcaseSource.map((course, index) => ({
       id: course.id,
       title: course.title,
       subject: course.subject,
@@ -47,7 +54,7 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
       next: course.description?.trim()?.slice(0, 28) || "打开课程查看章节",
       image: course.coverUrl || fallbackImageFor(course, index),
     }))
-    : fallbackCourses;
+    : showcaseSource;
   const primary = experience === EXPERIENCE.PRIMARY;
   const visuals = visualsFor(experience);
   const hero = primary
@@ -66,6 +73,22 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
 
   return (
     <div className="page home-page">
+      <aside className="home-side-rail home-side-rail-left" aria-label="今日学习入口">
+        <img src={visuals.mascot} alt="" aria-hidden="true" />
+        <small>{primary ? "今天去哪里探险？" : "今日学习入口"}</small>
+        <strong>{primary ? "选一个喜欢的任务开始" : "保持清晰的学习节奏"}</strong>
+        <button type="button" onClick={() => navigate("courses")}><BookOpen size={16} />{primary ? "探索课程" : "继续课程"}</button>
+        <button type="button" onClick={() => navigate("tasks")}><ClipboardCheck size={16} />{primary ? "趣味任务" : "查看作业"}</button>
+      </aside>
+
+      <aside className="home-side-rail home-side-rail-right" aria-label="快捷学习工具">
+        <img src={visuals.encouragement} alt="" aria-hidden="true" />
+        <small>{primary ? "小智随时陪着你" : "快捷学习工具"}</small>
+        <strong>{primary ? "遇到问题就来问我" : "从问题回到行动"}</strong>
+        <button type="button" onClick={() => requireLogin(() => navigate("ai-studio"))}><MessageCircle size={16} />{primary ? "问问小智" : "打开 AI"}</button>
+        <button type="button" onClick={() => navigate("progress")}><BarChart3 size={16} />{primary ? "我的成长" : "学习报告"}</button>
+      </aside>
+
       <section className="home-hero">
         <div className="hero-copy">
           <p className="eyebrow"><Sparkles size={14} /> {hero.eyebrow}</p>

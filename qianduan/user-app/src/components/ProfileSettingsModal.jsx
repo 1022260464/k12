@@ -14,7 +14,7 @@ const stages = [
 
 const emptyLearning = { schoolStage: "JUNIOR_HIGH", grade: 7, textbook: "", interests: "" };
 
-export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
+export function ProfileSettingsModal({ session, onClose, onProfileUpdated, onLearningProfileUpdated }) {
   const [account, setAccount] = useState(null);
   const [form, setForm] = useState({ nickname: "", email: "", ...emptyLearning });
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
           interests: Array.isArray(learning?.interests) ? learning.interests.join("、") : "",
         });
         onProfileUpdated?.(self);
+        if (learning) onLearningProfileUpdated?.(learning);
       })
       .catch((requestError) => {
         if (alive) setError(requestError.message);
@@ -69,7 +70,7 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
     setEmailError("");
     setMessage("");
     try {
-      const [self] = await Promise.all([
+      const [self, learning] = await Promise.all([
         profileApi.updateSelf({
           nickname: form.nickname.trim(),
           email: form.email.trim() || null,
@@ -83,6 +84,7 @@ export function ProfileSettingsModal({ session, onClose, onProfileUpdated }) {
       ]);
       setAccount(self);
       onProfileUpdated?.(self);
+      onLearningProfileUpdated?.(learning);
       setMessage("已保存");
     } catch (requestError) {
       const mapped = mapUniqueIdentityError(requestError.message);
