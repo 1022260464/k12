@@ -73,6 +73,9 @@ class HomeworkServiceTest {
     @Mock
     private SubmissionAnswerService submissionAnswerService;
 
+    @Mock
+    private AssessmentLearningEventWriter eventWriter;
+
     @InjectMocks
     private HomeworkService homeworkService;
 

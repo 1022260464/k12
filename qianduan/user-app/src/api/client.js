@@ -109,6 +109,7 @@ export const coursesApi = {
   }),
   page: (filters = {}) => api(`/api/v1/learning/courses/page?${query(filters)}`),
   history: (limit = 10) => api(`/api/v1/learning/history/me?${query({ limit })}`),
+  events: (days = 30, limit = 100) => api(`/api/v1/learning/events/me?${query({ days, limit })}`),
   get: (id) => api(`/api/v1/learning/courses/${id}`),
   chapters: (courseId) => api(`/api/v1/learning/courses/${courseId}/chapters`),
   chapter: (courseId, chapterId) => api(`/api/v1/learning/courses/${courseId}/chapters/${chapterId}`),

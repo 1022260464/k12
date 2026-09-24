@@ -40,11 +40,12 @@ class AiPracticeAttemptServiceTest {
     @Mock private AgentQuizRunClient agentClient;
     @Mock private AiPracticeAttemptMapper mapper;
     @Mock private AiKnowledgeMasteryMapper masteryMapper;
+    @Mock private AssessmentLearningEventWriter eventWriter;
     private AiPracticeAttemptService service;
 
     @BeforeEach
     void setup() {
-        service = new AiPracticeAttemptService(agentClient, mapper, masteryMapper, objectMapper);
+        service = new AiPracticeAttemptService(agentClient, mapper, masteryMapper, objectMapper, eventWriter);
         Jwt jwt = Jwt.withTokenValue("test").header("alg", "none")
                 .subject("student").claim("userId", "42").build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(

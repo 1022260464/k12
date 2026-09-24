@@ -2,6 +2,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, LoaderCircle, Play, Sparkles } f
 import { useEffect, useRef, useState } from "react";
 import { coursesApi } from "../api/client.js";
 import { DailyLearningPlan } from "../components/DailyLearningPlan.jsx";
+import { LearningRhythm } from "../components/LearningRhythm.jsx";
 import { courses as fallbackCourses } from "../data/learningData.js";
 import { EXPERIENCE } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
@@ -99,6 +100,8 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
       )}
 
       <DailyLearningPlan session={session} navigate={navigate} onAskTopic={onAskTopic} experience={experience} />
+
+      {session && <LearningRhythm session={session} navigate={navigate} experience={experience} className="home-learning-rhythm" />}
 
       <section className="home-section course-showcase">
         <header className="section-heading"><div><p className="eyebrow">{primary ? "为你准备" : "推荐课程"}</p><h2>{primary ? "选择一场新的探索" : "从感兴趣的课程开始"}</h2><p>{session ? (primary ? "从故事、实验和图形化编程中认识人工智能。" : "覆盖学科基础、科学探究和编程创造。") : "登录后可查看平台已发布课程推荐。"}</p></div><div className="carousel-actions"><button className="icon-button" type="button" title="上一组课程" onClick={() => scrollCourses(-1)}><ChevronLeft size={18} /></button><button className="icon-button" type="button" title="下一组课程" onClick={() => scrollCourses(1)}><ChevronRight size={18} /></button></div></header>

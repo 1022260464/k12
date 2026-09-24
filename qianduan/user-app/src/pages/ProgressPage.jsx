@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { coursesApi, homeworksApi, practiceApi, profileApi } from "../api/client.js";
 import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { LearnerKnowledgeNetwork } from "../components/LearnerKnowledgeNetwork.jsx";
+import { LearningRhythm } from "../components/LearningRhythm.jsx";
 import { EXPERIENCE } from "../experience/experience.js";
 
 const stages = [["PRIMARY_LOWER", "小学低年级"], ["PRIMARY_UPPER", "小学高年级"], ["JUNIOR_HIGH", "初中"], ["SENIOR_HIGH", "高中"]];
@@ -122,6 +123,8 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
       <ProgressHeader experience={experience} />
       {error && <p className="page-error" role="alert">{error}</p>}
       <section className="report-stats"><article><span><BookOpen /></span><div><strong>{metrics.courses} 门</strong><small>在学课程</small></div></article><article><span><CheckCircle2 /></span><div><strong>{metrics.completedChapters}/{metrics.totalChapters}</strong><small>已完成章节</small></div></article><article><span><TrendingUp /></span><div><strong>{metrics.averageProgress}%</strong><small>平均课程进度</small></div></article><article><span><ClipboardCheck /></span><div><strong>{metrics.averageScore == null ? "暂无" : `${metrics.averageScore} 分`}</strong><small>已批改作业均分</small></div></article></section>
+
+      <LearningRhythm session={session} navigate={navigate} experience={experience} history={history} results={results} className="report-learning-rhythm" />
 
       <LearnerKnowledgeNetwork
         mastery={knowledgeMastery}
