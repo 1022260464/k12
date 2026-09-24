@@ -31,13 +31,16 @@ public class CourseStudyService {
     private final CourseEnrollmentMapper enrollmentMapper;
     private final CourseChapterMapper chapterMapper;
     private final ChapterProgressMapper progressMapper;
+    private final LearningEventService eventService;
 
     public CourseStudyService(CourseAccessService access, CourseEnrollmentMapper enrollmentMapper,
-                              CourseChapterMapper chapterMapper, ChapterProgressMapper progressMapper) {
+                              CourseChapterMapper chapterMapper, ChapterProgressMapper progressMapper,
+                              LearningEventService eventService) {
         this.access = access;
         this.enrollmentMapper = enrollmentMapper;
         this.chapterMapper = chapterMapper;
         this.progressMapper = progressMapper;
+        this.eventService = eventService;
     }
 
     @Transactional
@@ -98,18 +101,30 @@ public class CourseStudyService {
         }
         ChapterProgress progress = progressMapper.selectOne(Wrappers.lambdaQuery(ChapterProgress.class)
                 .eq(ChapterProgress::getEnrollmentId, enrollment.getId()).eq(ChapterProgress::getChapterId, chapterId));
+        boolean advanced = false;
+        Instant occurredTime = Instant.now();
         if (progress == null) {
             progress = new ChapterProgress();
             progress.setEnrollmentId(enrollment.getId());
             progress.setChapterId(chapterId);
             progress.setProgressPercent(percent);
-            progress.setUpdatedTime(Instant.now());
+            progress.setUpdatedTime(occurredTime);
             progressMapper.insert(progress);
+            advanced = true;
         } else if (percent > progress.getProgressPercent()) {
             // 网络重试或多个页面可能乱序上报，只推进、不回退单个章节的进度。
             progress.setProgressPercent(percent);
-            progress.setUpdatedTime(Instant.now());
+            progress.setUpdatedTime(occurredTime);
             progressMapper.updateById(progress);
+            advanced = true;
+        }
+        if (advanced) {
+            eventService.record(enrollment.getUserId(), "COURSE_PROGRESS", "CHAPTER", String.valueOf(chapterId),
+                    courseId, chapterId, null, chapter.getTitle(),
+                    percent == 100 ? "完成课程章节" : "课程进度更新至 " + percent + "%",
+                    "{\"progressPercent\":" + percent + "}",
+                    "course-progress:" + enrollment.getId() + ":" + chapterId + ":" + percent,
+                    occurredTime);
         }
         return new ChapterProgressResponse(chapterId, chapter.getTitle(), progress.getProgressPercent(), progress.getUpdatedTime());
     }

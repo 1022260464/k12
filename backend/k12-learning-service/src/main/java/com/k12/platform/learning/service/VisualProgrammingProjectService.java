@@ -28,15 +28,18 @@ public class VisualProgrammingProjectService {
     private final VisualProgrammingMissionService missionService;
     private final VisualProgrammingEvaluator evaluator;
     private final ObjectMapper objectMapper;
+    private final LearningEventService eventService;
 
     public VisualProgrammingProjectService(VisualProgrammingProjectMapper mapper,
                                            VisualProgrammingMissionService missionService,
                                            VisualProgrammingEvaluator evaluator,
-                                           ObjectMapper objectMapper) {
+                                           ObjectMapper objectMapper,
+                                           LearningEventService eventService) {
         this.mapper = mapper;
         this.missionService = missionService;
         this.evaluator = evaluator;
         this.objectMapper = objectMapper;
+        this.eventService = eventService;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -79,6 +82,11 @@ public class VisualProgrammingProjectService {
         project.setUpdatedTime(now);
         if (project.getId() == null) mapper.insert(project);
         else mapper.updateById(project);
+        eventService.record(userId, evaluation.passed() ? "VISUAL_MISSION_COMPLETED" : "VISUAL_MISSION_ATTEMPTED",
+                "VISUAL_MISSION", missionCode, null, null, mission.getKnowledgeCode(), mission.getTitle(),
+                evaluation.passed() ? "图形化编程关卡完成" : "保存一次图形化编程尝试",
+                "{\"stars\":" + evaluation.stars() + ",\"passed\":" + evaluation.passed() + "}",
+                "visual-mission:" + project.getId() + ":" + project.getAttemptCount(), now);
         return response(project, evaluation);
     }
 

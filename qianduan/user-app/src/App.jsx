@@ -19,6 +19,7 @@ import { TasksPage } from "./pages/TasksPage.jsx";
 import { AUTH_STORAGE_KEY, profileApi } from "./api/client.js";
 import {
   EXPERIENCE,
+  experienceNavigation,
   experienceForSchoolStage,
   readStoredExperience,
   storeExperience,
@@ -231,12 +232,21 @@ export function App() {
   const [authMode, setAuthMode] = useState("login");
   const [showProfile, setShowProfile] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [learningProfile, setLearningProfile] = useState(null);
   const [experience, setExperience] = useState(() => readStoredExperience() || EXPERIENCE.TEEN);
   const displayName = useMemo(
     () => profile?.nickname || session?.user?.username || "同学",
     [profile, session],
   );
-  const footerMascot = visualsFor(experience).mascot;
+  const experienceVisuals = visualsFor(experience);
+  const footerMascot = experienceVisuals.mascot;
+  const experienceArtStyle = {
+    "--experience-mascot-art": `url("${experienceVisuals.mascot}")`,
+    "--experience-reading-art": `url("${experienceVisuals.reading}")`,
+    "--experience-courses-art": `url("${experienceVisuals.courses}")`,
+    "--experience-progress-art": `url("${experienceVisuals.progress}")`,
+    "--experience-encouragement-art": `url("${experienceVisuals.encouragement}")`,
+  };
 
   useEffect(() => {
     const handleHashChange = () => setRoute(parseRoute());
@@ -269,33 +279,41 @@ export function App() {
   useEffect(() => {
     if (!session) {
       setProfile(null);
+      setLearningProfile(null);
       setShowProfile(false);
       return undefined;
     }
     let alive = true;
-    profileApi.me()
-      .then((data) => { if (alive) setProfile(data); })
-      .catch(() => { if (alive) setProfile(null); });
-    return () => { alive = false; };
-  }, [session]);
-
-  useEffect(() => {
-    if (!session || readStoredExperience()) return undefined;
-    let active = true;
-    profileApi.getLearningProfile()
-      .then((learningProfile) => {
-        if (active && learningProfile?.schoolStage) {
-          setExperience(experienceForSchoolStage(learningProfile.schoolStage));
+    Promise.all([
+      profileApi.me(),
+      profileApi.getLearningProfile().catch(() => null),
+    ])
+      .then(([account, learning]) => {
+        if (!alive) return;
+        setProfile(account);
+        setLearningProfile(learning);
+        if (learning?.schoolStage) {
+          const profileExperience = experienceForSchoolStage(learning.schoolStage);
+          storeExperience(profileExperience);
+          setExperience(profileExperience);
+          const allowedPages = new Set((experienceNavigation[profileExperience] || []).map(([id]) => id));
+          if (!allowedPages.has(route.nav)) navigate("home");
         }
       })
-      .catch(() => undefined);
-    return () => { active = false; };
+      .catch(() => {
+        if (!alive) return;
+        setProfile(null);
+        setLearningProfile(null);
+      });
+    return () => { alive = false; };
   }, [session]);
 
   function changeExperience(nextExperience) {
     if (!Object.values(EXPERIENCE).includes(nextExperience)) return;
     storeExperience(nextExperience);
     setExperience(nextExperience);
+    const allowedPages = new Set((experienceNavigation[nextExperience] || []).map(([id]) => id));
+    if (!allowedPages.has(route.nav)) navigate("home");
   }
 
   function navigate(nextPage) {
@@ -368,6 +386,7 @@ export function App() {
           requireLogin(() => navigate("ai-studio"));
         }}
         experience={experience}
+        schoolStage={learningProfile?.schoolStage}
       />,
       "picture-books": <PictureBooksPage session={session} requireLogin={requireLogin} navigate={navigate} />,
       "cat-lesson": (
@@ -397,7 +416,7 @@ export function App() {
           experience={experience}
         />
       ),
-      courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />,
+      courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} learningProfile={learningProfile} />,
       tasks: <TasksPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />,
       "visual-code-lab": (
         <Suspense fallback={<div className="page page-loading">正在准备图形化实验...</div>}>
@@ -418,6 +437,7 @@ export function App() {
           }}
           practiceRevision={practiceRevision}
           experience={experience}
+          activeLearningProfile={learningProfile}
         />
       ),
     };
@@ -425,7 +445,11 @@ export function App() {
   }
 
   return (
-    <main className={`student-experience experience-${experience}`} data-experience={experience}>
+    <main
+      className={`student-experience experience-${experience}`}
+      data-experience={experience}
+      style={experienceArtStyle}
+    >
       <SiteHeader
         page={route.nav}
         session={session}
@@ -444,8 +468,9 @@ export function App() {
         onOpenProfile={openProfile}
         onLogin={() => openAuth("login")}
         onRegister={() => openAuth("register")}
-        onLogout={() => { logout(); setAssistantDraft(null); setProfile(null); setShowProfile(false); setSession(null); }}
+        onLogout={() => { logout(); setAssistantDraft(null); setProfile(null); setLearningProfile(null); setShowProfile(false); setSession(null); }}
         experience={experience}
+        learningProfile={learningProfile}
         onExperienceChange={changeExperience}
       />
       {content}
@@ -469,6 +494,10 @@ export function App() {
           session={session}
           onClose={() => setShowProfile(false)}
           onProfileUpdated={(data) => setProfile(data)}
+          onLearningProfileUpdated={(data) => {
+            setLearningProfile(data);
+            if (data?.schoolStage) changeExperience(experienceForSchoolStage(data.schoolStage));
+          }}
         />
       )}
     </main>

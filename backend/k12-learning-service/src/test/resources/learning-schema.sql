@@ -29,6 +29,13 @@ CREATE TABLE learning_chapter_progress (
  chapter_id BIGINT REFERENCES learning_course_chapter(id), progress_percent INT CHECK(progress_percent BETWEEN 0 AND 100),
  updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(enrollment_id, chapter_id)
 );
+CREATE TABLE learning_event (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY, student_user_id BIGINT NOT NULL, event_type VARCHAR(48) NOT NULL,
+ source_type VARCHAR(32) NOT NULL, source_id VARCHAR(128) NOT NULL, course_id BIGINT, chapter_id BIGINT,
+ knowledge_code VARCHAR(128), title VARCHAR(255) NOT NULL, detail VARCHAR(500), metadata_json VARCHAR(2000),
+ idempotency_key VARCHAR(191) NOT NULL UNIQUE, occurred_time TIMESTAMP NOT NULL,
+ created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE learning_teaching_resource (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(160), description VARCHAR(1000), stage_code VARCHAR(32),
  subject VARCHAR(64), source_note VARCHAR(255), course_id BIGINT, chapter_id BIGINT,

@@ -55,6 +55,7 @@ class CourseLearningIntegrationTest {
     @Import({CourseService.class, CourseAccessService.class, CourseChapterService.class, CourseSectionService.class,
             CourseSectionActivityService.class,
             CoursePublicationService.class, CourseStudyService.class, LearningHistoryService.class, LearningLeaderboardService.class,
+            LearningEventService.class,
             LeaderboardProperties.class})
     static class Config {
         @Bean CourseMediaUrlResolver courseMediaUrlResolver() {
@@ -128,9 +129,13 @@ class CourseLearningIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM learning_course_enrollment WHERE course_id=?", Integer.class, courseId)).isEqualTo(1);
         assertThat(chapters.list(courseId)).hasSize(1);
         assertThat(chapters.get(courseId, chapterId).content()).isEqualTo("纯文本正文");
+        int eventCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM learning_event WHERE student_user_id = 20", Integer.class);
         study.updateProgress(courseId, chapterId, 80);
         study.updateProgress(courseId, chapterId, 40);
         assertThat(study.progress(courseId).progressPercent()).isEqualTo(80);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM learning_event WHERE student_user_id = 20", Integer.class))
+                .isEqualTo(eventCount + 1);
         study.updateProgress(courseId, chapterId, 100);
         assertThat(study.progress(courseId).completedChapters()).isEqualTo(1);
         study.withdraw(courseId);

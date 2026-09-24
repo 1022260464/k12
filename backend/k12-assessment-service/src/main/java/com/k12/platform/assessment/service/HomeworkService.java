@@ -49,19 +49,22 @@ public class HomeworkService {
     private final HomeworkGradeHistoryMapper gradeHistoryMapper;
     private final IamStudentClient iamStudentClient;
     private final SubmissionAnswerService submissionAnswerService;
+    private final AssessmentLearningEventWriter eventWriter;
 
     public HomeworkService(
             HomeworkMapper homeworkMapper,
             HomeworkSubmissionMapper submissionMapper,
             HomeworkGradeHistoryMapper gradeHistoryMapper,
             IamStudentClient iamStudentClient,
-            SubmissionAnswerService submissionAnswerService
+            SubmissionAnswerService submissionAnswerService,
+            AssessmentLearningEventWriter eventWriter
     ) {
         this.homeworkMapper = homeworkMapper;
         this.submissionMapper = submissionMapper;
         this.gradeHistoryMapper = gradeHistoryMapper;
         this.iamStudentClient = iamStudentClient;
         this.submissionAnswerService = submissionAnswerService;
+        this.eventWriter = eventWriter;
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.HOMEWORK_READ + "')")
@@ -205,7 +208,9 @@ public class HomeworkService {
             // 退回原因保留到重新提交前；重提后写入新反馈前先清空，避免与旧退回语混淆
             locked.setFeedback(null);
             submissionAnswerService.replaceSubmittedAnswers(locked, request.answers());
-            return toSubmissionResponse(submissionMapper.selectById(locked.getId()));
+            HomeworkSubmission persisted = submissionMapper.selectById(locked.getId());
+            recordHomeworkSubmission(homework, persisted);
+            return toSubmissionResponse(persisted);
         }
 
         HomeworkSubmission submission = new HomeworkSubmission();
@@ -217,7 +222,9 @@ public class HomeworkService {
         submission.setVersion(0);
         submissionMapper.insert(submission);
         submissionAnswerService.saveSubmittedAnswers(submission, request.answers());
-        return toSubmissionResponse(submissionMapper.selectById(submission.getId()));
+        HomeworkSubmission persisted = submissionMapper.selectById(submission.getId());
+        recordHomeworkSubmission(homework, persisted);
+        return toSubmissionResponse(persisted);
     }
 
     @Transactional
@@ -297,7 +304,20 @@ public class HomeworkService {
         history.setGradedBy(graded.getGradedBy());
         history.setGradedTime(graded.getGradedTime());
         gradeHistoryMapper.insert(history);
+        eventWriter.record(graded.getStudentUserId(), "HOMEWORK_GRADED", "HOMEWORK", String.valueOf(homeworkId),
+                graded.getCourseId(), null, homework.getTitle(),
+                graded.getScore() == null ? "教师已完成批改" : "教师已批改，得分 " + graded.getScore(),
+                graded.getScore() == null ? null : "{\"score\":" + graded.getScore() + "}",
+                "homework-graded:" + graded.getId() + ":" + graded.getVersion(), graded.getGradedTime());
         return toSubmissionResponse(graded);
+    }
+
+    private void recordHomeworkSubmission(Homework homework, HomeworkSubmission submission) {
+        eventWriter.record(submission.getStudentUserId(), "HOMEWORK_SUBMITTED", "HOMEWORK",
+                String.valueOf(homework.getId()), submission.getCourseId(), null, homework.getTitle(),
+                "已提交作业", null,
+                "homework-submitted:" + submission.getId() + ":" + submission.getVersion(),
+                submission.getSubmittedTime() == null ? java.time.Instant.now() : submission.getSubmittedTime());
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.HOMEWORK_READ + "')")

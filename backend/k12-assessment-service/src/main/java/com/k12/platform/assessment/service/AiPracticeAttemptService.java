@@ -46,14 +46,17 @@ public class AiPracticeAttemptService {
     private final AiPracticeAttemptMapper mapper;
     private final AiKnowledgeMasteryMapper masteryMapper;
     private final ObjectMapper objectMapper;
+    private final AssessmentLearningEventWriter eventWriter;
 
     public AiPracticeAttemptService(AgentQuizRunClient agentClient, AiPracticeAttemptMapper mapper,
                                     AiKnowledgeMasteryMapper masteryMapper,
-                                    ObjectMapper objectMapper) {
+                                    ObjectMapper objectMapper,
+                                    AssessmentLearningEventWriter eventWriter) {
         this.agentClient = agentClient;
         this.mapper = mapper;
         this.masteryMapper = masteryMapper;
         this.objectMapper = objectMapper;
+        this.eventWriter = eventWriter;
     }
 
     @PreAuthorize("hasAuthority('" + K12Authorities.ROLE_ADMIN + "') or hasAuthority('" + K12Authorities.AGENT_READ + "')")
@@ -90,6 +93,12 @@ public class AiPracticeAttemptService {
                     attempt.getScore(), attempt.getMaxScore(),
                     (int) ((long) attempt.getScore() * 100 / attempt.getMaxScore()), attempt.getCreatedTime());
         }
+        int scorePercent = (int) ((long) attempt.getScore() * 100 / attempt.getMaxScore());
+        eventWriter.record(userId, "PRACTICE_COMPLETED", "PRACTICE", String.valueOf(attempt.getId()),
+                null, attempt.getKnowledgeCode(), masteryTopic(attempt.getTopic()),
+                "完成 AI 小测，得分 " + scorePercent + "%",
+                "{\"scorePercent\":" + scorePercent + ",\"correctCount\":" + attempt.getCorrectCount() + "}",
+                "practice:" + attempt.getId(), attempt.getCreatedTime());
         return toResponse(attempt, true);
     }
 

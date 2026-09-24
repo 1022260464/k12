@@ -1,11 +1,14 @@
 import { BookOpenText, Code2, FileCheck2, FlaskConical, Languages, Target } from "lucide-react";
 
 export const courses = [
+  { title: "AI 小侦探：机器怎样认识世界", subject: "人工智能", grade: "小学低年级", progress: 0, next: "AI 为什么能认出小猫", lessons: "互动绘本与分类挑战", icon: BookOpenText, image: "/assets/experience/primary/student-explorer.webp" },
+  { title: "图形化编程小创客", subject: "人工智能", grade: "小学高年级", progress: 0, next: "用积木搭出智能任务", lessons: "8 个闯关任务", icon: Code2, image: "/assets/experience/primary/code-laptop.webp" },
   { title: "Python 程序设计", subject: "信息科技", grade: "七至九年级", progress: 72, next: "循环结构与列表", lessons: "12 / 16 课时", icon: Code2, image: "/assets/course-code-comic.png" },
   { title: "数学思维探索", subject: "数学", grade: "七年级", progress: 46, next: "一元一次方程", lessons: "8 / 18 课时", icon: Target, image: "/assets/course-math-comic.png" },
   { title: "科学探究实验", subject: "科学", grade: "八年级", progress: 31, next: "控制变量法", lessons: "5 / 16 课时", icon: FlaskConical, image: "/assets/course-science-comic.png" },
   { title: "英语阅读进阶", subject: "英语", grade: "七年级", progress: 58, next: "校园主题阅读", lessons: "7 / 12 课时", icon: Languages, image: "/assets/course-reading-comic.png" },
   { title: "AI 与知识地图", subject: "拓展课程", grade: "八至九年级", progress: 20, next: "认识分类模型", lessons: "2 / 10 课时", icon: BookOpenText, image: "/assets/k12-ai-learning-journey.png" },
+  { title: "构建可信 AI 应用", subject: "人工智能", grade: "高中", progress: 0, next: "Embedding 与相似度", lessons: "RAG 与智能体项目", icon: FlaskConical, image: "/assets/k12-ai-learning-journey.png" },
 ];
 
 export const tasks = [

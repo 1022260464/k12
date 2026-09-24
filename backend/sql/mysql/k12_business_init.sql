@@ -138,6 +138,29 @@ CREATE TABLE IF NOT EXISTS learning_chapter_progress (
     CONSTRAINT fk_progress_chapter FOREIGN KEY (chapter_id) REFERENCES learning_course_chapter(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS learning_event (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    student_user_id BIGINT UNSIGNED NOT NULL COMMENT 'Logical IAM user ID',
+    event_type VARCHAR(48) NOT NULL,
+    source_type VARCHAR(32) NOT NULL,
+    source_id VARCHAR(128) NOT NULL,
+    course_id BIGINT UNSIGNED DEFAULT NULL,
+    chapter_id BIGINT UNSIGNED DEFAULT NULL,
+    knowledge_code VARCHAR(128) DEFAULT NULL,
+    title VARCHAR(255) NOT NULL,
+    detail VARCHAR(500) DEFAULT NULL,
+    metadata_json JSON DEFAULT NULL,
+    idempotency_key VARCHAR(191) NOT NULL,
+    occurred_time DATETIME(3) NOT NULL,
+    created_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_learning_event_idempotency (idempotency_key),
+    KEY idx_learning_event_student_time (student_user_id, occurred_time, id),
+    KEY idx_learning_event_student_type_time (student_user_id, event_type, occurred_time),
+    KEY idx_learning_event_course_time (course_id, occurred_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Append-only student learning activity stream';
+
 CREATE TABLE IF NOT EXISTS learning_visual_programming_project (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     student_user_id BIGINT UNSIGNED NOT NULL COMMENT 'Logical IAM user ID',

@@ -1755,6 +1755,50 @@
         }
       }
     },
+    "/api/v1/learning/events/me": {
+      "get": {
+        "tags": [
+          "02-课程资源服务"
+        ],
+        "summary": "查询我的学习活动流水",
+        "description": "返回服务端确认的课程进度、作业、小测与图形化编程事件；不记录单纯页面浏览。需要学生角色及 course:read，或管理员。",
+        "operationId": "getMyLearningEvents",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 90, "default": 30 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前学生的学习活动流水",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LearningEventListApiResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "days 或 limit 参数不合法",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiResponseBase" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
     "/api/v1/learning/courses": {
       "get": {
         "tags": [
@@ -5364,6 +5408,45 @@
             }
           }
         }
+      },
+      "LearningEvent": {
+        "type": "object",
+        "required": ["id", "eventType", "sourceType", "sourceId", "title", "occurredTime"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "eventType": { "type": "string", "maxLength": 48 },
+          "sourceType": { "type": "string", "maxLength": 32 },
+          "sourceId": { "type": "string", "maxLength": 128 },
+          "courseId": { "type": "integer", "format": "int64", "nullable": true },
+          "chapterId": { "type": "integer", "format": "int64", "nullable": true },
+          "knowledgeCode": { "type": "string", "nullable": true },
+          "title": { "type": "string", "maxLength": 255 },
+          "detail": { "type": "string", "maxLength": 500, "nullable": true },
+          "occurredTime": { "type": "string", "format": "date-time" }
+        }
+      },
+      "LearningEventList": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": { "$ref": "#/components/schemas/LearningEvent" }
+          }
+        }
+      },
+      "LearningEventListApiResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponseBase" },
+          {
+            "type": "object",
+            "required": ["data"],
+            "properties": {
+              "data": { "$ref": "#/components/schemas/LearningEventList" }
+            }
+          }
+        ]
       },
       "CoursePageApiResponse": {
         "allOf": [
