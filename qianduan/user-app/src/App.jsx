@@ -238,7 +238,15 @@ export function App() {
     () => profile?.nickname || session?.user?.username || "同学",
     [profile, session],
   );
-  const footerMascot = visualsFor(experience).mascot;
+  const experienceVisuals = visualsFor(experience);
+  const footerMascot = experienceVisuals.mascot;
+  const experienceArtStyle = {
+    "--experience-mascot-art": `url("${experienceVisuals.mascot}")`,
+    "--experience-reading-art": `url("${experienceVisuals.reading}")`,
+    "--experience-courses-art": `url("${experienceVisuals.courses}")`,
+    "--experience-progress-art": `url("${experienceVisuals.progress}")`,
+    "--experience-encouragement-art": `url("${experienceVisuals.encouragement}")`,
+  };
 
   useEffect(() => {
     const handleHashChange = () => setRoute(parseRoute());
@@ -437,7 +445,11 @@ export function App() {
   }
 
   return (
-    <main className={`student-experience experience-${experience}`} data-experience={experience}>
+    <main
+      className={`student-experience experience-${experience}`}
+      data-experience={experience}
+      style={experienceArtStyle}
+    >
       <SiteHeader
         page={route.nav}
         session={session}

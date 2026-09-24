@@ -3,6 +3,12 @@
   color: #202124;
   background: #fff;
   font-synthesis: none;
+  /* React 会根据当前学段覆盖这些图片变量；默认值也供 CSS 静态检查识别。 */
+  --experience-mascot-art: none;
+  --experience-reading-art: none;
+  --experience-courses-art: none;
+  --experience-progress-art: none;
+  --experience-encouragement-art: none;
   --ink: #202124;
   --muted: #667085;
   --subtle: #98a2b3;
@@ -3340,8 +3346,7 @@ body.ai-studio-resizing iframe, body.ai-studio-resizing .teaching-chat { pointer
     background:center / contain no-repeat;
     pointer-events:none;
   }
-  .experience-primary .home-page::before { background-image:url('/assets/experience/primary/books.webp'); }
-  .experience-teen .home-page::before { background-image:url('/assets/experience/teen/open-book.webp'); }
+  .home-page::before { background-image:var(--experience-courses-art); }
 }
 
 /* 第三轮视觉增强：提高导航可读性，并强化小学端的角色、色彩与反馈感。 */
@@ -3371,7 +3376,7 @@ body.ai-studio-resizing iframe, body.ai-studio-resizing .teaching-chat { pointer
   width:64px;
   height:64px;
   opacity:.13;
-  background:url('/assets/experience/primary/chat-star.webp') center / contain no-repeat;
+  background:var(--experience-encouragement-art) center / contain no-repeat;
   pointer-events:none;
 }
 .experience-primary .experience-page-header-copy h1 { font-size:42px; }
@@ -3468,7 +3473,7 @@ body.ai-studio-resizing iframe, body.ai-studio-resizing .teaching-chat { pointer
   width:150px;
   height:150px;
   opacity:.14;
-  background:url('/assets/experience/primary/mascot-wave.webp') center / contain no-repeat;
+  background:var(--experience-mascot-art) center / contain no-repeat;
   pointer-events:none;
 }
 .experience-primary .ai-studio-gate > * { position:relative; z-index:1; }
@@ -3495,7 +3500,7 @@ body.ai-studio-resizing iframe, body.ai-studio-resizing .teaching-chat { pointer
   width:112px;
   height:112px;
   opacity:.13;
-  background:url('/assets/experience/primary/mascot-wave.webp') center / contain no-repeat;
+  background:var(--experience-mascot-art) center / contain no-repeat;
   pointer-events:none;
 }
 .experience-primary .empty-state > * { position:relative; z-index:1; }
@@ -3533,9 +3538,9 @@ body.ai-studio-resizing iframe, body.ai-studio-resizing .teaching-chat { pointer
     background:center / contain no-repeat;
     pointer-events:none;
   }
-  .experience-primary .courses-page::before { background-image:url('/assets/experience/primary/books.webp'); }
-  .experience-primary .report-page::before { background-image:url('/assets/experience/primary/achievement-trophy.webp'); }
-  .experience-primary .picture-books-page::before { background-image:url('/assets/experience/primary/student-reading.webp'); }
+  .experience-primary .courses-page::before { background-image:var(--experience-courses-art); }
+  .experience-primary .report-page::before { background-image:var(--experience-progress-art); }
+  .experience-primary .picture-books-page::before { background-image:var(--experience-reading-art); }
 }
 
 @media (max-width:700px) {
