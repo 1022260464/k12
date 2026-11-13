@@ -9,9 +9,9 @@ spring:
       max-file-size: 10MB
       max-request-size: 11MB
   datasource:
-    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:122.51.54.52}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=${K12_DB_USE_SSL:false}&allowPublicKeyRetrieval=${K12_DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${K12_BUSINESS_DB_HOST:127.0.0.1}:${K12_BUSINESS_DB_PORT:3306}/${K12_BUSINESS_DB_NAME:k12_business}?useUnicode=true&characterEncoding=utf8&useSSL=${K12_DB_USE_SSL:false}&allowPublicKeyRetrieval=${K12_DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}&serverTimezone=Asia/Shanghai
     username: ${K12_BUSINESS_DB_USERNAME:k12}
-    password: ${K12_BUSINESS_DB_PASSWORD:K12@123456}
+    password: ${K12_BUSINESS_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       # 公网 MySQL 连接可能先被网络设备回收，定期保活并缩短连接寿命。
