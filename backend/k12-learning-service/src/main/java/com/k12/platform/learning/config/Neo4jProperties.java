@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "k12.learning.neo4j")
 public class Neo4jProperties {
     private boolean enabled;
-    /** Bolt URI，例如 bolt://122.51.54.52:7687 */
+    /** Bolt URI，例如 bolt://127.0.0.1:7687 */
     private String uri = "bolt://127.0.0.1:7687";
     private String username = "neo4j";
     private String password = "";

@@ -70,7 +70,7 @@ K12_KNOWLEDGE_CATALOG_LOCATION=classpath:knowledge/ai_literacy_catalog.json
 
 ```text
 K12_NEO4J_ENABLED=true
-K12_NEO4J_URI=bolt://122.51.54.52:7687
+K12_NEO4J_URI=bolt://127.0.0.1:7687
 K12_NEO4J_USERNAME=neo4j
 K12_NEO4J_PASSWORD=<your-password>
 K12_NEO4J_DATABASE=neo4j
@@ -79,7 +79,7 @@ K12_NEO4J_SEED_ON_STARTUP=true
 # K12_KNOWLEDGE_CATALOG_LOCATION=file:/path/to/ai_literacy_catalog.json
 ```
 
-浏览器管理台：`http://122.51.54.52:7474`
+浏览器管理台：`http://127.0.0.1:7474`
 
 脚本位置：
 
