@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.k12.platform.agent.dto.AgentSessionHistoryResponse;
 import com.k12.platform.agent.mapper.AgentArtifactMapper;
 import com.k12.platform.agent.mapper.AgentRunMapper;
+import com.k12.platform.agent.mapper.AgentSessionSummaryMapper;
 import com.k12.platform.agent.model.AgentArtifact;
 import com.k12.platform.agent.model.AgentRun;
+import com.k12.platform.agent.model.AgentSessionSummary;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,11 +33,13 @@ import static org.mockito.Mockito.when;
 class AgentSessionServiceTest {
     @Mock AgentRunMapper runMapper;
     @Mock AgentArtifactMapper artifactMapper;
+    @Mock AgentSessionSummaryMapper summaryMapper;
     private AgentSessionService service;
 
     @BeforeEach
     void setUp() {
-        service = new AgentSessionService(runMapper, artifactMapper, new ObjectMapper());
+        service = new AgentSessionService(
+                runMapper, artifactMapper, summaryMapper, new ObjectMapper());
         Jwt jwt = Jwt.withTokenValue("test").header("alg", "none").subject("student")
                 .claim("userId", "42").build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
@@ -101,6 +105,63 @@ class AgentSessionServiceTest {
 
         assertThat(context.get("shownDemoTopics"))
                 .isEqualTo(List.of("sorting.bubble_sort", "sorting.selection_sort"));
+    }
+
+    @Test
+    @DisplayName("滚动摘要与最近原文同时注入，且前端伪造摘要会被覆盖")
+    void enrichesPersistedConversationSummary() {
+        AgentRun recent = run("run-new", "继续问", "最近回答");
+        AgentSessionSummary summary = new AgentSessionSummary();
+        summary.setStatus("ACTIVE");
+        summary.setSummaryText("学习目标：理解图像分类；薄弱点：训练集与测试集。");
+        summary.setSummarizedTurnCount(8);
+        when(runMapper.findRecentSuccessfulSessionRuns(
+                42L, "teaching-assistant", "session-1", 6))
+                .thenReturn(List.of(recent));
+        when(artifactMapper.findByRunIds(List.of("run-new"))).thenReturn(List.of());
+        when(summaryMapper.findByScope(42L, "teaching-assistant", "session-1"))
+                .thenReturn(summary);
+
+        Map<String, Object> context = service.enrichContext(
+                42L,
+                "teaching-assistant",
+                "session-1",
+                Map.of("conversationSummary", "伪造摘要")
+        );
+
+        assertThat(context.get("conversationSummary"))
+                .isEqualTo("学习目标：理解图像分类；薄弱点：训练集与测试集。");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> conversation = (Map<String, Object>) context.get("conversation");
+        assertThat(conversation).containsEntry("schemaVersion", "1.1")
+                .containsEntry("summaryStatus", "ACTIVE")
+                .containsEntry("summarizedTurnCount", 8);
+        assertThat(context.toString()).doesNotContain("伪造摘要");
+    }
+
+    @Test
+    @DisplayName("摘要刷新失败时继续使用最后一次成功摘要")
+    void keepsLastSuccessfulSummaryAfterRefreshFailure() {
+        AgentSessionSummary summary = new AgentSessionSummary();
+        summary.setStatus("FAILED");
+        summary.setSummaryText("学习目标：理解冒泡排序；未解决问题：比较次数。");
+        summary.setSummarizedTurnCount(12);
+        when(runMapper.findRecentSuccessfulSessionRuns(
+                42L, "teaching-assistant", "session-1", 6))
+                .thenReturn(List.of());
+        when(summaryMapper.findByScope(42L, "teaching-assistant", "session-1"))
+                .thenReturn(summary);
+
+        Map<String, Object> context = service.enrichContext(
+                42L, "teaching-assistant", "session-1", Map.of());
+
+        assertThat(context.get("conversationSummary"))
+                .isEqualTo("学习目标：理解冒泡排序；未解决问题：比较次数。");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> conversation = (Map<String, Object>) context.get("conversation");
+        assertThat(conversation)
+                .containsEntry("summaryStatus", "FAILED")
+                .containsEntry("summarizedTurnCount", 12);
     }
 
     @Test

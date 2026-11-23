@@ -27,6 +27,7 @@ class TeachingAssistantState(TypedDict):
     mastery_percent: NotRequired[int | None]
     personalization: NotRequired[dict[str, str]]
     knowledge_graph: NotRequired[dict[str, Any]]
+    conversation_summary: NotRequired[str]
     conversation_history: NotRequired[list[dict[str, str]]]
     conversation: NotRequired[dict[str, Any]]
     intent_mode: NotRequired[str]

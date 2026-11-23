@@ -43,6 +43,12 @@ public class AgentRunPersistenceService {
         }
     }
 
+    /** Internal result-consumer lookup; never expose this unscoped method through HTTP. */
+    @Transactional(readOnly = true)
+    public AgentRun findSessionScope(String runId) {
+        return runMapper.findByRunId(runId);
+    }
+
     /**
      * 收敛同步代码执行并写入产物。
      *

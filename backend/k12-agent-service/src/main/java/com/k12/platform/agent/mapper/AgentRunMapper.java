@@ -24,11 +24,31 @@ public interface AgentRunMapper extends BaseMapper<AgentRun> {
             @Param("admin") boolean admin
     );
 
+    AgentRun findByRunId(@Param("runId") String runId);
+
     /** 当前用户同一智能体会话的最近成功轮次；Service 会反转为时间正序。 */
     List<AgentRun> findRecentSuccessfulSessionRuns(
             @Param("userId") Long userId,
             @Param("agentCode") String agentCode,
             @Param("sessionId") String sessionId,
+            @Param("limit") int limit
+    );
+
+    /** Seventh-newest successful run; only rows at or before it may enter the rolling summary. */
+    Long findSummaryBoundaryRunDbId(
+            @Param("userId") Long userId,
+            @Param("agentCode") String agentCode,
+            @Param("sessionId") String sessionId,
+            @Param("offset") int offset
+    );
+
+    /** Oldest unsummarized successful turns, capped by the summary boundary. */
+    List<AgentRun> findSuccessfulSessionRunsForSummary(
+            @Param("userId") Long userId,
+            @Param("agentCode") String agentCode,
+            @Param("sessionId") String sessionId,
+            @Param("afterRunDbId") Long afterRunDbId,
+            @Param("throughRunDbId") Long throughRunDbId,
             @Param("limit") int limit
     );
 

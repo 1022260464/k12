@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.k12.platform.agent.mapper.AgentSessionSummaryMapper">
+
+    <resultMap id="AgentSessionSummaryResultMap"
+               type="com.k12.platform.agent.model.AgentSessionSummary">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="agentCode" column="agent_code"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="summaryText" column="summary_text"/>
+        <result property="coveredRunDbId" column="covered_run_db_id"/>
+        <result property="coveredRunId" column="covered_run_id"/>
+        <result property="summarizedTurnCount" column="summarized_turn_count"/>
+        <result property="summaryVersion" column="summary_version"/>
+        <result property="status" column="status"/>
+        <result property="lastErrorCode" column="last_error_code"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+    </resultMap>
+
+    <insert id="insertEmptyIfAbsent">
+        INSERT IGNORE INTO agent_session_summary (
+            user_id, agent_code, session_id, covered_run_db_id,
+            summarized_turn_count, summary_version, status
+        ) VALUES (
+            #{userId}, #{agentCode}, #{sessionId}, 0, 0, 0, 'EMPTY'
+        )
+    </insert>
+
+    <select id="findByScope" resultMap="AgentSessionSummaryResultMap">
+        SELECT id, user_id, agent_code, session_id, summary_text,
+               covered_run_db_id, covered_run_id, summarized_turn_count,
+               summary_version, status, last_error_code, created_time, updated_time
+        FROM agent_session_summary
+        WHERE user_id = #{userId}
+          AND agent_code = #{agentCode}
+          AND session_id = #{sessionId}
+        LIMIT 1
+    </select>
+
+    <update id="advanceIfVersion">
+        UPDATE agent_session_summary
+        SET summary_text = #{summaryText},
+            covered_run_db_id = #{coveredRunDbId},
+            covered_run_id = #{coveredRunId},
+            summarized_turn_count = #{summarizedTurnCount},
+            summary_version = summary_version + 1,
+            status = 'ACTIVE',
+            last_error_code = NULL,
+            updated_time = CURRENT_TIMESTAMP(3)
+        WHERE user_id = #{userId}
+          AND agent_code = #{agentCode}
+          AND session_id = #{sessionId}
+          AND summary_version = #{expectedVersion}
+    </update>
+
+    <update id="markFailedIfVersion">
+        UPDATE agent_session_summary
+        SET status = 'FAILED',
+            last_error_code = #{errorCode},
+            updated_time = CURRENT_TIMESTAMP(3)
+        WHERE user_id = #{userId}
+          AND agent_code = #{agentCode}
+          AND session_id = #{sessionId}
+          AND summary_version = #{expectedVersion}
+    </update>
+</mapper>

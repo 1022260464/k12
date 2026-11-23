@@ -8,10 +8,14 @@ import com.k12.platform.agent.dto.AgentSessionHistoryResponse;
 import com.k12.platform.agent.dto.AgentSessionTurnResponse;
 import com.k12.platform.agent.mapper.AgentArtifactMapper;
 import com.k12.platform.agent.mapper.AgentRunMapper;
+import com.k12.platform.agent.mapper.AgentSessionSummaryMapper;
 import com.k12.platform.agent.model.AgentArtifact;
 import com.k12.platform.agent.model.AgentRun;
+import com.k12.platform.agent.model.AgentSessionSummary;
 import com.k12.platform.common.security.K12Authorities;
 import com.k12.platform.common.security.K12SecurityContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -32,22 +36,27 @@ import java.util.stream.Collectors;
  */
 @Service
 public class AgentSessionService {
+    private static final Logger log = LoggerFactory.getLogger(AgentSessionService.class);
     private static final int MODEL_HISTORY_LIMIT = 6;
     private static final int MAX_HISTORY_LIMIT = 20;
     private static final int MAX_USER_MESSAGE_LENGTH = 500;
     private static final int MAX_ASSISTANT_MESSAGE_LENGTH = 1200;
+    private static final int MAX_SUMMARY_LENGTH = 4000;
 
     private final AgentRunMapper runMapper;
     private final AgentArtifactMapper artifactMapper;
+    private final AgentSessionSummaryMapper summaryMapper;
     private final ObjectMapper objectMapper;
 
     public AgentSessionService(
             AgentRunMapper runMapper,
             AgentArtifactMapper artifactMapper,
+            AgentSessionSummaryMapper summaryMapper,
             ObjectMapper objectMapper
     ) {
         this.runMapper = runMapper;
         this.artifactMapper = artifactMapper;
+        this.summaryMapper = summaryMapper;
         this.objectMapper = objectMapper;
     }
 
@@ -66,6 +75,7 @@ public class AgentSessionService {
         }
         context.remove("conversation");
         context.remove("conversationHistory");
+        context.remove("conversationSummary");
         // 已演示主题标记只能由服务端根据历史产物重建，防止前端伪造跳过或重复动画。
         context.remove("shownDemoTopics");
         // 无关提问计数只能由 IAM 账号状态提供，防止前端清零或篡改；会话历史不再累计。
@@ -78,6 +88,24 @@ public class AgentSessionService {
 
         List<AgentRun> recentRuns = findRecentRuns(
                 userId, agentCode, normalizedSessionId, MODEL_HISTORY_LIMIT);
+        AgentSessionSummary summary;
+        try {
+            summary = summaryMapper.findByScope(userId, agentCode, normalizedSessionId);
+        } catch (RuntimeException exception) {
+            // A missing migration must not disable the existing recent-window fallback.
+            log.warn("读取会话摘要失败，已仅使用最近原文，error={}",
+                    exception.getClass().getSimpleName());
+            summary = null;
+        }
+        // A failed refresh keeps the last successful summary: coverage only advances
+        // after the runtime returns a valid replacement.
+        String summaryText = summary == null
+                ? "" : truncate(summary.getSummaryText(), MAX_SUMMARY_LENGTH).trim();
+        int summarizedTurnCount = summary == null || summary.getSummarizedTurnCount() == null
+                ? 0 : summary.getSummarizedTurnCount();
+        String summaryStatus = summary == null
+                ? "NOT_AVAILABLE"
+                : (StringUtils.hasText(summary.getStatus()) ? summary.getStatus() : "EMPTY");
         List<Map<String, String>> history = recentRuns.stream()
                 .map(run -> {
                     Map<String, String> turn = new LinkedHashMap<>();
@@ -87,12 +115,16 @@ public class AgentSessionService {
                 })
                 .toList();
 
-        context.put("conversation", Map.of(
-                "schemaVersion", "1.0",
-                "status", history.isEmpty() ? "EMPTY" : "LOADED",
-                "previousTurnCount", history.size()
-        ));
+        Map<String, Object> conversation = new LinkedHashMap<>();
+        conversation.put("schemaVersion", "1.1");
+        conversation.put("status", history.isEmpty() && !StringUtils.hasText(summaryText)
+                ? "EMPTY" : "LOADED");
+        conversation.put("previousTurnCount", history.size());
+        conversation.put("summarizedTurnCount", summarizedTurnCount);
+        conversation.put("summaryStatus", summaryStatus);
+        context.put("conversation", conversation);
         context.put("conversationHistory", history);
+        context.put("conversationSummary", summaryText);
         context.put("shownDemoTopics", collectShownDemoTopics(recentRuns));
         return context;
     }

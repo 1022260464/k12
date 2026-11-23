@@ -39,6 +39,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,6 +67,7 @@ public class AgentRunService {
     private final ObjectMapper objectMapper;
     private final LearnerContextEnricher learnerContextEnricher;
     private final AgentSessionService sessionService;
+    private final AgentSessionSummaryService sessionSummaryService;
     private final IamAccountBehaviorClient accountBehaviorClient;
     private final AgentEvidenceWritebackService evidenceWritebackService;
 
@@ -80,6 +82,7 @@ public class AgentRunService {
             ObjectMapper objectMapper,
             LearnerContextEnricher learnerContextEnricher,
             AgentSessionService sessionService,
+            AgentSessionSummaryService sessionSummaryService,
             IamAccountBehaviorClient accountBehaviorClient,
             AgentEvidenceWritebackService evidenceWritebackService
     ) {
@@ -93,6 +96,7 @@ public class AgentRunService {
         this.objectMapper = objectMapper;
         this.learnerContextEnricher = learnerContextEnricher;
         this.sessionService = sessionService;
+        this.sessionSummaryService = sessionSummaryService;
         this.accountBehaviorClient = accountBehaviorClient;
         this.evidenceWritebackService = evidenceWritebackService;
     }
@@ -123,6 +127,7 @@ public class AgentRunService {
         );
         // sessionId 不只是运行标签；服务端读取可信历史并覆盖前端可能伪造的同名字段。
         context = sessionService.enrichContext(userId, agentCode, request.sessionId(), context);
+        context = new LinkedHashMap<>(context);
         context.put("offTopicStrikeCount", behavior.offTopicStrikeCount());
         context.put("offTopicLimit", behavior.offTopicLimit());
         context.put("abnormalBehaviorCount", behavior.abnormalBehaviorCount());
@@ -177,6 +182,9 @@ public class AgentRunService {
         persistenceService.save(run, artifacts);
         // 教学响应已持久化成功后尽力写回学习证据；失败只记日志。
         evidenceWritebackService.recordTutorChat(run, context);
+        if ("SUCCEEDED".equals(run.getStatus())) {
+            sessionSummaryService.requestRefresh(userId, agentCode, run.getSessionId());
+        }
 
         return toResponse(run, artifacts);
     }

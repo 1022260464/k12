@@ -14,6 +14,8 @@ SOURCE /opt/k12/sql/mysql/k12_business_ai_mastery_upgrade.sql;
 SOURCE /opt/k12/sql/mysql/k12_business_ai_practice_process_upgrade.sql;
 SOURCE /opt/k12/sql/mysql/k12_business_code_execution_quota.sql;
 SOURCE /opt/k12/sql/mysql/k12_business_visual_programming_mission_upgrade.sql;
+SOURCE /opt/k12/sql/mysql/k12_business_agent_upgrade.sql;
+SOURCE /opt/k12/sql/mysql/k12_business_agent_session_summary.sql;
 
 CREATE TABLE IF NOT EXISTS k12_business.schema_migration_history (
     version VARCHAR(64) NOT NULL,

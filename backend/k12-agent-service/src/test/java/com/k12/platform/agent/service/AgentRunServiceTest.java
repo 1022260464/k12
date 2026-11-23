@@ -70,6 +70,8 @@ class AgentRunServiceTest {
     @Mock
     private AgentSessionService sessionService;
     @Mock
+    private AgentSessionSummaryService sessionSummaryService;
+    @Mock
     private IamAccountBehaviorClient accountBehaviorClient;
     @Mock
     private AgentEvidenceWritebackService evidenceWritebackService;
@@ -91,6 +93,7 @@ class AgentRunServiceTest {
                 new ObjectMapper(),
                 learnerContextEnricher,
                 sessionService,
+                sessionSummaryService,
                 accountBehaviorClient,
                 evidenceWritebackService
         );
@@ -145,6 +148,7 @@ class AgentRunServiceTest {
         assertThat(response.status()).isEqualTo("SUCCEEDED");
         assertThat(response.artifacts()).hasSize(1);
         verify(persistenceService).save(any(AgentRun.class), any());
+        verify(sessionSummaryService).requestRefresh(42L, "demo-chart", "session-1");
     }
 
     @Test

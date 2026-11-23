@@ -336,7 +336,10 @@ K12_COURSE_MEDIA_URL_TTL=15m
 
 Agent Java 服务已经提供同步和异步运行闭环：校验 `agent:invoke`、从 JWT 获取用户 ID；
 短任务调用 FastAPI，长任务通过 RabbitMQ 交给 Python Worker；结果统一写入 `agent_run`、
-`agent_artifact`。接口如下：
+`agent_artifact`。同一用户、智能体和会话的最近6轮保留原文，更早成功轮次增量写入
+`agent_session_summary`滚动摘要；首次启用先执行
+`backend/sql/mysql/k12_business_agent_session_summary.sql`。摘要异步生成，模型或摘要表不可用
+时不影响主问答。接口如下：
 
 代码沙箱通过同一个公开接口支持同步和异步执行：
 

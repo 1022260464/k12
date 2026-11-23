@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.k12.platform.agent.model.AgentArtifact;
 import com.k12.platform.agent.service.AgentRunPersistenceService;
+import com.k12.platform.agent.service.AgentSessionSummaryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
@@ -24,10 +25,16 @@ public class AgentRunResultConsumer {
     private static final Set<String> RESULT_STATUSES = Set.of("RUNNING", "SUCCEEDED", "FAILED");
 
     private final AgentRunPersistenceService persistenceService;
+    private final AgentSessionSummaryService sessionSummaryService;
     private final ObjectMapper objectMapper;
 
-    public AgentRunResultConsumer(AgentRunPersistenceService persistenceService, ObjectMapper objectMapper) {
+    public AgentRunResultConsumer(
+            AgentRunPersistenceService persistenceService,
+            AgentSessionSummaryService sessionSummaryService,
+            ObjectMapper objectMapper
+    ) {
         this.persistenceService = persistenceService;
+        this.sessionSummaryService = sessionSummaryService;
         this.objectMapper = objectMapper;
     }
 
@@ -61,11 +68,21 @@ public class AgentRunResultConsumer {
             );
             if (!found) {
                 log.warn("忽略找不到本地运行记录的 Agent 结果，runId={}", result.runId());
+            } else if ("SUCCEEDED".equals(result.status())) {
+                requestSummaryRefresh(result.runId());
             }
         } catch (IllegalArgumentException exception) {
             // 消息内容本身有问题，重新投递也无法成功；拒绝重入队并交给死信交换机。
             log.error("拒绝非法的 Agent 结果消息，runId={}", result == null ? null : result.runId(), exception);
             throw new AmqpRejectAndDontRequeueException("Agent 结果消息不合法", exception);
+        }
+    }
+
+    private void requestSummaryRefresh(String runId) {
+        var run = persistenceService.findSessionScope(runId);
+        if (run != null) {
+            sessionSummaryService.requestRefresh(
+                    run.getUserId(), run.getAgentCode(), run.getSessionId());
         }
     }
 

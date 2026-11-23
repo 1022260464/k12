@@ -924,6 +924,10 @@ def test_conversation_history_is_sanitized_and_used_for_continuity() -> None:
                         "previousTurnCount": 1,
                         "userId": 42,
                     },
+                    "conversationSummary": (
+                        "学习目标：理解冒泡排序。"
+                        "已确认知识：每轮最大值移动到未排序区间末尾。"
+                    ),
                     "conversationHistory": [
                         {
                             "user": "第一轮结束后发生了什么？",
@@ -940,11 +944,15 @@ def test_conversation_history_is_sanitized_and_used_for_continuity() -> None:
     prompt = chat_model.last_request.messages[1].content
     assert "第一轮结束后发生了什么" in prompt
     assert "最大值已经移动到未排序区间末尾" in prompt
+    assert "学习目标：理解冒泡排序" in prompt
     assert "不得进入提示词" not in prompt
     assert "userId" not in prompt
     assert result.metadata["conversation"] == {
         "schemaVersion": "1.0",
         "status": "LOADED",
+        "summaryStatus": "ACTIVE",
+        "summaryUsed": True,
+        "summarizedTurnCount": 0,
         "historyUsed": True,
         "previousTurnCount": 1,
     }
