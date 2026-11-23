@@ -33,6 +33,9 @@ spring:
           k12-agent-runtime:
             connect-timeout: ${K12_AGENT_RUNTIME_CONNECT_TIMEOUT_MS:3000}
             read-timeout: ${K12_AGENT_RUNTIME_READ_TIMEOUT_MS:90000}
+          k12-agent-runtime-summary:
+            connect-timeout: ${K12_AGENT_SUMMARY_CONNECT_TIMEOUT_MS:2000}
+            read-timeout: ${K12_AGENT_SUMMARY_READ_TIMEOUT_MS:20000}
           k12-iam-service:
             connect-timeout: ${K12_IAM_CONNECT_TIMEOUT_MS:1500}
             read-timeout: ${K12_IAM_READ_TIMEOUT_MS:2500}
@@ -95,6 +98,10 @@ k12:
       base-url: ${K12_AGENT_RUNTIME_URL:http://127.0.0.1:8090}
       # 本地 Runtime 未配置密钥时可留空；团队环境必须与 Python 配置保持一致。
       api-key: ${K12_AGENT_INTERNAL_API_KEY:}
+    summary:
+      enabled: ${K12_AGENT_SUMMARY_ENABLED:true}
+      threads: ${K12_AGENT_SUMMARY_THREADS:2}
+      queue-capacity: ${K12_AGENT_SUMMARY_QUEUE_CAPACITY:200}
     rabbitmq:
       # 默认关闭，关闭时不会连接 RabbitMQ；ASYNC 请求会明确返回 503。
       enabled: ${K12_AGENT_RABBITMQ_ENABLED:false}

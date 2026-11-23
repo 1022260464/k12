@@ -2,7 +2,9 @@ package com.k12.platform.agent.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.k12.platform.agent.model.AgentArtifact;
+import com.k12.platform.agent.model.AgentRun;
 import com.k12.platform.agent.service.AgentRunPersistenceService;
+import com.k12.platform.agent.service.AgentSessionSummaryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,12 +27,15 @@ class AgentRunResultConsumerTest {
 
     @Mock
     private AgentRunPersistenceService persistenceService;
+    @Mock
+    private AgentSessionSummaryService sessionSummaryService;
 
     @Test
     @DisplayName("消费成功结果时把 Python 图表消息转换为数据库产物")
     @SuppressWarnings("unchecked")
     void consumeMapsArtifacts() {
-        AgentRunResultConsumer consumer = new AgentRunResultConsumer(persistenceService, new ObjectMapper());
+        AgentRunResultConsumer consumer = new AgentRunResultConsumer(
+                persistenceService, sessionSummaryService, new ObjectMapper());
         AgentRunArtifactMessage artifact = new AgentRunArtifactMessage(
                 "artifact-1",
                 "CHART",
@@ -53,6 +58,12 @@ class AgentRunResultConsumerTest {
                 eq("完成"), eq("{\"model\":\"demo\"}"), eq(startedTime),
                 org.mockito.ArgumentMatchers.anyList()))
                 .thenReturn(true);
+        AgentRun sessionRun = new AgentRun();
+        sessionRun.setRunId("run-1");
+        sessionRun.setAgentCode("demo-chart");
+        sessionRun.setUserId(42L);
+        sessionRun.setSessionId("session-1");
+        when(persistenceService.findSessionScope("run-1")).thenReturn(sessionRun);
 
         consumer.consume(result);
 
@@ -71,12 +82,14 @@ class AgentRunResultConsumerTest {
             assertThat(saved.getRunId()).isEqualTo("run-1");
             assertThat(saved.getPayloadJson()).isEqualTo("{\"mark\":\"bar\"}");
         });
+        verify(sessionSummaryService).requestRefresh(42L, "demo-chart", "session-1");
     }
 
     @Test
     @DisplayName("拒绝未知的异步结果状态")
     void consumeRejectsUnknownStatus() {
-        AgentRunResultConsumer consumer = new AgentRunResultConsumer(persistenceService, new ObjectMapper());
+        AgentRunResultConsumer consumer = new AgentRunResultConsumer(
+                persistenceService, sessionSummaryService, new ObjectMapper());
         AgentRunResultMessage result = new AgentRunResultMessage(
                 "run-1", "demo-chart", "UNKNOWN", "", null, List.of(), null
         );
@@ -89,7 +102,8 @@ class AgentRunResultConsumerTest {
     @Test
     @DisplayName("消费开始消息时记录 Worker 实际开始时间")
     void consumeMarksRunAsStarted() {
-        AgentRunResultConsumer consumer = new AgentRunResultConsumer(persistenceService, new ObjectMapper());
+        AgentRunResultConsumer consumer = new AgentRunResultConsumer(
+                persistenceService, sessionSummaryService, new ObjectMapper());
         Instant startedTime = Instant.parse("2026-09-13T08:41:18Z");
         AgentRunResultMessage result = new AgentRunResultMessage(
                 "run-1", "demo-chart", "RUNNING", "", startedTime, List.of(), null

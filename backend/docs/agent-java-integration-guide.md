@@ -195,8 +195,16 @@ Authorization: Bearer <JWT>
 `backend/sql/mysql/mysql_server_packet_verify.sql`。两列均为`67108864`后才能继续执行升级脚本。
 数据库软件中使用“执行当前语句”，避免批量执行引发JDBC的`Statement closed`错误。
 
-当前“会话”是成功运行记录的只读视图，不是独立聊天表。尚未实现会话列表、重命名、删除、
-长期摘要和LangGraph Checkpointer。切换新的`sessionId`即可开始一段新对话。
+当前“会话”仍以成功运行记录为主体，不额外复制一份聊天消息表。服务端另外维护
+`agent_session_summary`滚动摘要：最近6轮继续以原文放入`conversationHistory`，更早的成功轮次
+异步交给Python Runtime合并为`conversationSummary`，并持久化覆盖到哪个`agent_run.id`。
+摘要模型失败时只更新失败状态，不影响当轮问答，模型仍可使用旧摘要和最近原文窗口。
+
+首次启用先执行`backend/sql/mysql/k12_business_agent_session_summary.sql`，然后重启Agent
+Service和Python Runtime。摘要线程和超时可通过
+`K12_AGENT_SUMMARY_ENABLED`、`K12_AGENT_SUMMARY_THREADS`、
+`K12_AGENT_SUMMARY_QUEUE_CAPACITY`、`K12_AGENT_SUMMARY_READ_TIMEOUT_MS`调整。
+会话列表、重命名、删除和LangGraph Checkpointer仍未实现；切换新的`sessionId`即可开始新对话。
 
 当前接口是同步模式：Java 等待 Python 返回结果后再响应，适合学习计划、短问答和小型图表。
 将 `executionMode` 改为 `ASYNC` 后，Java 返回 HTTP 202 和 `PENDING`，Python Worker 从

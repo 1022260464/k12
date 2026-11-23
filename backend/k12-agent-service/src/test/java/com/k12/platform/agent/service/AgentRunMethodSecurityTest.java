@@ -2,6 +2,7 @@ package com.k12.platform.agent.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.k12.platform.agent.client.AgentRuntimeClient;
+import com.k12.platform.agent.client.IamAccountBehaviorClient;
 import com.k12.platform.agent.config.AgentRabbitProperties;
 import com.k12.platform.agent.mapper.AgentArtifactMapper;
 import com.k12.platform.agent.mapper.AgentMapper;
@@ -48,6 +49,8 @@ class AgentRunMethodSecurityTest {
     @MockBean AgentRunTaskPublisher taskPublisher;
     @MockBean LearnerContextEnricher learnerContextEnricher;
     @MockBean AgentSessionService sessionService;
+    @MockBean AgentSessionSummaryService sessionSummaryService;
+    @MockBean IamAccountBehaviorClient accountBehaviorClient;
     @Autowired AgentRunService service;
 
     @AfterEach

@@ -54,6 +54,16 @@
         LIMIT 1
     </select>
 
+    <select id="findByRunId" resultMap="AgentRunResultMap">
+        SELECT id, run_id, agent_code, user_id, session_id, execution_mode,
+               input_text, input_context, status, output_text, output_metadata,
+               error_code, error_message, duration_ms, started_time, finished_time,
+               created_time, updated_time
+        FROM agent_run
+        WHERE run_id = #{runId}
+        LIMIT 1
+    </select>
+
     <!-- user_id 是强制条件，不能只按可猜测的 session_id 查询。 -->
     <select id="findRecentSuccessfulSessionRuns" resultMap="AgentRunResultMap">
         SELECT id, run_id, agent_code, user_id, session_id, execution_mode,
@@ -67,6 +77,36 @@
           AND status = 'SUCCEEDED'
           AND output_text IS NOT NULL
         ORDER BY created_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findSummaryBoundaryRunDbId" resultType="java.lang.Long">
+        SELECT id
+        FROM agent_run
+        WHERE user_id = #{userId}
+          AND agent_code = #{agentCode}
+          AND session_id = #{sessionId}
+          AND status = 'SUCCEEDED'
+          AND output_text IS NOT NULL
+        ORDER BY created_time DESC, id DESC
+        LIMIT 1 OFFSET #{offset}
+    </select>
+
+    <!-- Oldest eligible backlog after the persisted coverage point. -->
+    <select id="findSuccessfulSessionRunsForSummary" resultMap="AgentRunResultMap">
+        SELECT id, run_id, agent_code, user_id, session_id, execution_mode,
+               input_text, input_context, status, output_text, output_metadata,
+               error_code, error_message, duration_ms, started_time, finished_time,
+               created_time, updated_time
+        FROM agent_run
+        WHERE user_id = #{userId}
+          AND agent_code = #{agentCode}
+          AND session_id = #{sessionId}
+          AND status = 'SUCCEEDED'
+          AND output_text IS NOT NULL
+          AND id &gt; #{afterRunDbId}
+          AND id &lt;= #{throughRunDbId}
+        ORDER BY id ASC
         LIMIT #{limit}
     </select>
 
