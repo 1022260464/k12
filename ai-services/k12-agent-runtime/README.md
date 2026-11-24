@@ -216,18 +216,28 @@ uv run --env-file .env python scripts/evaluate_rag_retrieval.py --min-hit-rate 0
 评测数据位于`data/rag_retrieval_evaluation.json`。新增或修改知识文档时，应同步维护问题和
 `expectedDocumentIds`，不能用线上真实学生问题直接提交到Git。
 
-### MongoDB、MinIO与Redis
+### Agent轨迹、MinIO与Redis
 
-三类基础设施承担不同职责，不能互相替代：
+三类存储承担不同职责，不能互相替代：
 
 | 组件 | 当前用途 | 不应该保存 |
 | --- | --- | --- |
-| MongoDB | Agent输入、输出、上下文和工具轨迹，默认保留30天 | 权限、成绩等强事务业务数据 |
+| 本地 JSONL | Agent输入、输出、上下文和工具轨迹，按天追加并默认保留30天 | 权限、成绩等强事务业务数据 |
 | MinIO | 图片、音频、视频、PPT、Word和代码运行文件 | 可查询的业务字段和聊天消息 |
 | Redis | RAG最终结果的5分钟缓存，后续承载学习排行榜热点数据 | 唯一一份积分或成绩数据 |
 
-本地 `.env` 分别开启 `K12_AGENT_MONGODB_ENABLED`、`K12_AGENT_MINIO_ENABLED` 和
-`K12_AGENT_REDIS_ENABLED` 后，可执行真实读写检查：
+默认轨迹配置：
+
+```dotenv
+K12_AGENT_TRACE_STORAGE_BACKEND=jsonl
+K12_AGENT_TRACE_LOG_DIR=logs/agent-traces
+K12_AGENT_TRACE_RETENTION_DAYS=30
+```
+
+文件按UTC日期命名为 `agent-trace-YYYY-MM-DD.jsonl`。一次执行产生 `STARTED`、
+`SUCCEEDED` 或 `FAILED` 事件；上下文和输出元数据中的密码、Token、Cookie等字段会递归脱敏。
+本地 `.env` 配置 `K12_AGENT_MINIO_ENABLED` 和 `K12_AGENT_REDIS_ENABLED` 后，可执行真实
+读写检查：
 
 ```powershell
 uv run --env-file .env python scripts/smoke_external_services.py
@@ -241,7 +251,9 @@ uv run --env-file .env python scripts/sync_course_assets.py
 
 脚本会覆盖 `course-assets/v1/` 下的同名对象，不会生成随机重复文件，也不会打印访问密钥。
 
-Agent每次执行会尽力将轨迹写入MongoDB；轨迹存储失败时只记录警告，不影响Agent主结果。
+Agent每次执行会尽力写入本地JSONL；轨迹存储失败时只记录警告，不影响Agent主结果。轨迹
+只是辅助观测数据，不作为成绩、权限或学习状态的权威来源。旧MongoDB实现仅为兼容历史数据保
+留，只有把 `K12_AGENT_TRACE_STORAGE_BACKEND` 显式改为 `mongodb` 时才会启用。
 RAG文档更新后通过Redis版本号使旧缓存失效，不使用线上危险的全量 `KEYS` 扫描。MinIO上传
 接口限制单文件大小，返回永久对象URI；前端下载时应请求短期签名地址。
 

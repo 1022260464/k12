@@ -11,6 +11,7 @@ def test_health_endpoint() -> None:
 
     assert response.status_code == 200
     assert response.json()["data"]["status"] == "UP"
+    assert response.json()["data"]["traceStorageBackend"] == "jsonl"
 
 
 def test_demo_agent_returns_chart_artifact() -> None:

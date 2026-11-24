@@ -22,6 +22,7 @@ from k12_agent_runtime.application.storage import (
 from k12_agent_runtime.core.config import Settings
 from k12_agent_runtime.domain.agents.ports import AgentRegistry
 from k12_agent_runtime.domain.llm import ChatModel
+from k12_agent_runtime.domain.observability import AgentTraceRepository
 from k12_agent_runtime.domain.rag.ports import DocumentReranker, TextEmbedder
 from k12_agent_runtime.domain.sandbox.ports import CodeSandbox
 from k12_agent_runtime.infrastructure.agents.demo_chart_agent import DemoChartAgent
@@ -34,7 +35,10 @@ from k12_agent_runtime.infrastructure.agents.teaching_assistant import (
 )
 from k12_agent_runtime.infrastructure.cache import RedisKnowledgeSearchCache
 from k12_agent_runtime.infrastructure.llm import DashScopeChatModel
-from k12_agent_runtime.infrastructure.observability import MongoAgentTraceRepository
+from k12_agent_runtime.infrastructure.observability import (
+    JsonlAgentTraceRepository,
+    MongoAgentTraceRepository,
+)
 from k12_agent_runtime.infrastructure.rag import (
     BgeM3Embedder,
     BgeReranker,
@@ -69,7 +73,7 @@ class ApplicationContainer:
     search_knowledge: SearchKnowledgeUseCase
     knowledge_repository: PgVectorKnowledgeRepository | None
     rag_cache: RedisKnowledgeSearchCache | None
-    trace_repository: MongoAgentTraceRepository | None
+    trace_repository: AgentTraceRepository | None
     store_object: StoreObjectUseCase
     create_download_url: CreateDownloadUrlUseCase
     synthesize_speech: SynthesizeSpeechUseCase
@@ -351,18 +355,28 @@ def _build_rag_cache(settings: Settings) -> RedisKnowledgeSearchCache | None:
     )
 
 
-def _build_trace_repository(settings: Settings) -> MongoAgentTraceRepository | None:
-    if not settings.mongodb_enabled:
+def _build_trace_repository(settings: Settings) -> AgentTraceRepository | None:
+    backend = settings.trace_storage_backend
+    if backend == "disabled":
         return None
-    if settings.mongodb_url is None:
-        raise ValueError("MongoDB已启用，但K12_AGENT_MONGODB_URL未配置")
-    return MongoAgentTraceRepository(
-        url=settings.mongodb_url.get_secret_value(),
-        database=settings.mongodb_database,
-        collection=settings.mongodb_trace_collection,
-        connect_timeout_ms=settings.mongodb_connect_timeout_ms,
-        retention_days=settings.mongodb_trace_retention_days,
-    )
+    if backend == "jsonl":
+        return JsonlAgentTraceRepository(
+            log_dir=settings.trace_log_dir,
+            retention_days=settings.trace_retention_days,
+        )
+    if backend == "mongodb":
+        if not settings.mongodb_enabled:
+            raise ValueError("trace_storage_backend=mongodb时，必须启用MongoDB")
+        if settings.mongodb_url is None:
+            raise ValueError("MongoDB已启用，但K12_AGENT_MONGODB_URL未配置")
+        return MongoAgentTraceRepository(
+            url=settings.mongodb_url.get_secret_value(),
+            database=settings.mongodb_database,
+            collection=settings.mongodb_trace_collection,
+            connect_timeout_ms=settings.mongodb_connect_timeout_ms,
+            retention_days=settings.mongodb_trace_retention_days,
+        )
+    raise ValueError(f"暂不支持的Agent轨迹存储后端：{backend}")
 
 
 def _build_object_storage(settings: Settings) -> MinioObjectStorage | None:

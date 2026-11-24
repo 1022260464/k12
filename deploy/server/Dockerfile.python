@@ -18,6 +18,7 @@ COPY ai-services/k12-agent-runtime/src ./src
 RUN uv sync --frozen --no-dev
 
 RUN useradd --system --create-home --uid 10001 k12 \
+    && mkdir -p /app/logs/agent-traces \
     && chown -R k12:k12 /app /opt/venv
 USER k12
 EXPOSE 8090

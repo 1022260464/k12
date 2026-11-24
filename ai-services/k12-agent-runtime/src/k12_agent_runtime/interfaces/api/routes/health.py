@@ -10,6 +10,7 @@ class HealthResponse(ApiModel):
     service: str
     status: str
     environment: str
+    trace_storage_backend: str
     rabbitmq_enabled: bool
     sandbox_enabled: bool
     mongodb_enabled: bool
@@ -25,6 +26,7 @@ async def health(request: Request) -> ApiResponse[HealthResponse]:
             service=settings.app_name,
             status="UP",
             environment=settings.environment,
+            trace_storage_backend=settings.trace_storage_backend,
             rabbitmq_enabled=settings.rabbitmq_enabled,
             sandbox_enabled=settings.sandbox_enabled,
             mongodb_enabled=settings.mongodb_enabled,
