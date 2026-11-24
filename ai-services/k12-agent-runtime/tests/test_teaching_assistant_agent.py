@@ -1,3 +1,90 @@
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from k12_agent_runtime.application.rag import SearchKnowledgeCommand
+from k12_agent_runtime.domain.agents.models import (
+    AgentArtifactKind,
+    AgentRunInput,
+    AgentRunStatus,
+)
+from k12_agent_runtime.domain.llm import ChatRequest, ChatResponse
+from k12_agent_runtime.domain.rag import KnowledgeSearchResult, RankedDocument
+from k12_agent_runtime.infrastructure.agents.teaching_assistant import (
+    LowerPrimaryTutorAgent,
+    TeachingAssistantAgent,
+)
+
+
+def run_agent(context: dict[str, object]):
+    agent = TeachingAssistantAgent()
+    return asyncio.run(
+        agent.invoke(
+            AgentRunInput(
+                run_id="run-teaching-1",
+                agent_code="teaching-assistant",
+                input_text="为什么冒泡排序要比较旁边的数字？",
+                user_id="student-1",
+                context=context,
+            )
+        )
+    )
+
+
+def run_topic(question: str, context: dict[str, object]):
+    return asyncio.run(
+        TeachingAssistantAgent().invoke(
+            AgentRunInput(
+                run_id="run-topic-1",
+                agent_code="teaching-assistant",
+                input_text=question,
+                user_id="student-1",
+                context=context,
+            )
+        )
+    )
+
+
+def test_lower_primary_tutor_has_separate_code_and_enforces_child_policy() -> None:
+    result = asyncio.run(
+        LowerPrimaryTutorAgent().invoke(
+            AgentRunInput(
+                run_id="run-lower-primary-1",
+                agent_code="lower-primary-tutor",
+                input_text="继续讲图像分类",
+                user_id="student-1",
+                context={
+                    "stage": "high_school",
+                    "topicCode": "machine_learning.image_classification",
+                },
+            )
+        )
+    )
+
+    assert result.agent_code == "lower-primary-tutor"
+    assert result.metadata["stageCode"] == "lower_primary"
+    assert result.metadata["topicCode"] == "machine_learning.image_classification"
+    assert result.metadata["workflow"] == "lower-primary-guided-v1"
+    guided = result.metadata["guidedConversation"]
+    assert guided["mode"] == "SHORT_TURN"
+    assert guided["phase"] == "LOOK"
+    assert guided["progressCurrent"] == 1
+    assert guided["showPractice"] is False
+    assert 1 <= len(guided["choices"]) <= 3
+    assert "### 概念解释" not in result.output_text
+    assert "图片里的线索" in result.output_text or "猫和狗" in result.output_text
+
+
+@pytest.mark.parametrize(
+    ("previous_turn_count", "phase", "progress", "show_practice"),
+    [
+        (1, "THINK", 2, False),
+        (2, "TRY", 3, True),
+        (7, "TRY", 3, True),
+    ],
+)
 def test_lower_primary_tutor_advances_short_guided_turns(
     previous_turn_count: int,
     phase: str,
