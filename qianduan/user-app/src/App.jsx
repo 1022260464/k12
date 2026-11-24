@@ -39,6 +39,9 @@ import {
 } from "./utils/passwordValidation.js";
 
 const listPages = new Set(["home", "ai-studio", "picture-books", "courses", "tasks", "challenge", "visual-code-lab", "code-lab", "leaderboard", "progress", "cat-lesson", "find-cat-lesson", "coursewares", "diagnostic"]);
+const routeAliases = {
+  "challenge-park": "challenge",
+};
 // 通用页：不属于某一体验的导航，但两种体验下都允许直达/刷新（否则带档案用户一刷新就被弹回首页）。
 const universalPages = new Set(["cat-lesson", "find-cat-lesson", "diagnostic"]);
 function pagesAllowedFor(experience) {
@@ -53,7 +56,8 @@ const VisualCodeLabPage = lazy(() => import("./pages/VisualCodeLabPage.jsx")
 function parseRoute() {
   const raw = window.location.hash.replace(/^#\/?/, "") || "home";
   const parts = raw.split("/").filter(Boolean);
-  const root = parts[0] || "home";
+  const requestedRoot = parts[0] || "home";
+  const root = routeAliases[requestedRoot] || requestedRoot;
 
   if (root === "courses" && parts[1]) {
     const chapterId = parts[2] === "chapters" && parts[3] ? parts[3] : null;
