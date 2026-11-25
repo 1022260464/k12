@@ -13,6 +13,9 @@ chmod 600 .env
 # Infrastructure only. Fresh MySQL/PostgreSQL volumes are initialized automatically.
 docker compose up -d
 
+# Agent traces are written to ./logs/agent-traces as daily JSONL files.
+# MongoDB is not part of the default stack.
+
 # Build and start all application containers.
 docker compose --profile app up -d --build
 
@@ -24,6 +27,12 @@ Optional Nacos:
 
 ```bash
 docker compose --profile nacos up -d nacos
+```
+
+Optional legacy MongoDB trace backend:
+
+```bash
+docker compose --profile legacy-mongodb up -d mongodb
 ```
 
 Do not commit `.env`, database dumps, MinIO objects, or TLS private keys.

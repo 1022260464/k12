@@ -40,6 +40,9 @@ pnpm-debug.log*
 .parcel-cache/
 .eslintcache
 *.tsbuildinfo
+/.tmp/
+/.pytest-tmp/
+ai-services/k12-agent-runtime/tests/.trace-output/
 
 # Python environments and caches
 .venv/

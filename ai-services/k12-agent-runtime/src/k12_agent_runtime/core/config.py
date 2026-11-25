@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -85,7 +86,12 @@ class Settings(BaseSettings):
     redis_connect_timeout_seconds: float = 3.0
     rag_cache_ttl_seconds: int = 300
 
-    # MongoDB保存结构变化频繁的Agent执行轨迹，不代替MySQL中的业务运行状态。
+    # Agent轨迹默认写本地JSONL；MongoDB仅保留为显式启用的旧后端。
+    trace_storage_backend: Literal["jsonl", "mongodb", "disabled"] = "jsonl"
+    trace_log_dir: Path = Path("logs/agent-traces")
+    trace_retention_days: int = Field(default=30, ge=1, le=3650)
+
+    # 旧MongoDB轨迹配置，仅在trace_storage_backend=mongodb时使用。
     mongodb_enabled: bool = False
     mongodb_url: SecretStr | None = None
     mongodb_database: str = "k12_agent"

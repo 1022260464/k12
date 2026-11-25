@@ -128,6 +128,11 @@ export const pictureBooksApi = {
   getPublished: (bookCode) => api(`/api/v1/learning/picture-books/published/${encodeURIComponent(bookCode)}`, { public: true }),
 };
 
+export const coursewaresApi = {
+  listPublished: () => api("/api/v1/agents/courseware/published"),
+  getPublished: (coursewareId) => api(`/api/v1/agents/courseware/published/${encodeURIComponent(coursewareId)}`),
+};
+
 export const teachingResourcesApi = {
   published: (filters = {}) => api(`/api/v1/learning/teaching-resources/published?${query(filters)}`),
   publishedGet: (id) => api(`/api/v1/learning/teaching-resources/published/${id}`),
@@ -166,6 +171,12 @@ export const practiceApi = {
   recent: (limit = 5) => api(`/api/v1/assessments/practice-attempts/me?${query({ limit })}`),
   insights: () => api("/api/v1/assessments/practice-attempts/me/insights"),
   mastery: () => api("/api/v1/assessments/practice-attempts/me/mastery"),
+};
+
+export const diagnosticsApi = {
+  paper: (stage) => api(`/api/v1/assessments/diagnostics/paper?${query({ stage })}`),
+  submit: (body) => api("/api/v1/assessments/diagnostics", { method: "POST", body: JSON.stringify(body) }),
+  latest: () => api("/api/v1/assessments/diagnostics/me"),
 };
 
 export const knowledgeGraphApi = {

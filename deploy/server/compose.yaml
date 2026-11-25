@@ -69,7 +69,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a '$${REDIS_PASSWORD}' ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -80,13 +80,14 @@ services:
 
   mongodb:
     image: ${MONGO_IMAGE:-mongo:7.0-jammy}
+    profiles: ["legacy-mongodb"]
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be configured}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-local_legacy_mongo_root}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-k12_agent}
       MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:-k12agent}
-      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD must be configured}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:-local_legacy_mongo_app}
     ports:
       - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
@@ -124,19 +125,25 @@ services:
     networks: [k12]
 
   minio:
-    image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z}
+    # GHCR image digest: sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
+    image: ${MINIO_IMAGE:-ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z}
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be configured}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be configured}
+      MC_HOST_k12: http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@127.0.0.1:9000
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      test:
+        [
+          "CMD-SHELL",
+          "/usr/bin/mc ready k12",
+        ]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -145,7 +152,7 @@ services:
     networks: [k12]
 
   minio-init:
-    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z}
+    image: ${MINIO_MC_IMAGE:-ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z}
     restart: "no"
     depends_on:
       minio:
@@ -158,9 +165,9 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        mc alias set k12 http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
-        mc mb --ignore-existing "k12/$${MINIO_BUCKET}"
-        mc mb --ignore-existing "k12/$${MINIO_AVATAR_BUCKET}"
+        /usr/bin/mc alias set k12 http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        /usr/bin/mc mb --ignore-existing "k12/$${MINIO_BUCKET}"
+        /usr/bin/mc mb --ignore-existing "k12/$${MINIO_AVATAR_BUCKET}"
     networks: [k12]
 
   neo4j:
@@ -224,6 +231,23 @@ services:
     mem_limit: 768m
     networks: [k12]
 
+  agent-trace-init:
+    profiles: ["app"]
+    image: k12/agent-runtime:${K12_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile.python
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /app/logs/agent-traces
+        chown -R 10001:10001 /app/logs/agent-traces
+    volumes:
+      - ./logs/agent-traces:/app/logs/agent-traces
+    networks: [k12]
+
   agent-runtime:
     profiles: ["app"]
     image: k12/agent-runtime:${K12_IMAGE_TAG:-local}
@@ -257,9 +281,9 @@ services:
       K12_AGENT_RAG_DATABASE_MAX_POOL_SIZE: ${K12_AGENT_RAG_DATABASE_MAX_POOL_SIZE:-5}
       K12_AGENT_REDIS_ENABLED: "true"
       K12_AGENT_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      K12_AGENT_MONGODB_ENABLED: "true"
-      K12_AGENT_MONGODB_URL: mongodb://${MONGO_APP_USERNAME:-k12agent}:${MONGO_APP_PASSWORD}@mongodb:27017/${MONGO_DATABASE:-k12_agent}?authSource=${MONGO_DATABASE:-k12_agent}
-      K12_AGENT_MONGODB_DATABASE: ${MONGO_DATABASE:-k12_agent}
+      K12_AGENT_TRACE_STORAGE_BACKEND: ${K12_AGENT_TRACE_STORAGE_BACKEND:-jsonl}
+      K12_AGENT_TRACE_LOG_DIR: /app/logs/agent-traces
+      K12_AGENT_TRACE_RETENTION_DAYS: ${K12_AGENT_TRACE_RETENTION_DAYS:-30}
       K12_AGENT_MINIO_ENABLED: "true"
       K12_AGENT_MINIO_ENDPOINT: minio:9000
       K12_AGENT_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
@@ -277,14 +301,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      mongodb:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+      agent-trace-init:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:${AGENT_RUNTIME_PORT:-8090}:8090"
+    volumes:
+      - ./logs/agent-traces:/app/logs/agent-traces
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/internal/v1/health', timeout=3)"]
       interval: 15s
@@ -309,10 +335,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      mongodb:
-        condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+      agent-trace-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./logs/agent-traces:/app/logs/agent-traces
     mem_limit: 1536m
     networks: [k12]
 

@@ -118,9 +118,9 @@ class RunAgentUseCase:
 
     @staticmethod
     def _log_trace_failure(operation: str) -> None:
-        """轨迹是辅助数据；MongoDB不可用时核心Agent仍然继续执行。"""
+        """轨迹是辅助数据；存储不可用时核心Agent仍然继续执行。"""
         logger.warning(
-            "MongoDB agent trace write failed operation=%s",
+            "Agent trace write failed operation=%s",
             operation,
             exc_info=True,
         )

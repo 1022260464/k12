@@ -135,7 +135,7 @@ IAM 8081             Learning 8082       Agent 8083          Assessment 8084
                                                 v
                                   TEXT/ANIMATION/GAME/CHART/FILE
                                                 |
-                    MySQL 状态 + MongoDB 轨迹 + Redis 缓存 + MinIO/COS 大文件
+                    MySQL 状态 + 本地JSONL轨迹 + Redis 缓存 + MinIO/COS 大文件
 ```
 
 目标架构另规划 Neo4j 知识关系层：存储 AI 通识知识点的先修/关联关系、章节覆盖、已审核资料和稳定题目映射，供答疑导航、课程覆盖检查、练习定位、薄弱点解释与下一主题推荐使用。Neo4j 只返回关系和稳定编码；正文继续由 pgvector 提供，题目、学生掌握度与成绩继续由 MySQL 保存。当前仓库尚未接入 Neo4j，不属于上图所示的已运行主链路；目标图须用虚线标注。
@@ -166,7 +166,8 @@ Python Runtime当前已经完成`teaching-assistant -> RAG -> 千问`主链路�
 | MySQL | 用户权限和业务事务数据 | 大文件、向量检索 |
 | PostgreSQL + pgvector | 知识片段和向量检索 | IAM 与业务事务主数据 |
 | Neo4j（规划） | 知识点先修/关联、章节覆盖及资料/题目映射等图关系 | 学生成绩、题目答案、教材正文或向量存储 |
-| MongoDB | Agent输入、输出、上下文与可变工具轨迹 | 用户权限、成绩等强事务主数据 |
+| 本地 JSONL | Agent输入、输出、上下文与可变工具轨迹 | 用户权限、成绩等强事务主数据 |
+| MongoDB（可选旧后端） | 历史 Agent 轨迹兼容，默认不启动 | 新环境默认轨迹、用户权限、成绩等强事务主数据 |
 | Redis | RAG短时缓存和可重建的学习排行榜 | 唯一一份积分、成绩或运行结果 |
 | MinIO/COS | 图片、绘本、文档、代码运行文件 | 权限规则本身 |
 
@@ -188,14 +189,14 @@ Python Runtime当前已经完成`teaching-assistant -> RAG -> 千问`主链路�
 | Learning | 已完成基础闭环 | 课程、章节、小节受控活动、报名、单课程进度、跨课程学习历史摘要、数据范围、Redis学习排行和MinIO课程封面读取 | 代表课程迁移/知识点绑定/真实 HTTP 验收，教材映射、资源上传审核、排行榜昵称聚合 |
 | Assessment | 已完成基础闭环 | 作业题目、提交、自动计分、教师批改和历史；AI课堂小测服务端判分、近期建议；单知识点编码与累计练习比例代码已完成，待迁移联调 | 正式考试题库、多知识点体系和可信长期能力评估 |
 | Java Agent Service | 已完成基础调度 | 同步/异步Agent运行、RabbitMQ、状态、产物、个性化、会话历史，以及代码沙箱同步/异步公开API、运行持久化、专用消息协议和双层权限校验 | 会话管理、幂等Outbox、Worker去重和掌握度聚合 |
-| Python Runtime | 部分完成 | FastAPI、Worker、`teaching-assistant`、小学专属`lower-primary-tutor`及三阶段短轮次协议、千问、RAG、目录主题 lesson-steps、游戏小测、MongoDB/Redis/MinIO，以及腾讯AGSX主执行器、本地Piston保底和故障冷却 | 更多绘本Artifact、长期会话摘要、主备沙箱真实联调和云配额验证 |
+| Python Runtime | 部分完成 | FastAPI、Worker、`teaching-assistant`、小学专属`lower-primary-tutor`及三阶段短轮次协议、千问、RAG、目录主题 lesson-steps、游戏小测、本地JSONL轨迹/Redis/MinIO，以及腾讯AGSX主执行器、本地Piston保底和故障冷却 | 更多绘本Artifact、长期会话摘要、主备沙箱真实联调和云配额验证 |
 | MySQL | 部分完成 | `k12_auth`、`k12_business`基础表、升级脚本和Agent会话组合索引 | 验证服务器包大小配置，按最终学情/资源设计继续升级并做重复执行验收 |
 | pgvector | 已完成比赛基线 | 支持结构化来源切分、学段/知识点过滤、密集+关键词融合召回、Reranker、引用、缓存、离线评测和管理端检索试测 | 已入库资料需重新索引；扩大正式评测集，按需接云 OCR |
 | Neo4j 知识图谱 | 进行中 | Learning 已接入驱动、约束/种子脚本、查询 API、资料 EXPLAINS 同步；Agent 注入教学上下文；Runtime 展示图谱导航 | 章节 COVERED 管理台、正式题库 ASSESSES、learning-diagnosis Agent |
 | RabbitMQ | 部分完成 | 本地Compose已运行，普通Agent与代码执行专用Java/Python协议存在；异步代码任务已完成一次真实消息闭环 | 多人按文档本地复现、死信与重试场景回归 |
-| MongoDB | 已完成基础接入 | Agent运行轨迹可写入，敏感字段递归脱敏并配置TTL索引 | 会话查询接口、审计检索和生产容量策略 |
+| Agent 轨迹存储 | 已完成文件化 | 默认按UTC日期追加JSONL，敏感字段递归脱敏，支持保留期清理；MongoDB仅为可选旧后端 | 后续可接阿里云日志服务和大体量轮转策略 |
 | Redis | 已完成基础接入 | RAG结果缓存与学习排行榜已实现，故障时均可降级 | Java排行榜真实HTTP联调、监控和热点容量评估 |
-| MinIO/COS | 已完成基础接入 | Python提供上传与短期下载地址接口，课程封面采用稳定对象键并由Learning生成短期访问地址 | 接入Agent文件产物、教师上传审核、业务归属鉴权和清理策略 |
+| MinIO/COS | 已完成基础接入与本地复测 | 当前固定可用镜像已通过健康检查、Bucket初始化、上传、签名下载和删除往返；课程封面采用稳定对象键 | 云OSS迁移、Agent文件产物、教师上传审核、业务归属鉴权和清理策略 |
 | 腾讯云 Agent Sandbox | 部分完成 | Runtime正式适配器、本地Piston自动保底、限制与MinIO转存，以及Java同步/异步公开API、前端代码实验页和运行/产物持久化已实现 | 主备真实联调、云端配额验证和安全测试集 |
 | Nacos | **延后** | Java 服务已引入 Discovery/Config 并预留配置 | 默认关闭；排在阶段 B/D 之后再做真实联调 |
 

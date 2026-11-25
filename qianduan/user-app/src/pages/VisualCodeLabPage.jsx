@@ -18,11 +18,11 @@ import { BlocklyWorkspace } from "../components/blockly/BlocklyWorkspace.jsx";
 import { MissionHoverPreview } from "../components/blockly/MissionHoverPreview.jsx";
 import { MissionStage } from "../components/blockly/MissionStage.jsx";
 import {
-  BLOCKLY_STORAGE_VERSION,
   DEFAULT_BLOCKLY_MISSIONS,
   evaluateBlocklyMission,
   normalizeMission,
 } from "../data/blocklyMissions.js";
+import { blocklyStorageKey, readBlocklyProgress } from "../data/blocklyProgress.js";
 import { visualProgrammingApi } from "../api/client.js";
 import { EXPERIENCE } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
@@ -42,11 +42,10 @@ const EMPTY_STAGE = {
 };
 
 export function VisualCodeLabPage({ session, requireLogin, navigate, experience = EXPERIENCE.PRIMARY }) {
-  const identity = session?.userId || session?.user?.username || "guest";
-  const storageKey = `k12-blockly-lab:${identity}`;
+  const storageKey = blocklyStorageKey(session);
   const [missions, setMissions] = useState(DEFAULT_BLOCKLY_MISSIONS);
   const [missionSource, setMissionSource] = useState("builtin");
-  const [labState, setLabState] = useState(() => readLabState(storageKey));
+  const [labState, setLabState] = useState(() => readBlocklyProgress(session));
   const [missionId, setMissionId] = useState(DEFAULT_BLOCKLY_MISSIONS[0].id);
   const [stage, setStage] = useState(EMPTY_STAGE);
   const [result, setResult] = useState(null);
@@ -97,7 +96,7 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
   }, [missions]);
 
   useEffect(() => {
-    const next = readLabState(storageKey);
+    const next = readBlocklyProgress(session);
     setLabState(next);
     if (!session) {
       setSyncState("local");
@@ -355,18 +354,6 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
 
 function SparklesIcon() {
   return <Award size={22} />;
-}
-
-function readLabState(storageKey) {
-  try {
-    const value = JSON.parse(localStorage.getItem(storageKey) || "null");
-    if (value?.version === BLOCKLY_STORAGE_VERSION) {
-      return { version: BLOCKLY_STORAGE_VERSION, workspaces: value.workspaces || {}, completed: value.completed || {} };
-    }
-  } catch {
-    // ignore
-  }
-  return { version: BLOCKLY_STORAGE_VERSION, workspaces: {}, completed: {} };
 }
 
 function initialStage(mission) {

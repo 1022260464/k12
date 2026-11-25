@@ -7,8 +7,12 @@ import { SiteHeader } from "./components/SiteHeader.jsx";
 import { AiStudioPage } from "./pages/AiStudioPage.jsx";
 import { CodeLabPage } from "./pages/CodeLabPage.jsx";
 import { CatRecognitionLessonPage } from "./pages/CatRecognitionLessonPage.jsx";
+import { ChallengeParkPage } from "./pages/ChallengeParkPage.jsx";
 import { CourseDetailPage } from "./pages/CourseDetailPage.jsx";
 import { CoursesPage } from "./pages/CoursesPage.jsx";
+import { CoursewaresPage } from "./pages/CoursewaresPage.jsx";
+import { DiagnosticPage } from "./pages/DiagnosticPage.jsx";
+import { FindCatLessonPage } from "./pages/FindCatLessonPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
 import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { ProgressPage } from "./pages/ProgressPage.jsx";
@@ -34,7 +38,24 @@ import {
   validateRegisterForm,
 } from "./utils/passwordValidation.js";
 
-const listPages = new Set(["home", "ai-studio", "picture-books", "courses", "tasks", "visual-code-lab", "code-lab", "leaderboard", "progress", "cat-lesson"]);
+const listPages = new Set([
+  "home",
+  "ai-studio",
+  "picture-books",
+  "courses",
+  "tasks",
+  "challenge",
+  "challenge-park",
+  "visual-code-lab",
+  "code-lab",
+  "leaderboard",
+  "progress",
+  "cat-lesson",
+  "find-cat-lesson",
+  "coursewares",
+  "diagnostic",
+]);
+const alwaysAvailablePages = new Set(["cat-lesson", "find-cat-lesson", "diagnostic"]);
 const VisualCodeLabPage = lazy(() => import("./pages/VisualCodeLabPage.jsx")
   .then((module) => ({ default: module.VisualCodeLabPage })));
 
@@ -65,8 +86,11 @@ function parseRoute() {
   if (root === "profile") {
     return { page: "home", nav: "home", courseId: null, chapterId: null, homeworkId: null, openProfile: true };
   }
+  if (root === "challenge-park") {
+    return { page: "challenge", nav: "challenge", courseId: null, chapterId: null, homeworkId: null };
+  }
   if (listPages.has(root)) {
-    return { page: root, nav: root === "code-lab" ? "visual-code-lab" : root, courseId: null, chapterId: null, homeworkId: null };
+    return { page: root, nav: root, courseId: null, chapterId: null, homeworkId: null };
   }
   return { page: "home", nav: "home", courseId: null, chapterId: null, homeworkId: null };
 }
@@ -296,7 +320,10 @@ export function App() {
           const profileExperience = experienceForSchoolStage(learning.schoolStage);
           storeExperience(profileExperience);
           setExperience(profileExperience);
-          const allowedPages = new Set((experienceNavigation[profileExperience] || []).map(([id]) => id));
+          const allowedPages = new Set([
+            ...(experienceNavigation[profileExperience] || []).map(([id]) => id),
+            ...alwaysAvailablePages,
+          ]);
           if (!allowedPages.has(route.nav)) navigate("home");
         }
       })
@@ -312,7 +339,10 @@ export function App() {
     if (!Object.values(EXPERIENCE).includes(nextExperience)) return;
     storeExperience(nextExperience);
     setExperience(nextExperience);
-    const allowedPages = new Set((experienceNavigation[nextExperience] || []).map(([id]) => id));
+    const allowedPages = new Set([
+      ...(experienceNavigation[nextExperience] || []).map(([id]) => id),
+      ...alwaysAvailablePages,
+    ]);
     if (!allowedPages.has(route.nav)) navigate("home");
   }
 
@@ -388,7 +418,15 @@ export function App() {
         experience={experience}
         schoolStage={learningProfile?.schoolStage}
       />,
-      "picture-books": <PictureBooksPage session={session} requireLogin={requireLogin} navigate={navigate} />,
+      "picture-books": (
+        <PictureBooksPage
+          session={session}
+          requireLogin={requireLogin}
+          navigate={navigate}
+          experience={experience}
+          learningProfile={learningProfile}
+        />
+      ),
       "cat-lesson": (
         <CatRecognitionLessonPage
           session={session}
@@ -398,6 +436,21 @@ export function App() {
             setAssistantDraft({
               prompt: `我刚完成了“AI 为什么能认出小猫”。请继续讲解「${nextTopic?.title || "图像中的物体"}」，先说明为什么推荐它，再给我一个适合小学低年级的小任务。`,
               topicId: topicIdForKnowledgeCode(nextTopic?.code) || "image-classification",
+              preferDeterministic: true,
+            });
+            navigate("ai-studio");
+          }}
+        />
+      ),
+      "find-cat-lesson": (
+        <FindCatLessonPage
+          session={session}
+          requireLogin={requireLogin}
+          navigate={navigate}
+          onContinue={(nextTopic) => {
+            setAssistantDraft({
+              prompt: `我刚完成第二课“找到小猫在哪里”，学会了 AI 会用方框指出物体在哪里。请继续讲解「${nextTopic?.title || "目标检测"}」，先说明为什么推荐它，再给我一个适合小学低年级的小任务。`,
+              topicId: topicIdForKnowledgeCode(nextTopic?.code) || "computer-vision-object-detection",
               preferDeterministic: true,
             });
             navigate("ai-studio");
@@ -414,10 +467,21 @@ export function App() {
           onDraftConsumed={() => setAssistantDraft(null)}
           onPracticeRecorded={() => setPracticeRevision((value) => value + 1)}
           experience={experience}
+          schoolStage={learningProfile?.schoolStage}
+        />
+      ),
+      coursewares: (
+        <CoursewaresPage
+          session={session}
+          requireLogin={requireLogin}
+          navigate={navigate}
+          experience={experience}
+          learningProfile={learningProfile}
         />
       ),
       courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} learningProfile={learningProfile} />,
       tasks: <TasksPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />,
+      challenge: <ChallengeParkPage session={session} navigate={navigate} experience={experience} schoolStage={learningProfile?.schoolStage} />,
       "visual-code-lab": (
         <Suspense fallback={<div className="page page-loading">正在准备图形化实验...</div>}>
           <VisualCodeLabPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />
@@ -425,6 +489,15 @@ export function App() {
       ),
       "code-lab": <CodeLabPage session={session} requireLogin={requireLogin} experience={experience} />,
       leaderboard: <LeaderboardPage session={session} requireLogin={requireLogin} experience={experience} />,
+      diagnostic: (
+        <DiagnosticPage
+          session={session}
+          requireLogin={requireLogin}
+          navigate={navigate}
+          experience={experience}
+          schoolStage={learningProfile?.schoolStage}
+        />
+      ),
       progress: (
         <ProgressPage
           session={session}

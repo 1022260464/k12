@@ -13,7 +13,7 @@ Plugin，应用通过容器运行，不要求服务器安装 JDK、Maven、Node.
 | MySQL 8 | `k12_auth`、`k12_business` | `mysql-data` | 仅 `127.0.0.1:3306` |
 | PostgreSQL + pgvector | RAG 文档和向量片段 | `postgres-data` | 仅 `127.0.0.1:5432` |
 | Redis | 排行榜、热点数据、RAG 缓存 | `redis-data` | 仅 `127.0.0.1:6379` |
-| MongoDB | Agent 执行轨迹 | `mongodb-data` | 仅 `127.0.0.1:27017` |
+| MongoDB（可选旧后端） | 历史 Agent 执行轨迹兼容 | `mongodb-data` | 仅 `127.0.0.1:27017`；默认不启动 |
 | RabbitMQ | Agent/代码执行异步队列 | `rabbitmq-data` | 仅本机 5672/15672 |
 | MinIO | 课程、绘本、附件和 Agent 产物 | `minio-data` | S3 API 9000；控制台仅本机 9001 |
 | Neo4j | 知识点和先修关系 | `neo4j-data` | 仅本机 7474/7687 |
@@ -39,7 +39,7 @@ Piston 不在默认栈中。腾讯云沙箱是主执行器；若需要离线保�
 | Swap | 2 GB | 4 GB |
 
 4 GB 服务器不适合同时运行全套数据库、5 个 JVM、两个 Python 进程和构建任务。若新服务器仍只有
-约 4 GB，请至少将 MySQL、PostgreSQL、MinIO 放到独立服务器或云服务，并关闭 MongoDB、Nacos；
+约 4 GB，请至少将 MySQL、PostgreSQL、MinIO 放到独立服务器或云服务，并关闭 Nacos；
 不要依靠频繁 OOM 重启维持演示。
 
 ## 3. 文件和端口准备
@@ -62,7 +62,8 @@ chmod 600 .env
 - `DASHSCOPE_API_KEY`：百炼 API Key；
 - `K12_JWT_SECRET`：至少 48 个随机字符；
 - `K12_AGENT_INTERNAL_API_KEY`：Java 与 Python 共用的内部密钥；
-- MySQL、PostgreSQL、Redis、MongoDB、RabbitMQ、MinIO、Neo4j 密码；
+- MySQL、PostgreSQL、Redis、RabbitMQ、MinIO、Neo4j 密码；
+- 只有启用 `legacy-mongodb` profile 时才需要 MongoDB 密码；
 - 腾讯云沙箱启用时填写 `E2B_DOMAIN`、`E2B_API_KEY`。
 
 可用以下方式生成 URL 安全的随机值：
@@ -110,12 +111,53 @@ ssh -L 15672:127.0.0.1:15672 -L 9001:127.0.0.1:9001 user@server
 [`001_init_pgvector.sql`](../ai-services/k12-agent-runtime/sql/001_init_pgvector.sql)，创建 `vector` 扩展、
 `k12_rag.knowledge_document`、`k12_rag.knowledge_chunk` 和 HNSW 索引。
 
-### 4.3 MongoDB、MinIO、Neo4j
+### 4.3 MinIO、Neo4j
 
-- MongoDB 首次启动建立 `k12_agent` 应用用户；
 - MinIO 初始化容器建立 `k12-agent-artifacts` 和 `k12-user-avatars` 私有桶；
 - Neo4j 初始化容器执行约束、AI 通识知识点和先修关系 Cypher；
 - Redis 和 RabbitMQ 不保存业务真相，不需要建表脚本。
+
+当前 MinIO 默认镜像为：
+
+```text
+ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+```
+
+该镜像同时包含 `minio` 和 `mc`，因此 MinIO 服务健康检查与 `minio-init` 使用同一镜像，不依赖
+镜像内不存在的 `curl`。已验证镜像可启动、健康检查通过、`minio-init` 以退出码 0 创建两个 Bucket，
+并完成 Runtime 上传、签名 URL 下载和删除往返。
+
+网络允许时执行：
+
+```bash
+docker pull ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+```
+
+若现场网络无法访问 GHCR，应提前保存镜像归档并在服务器执行 `docker load -i <镜像归档>`。
+
+### 4.4 Agent 本地执行轨迹
+
+Agent轨迹默认写入宿主机：
+
+```text
+deploy/server/logs/agent-traces/agent-trace-YYYY-MM-DD.jsonl
+```
+
+Compose 中的 `agent-trace-init` 会创建目录并把所有权调整为容器用户 UID `10001`。手工部署时可
+提前执行：
+
+```bash
+mkdir -p deploy/server/logs/agent-traces
+sudo chown -R 10001:10001 deploy/server/logs/agent-traces
+```
+
+JSONL记录只用于观测和排障，不承载成绩、权限或学习状态的权威数据。默认保留30天，可通过
+`K12_AGENT_TRACE_RETENTION_DAYS` 调整。MongoDB不再是默认依赖；只有迁移历史轨迹或临时回滚时，
+才启用旧后端：
+
+```bash
+docker compose --profile legacy-mongodb up -d mongodb
+```
 
 ## 5. 两种部署路径
 
@@ -190,14 +232,15 @@ docker compose exec -T postgres pg_restore \
 mongodump --uri="mongodb://OLD_USER:OLD_PASSWORD@OLD_HOST:27017/k12_agent?authSource=admin" \
   --archive=k12-agent.archive --gzip
 
-docker compose up -d mongodb
+docker compose --profile legacy-mongodb up -d mongodb
 docker cp k12-agent.archive "$(docker compose ps -q mongodb)":/tmp/k12-agent.archive
 docker compose exec -T mongodb mongorestore \
   --uri="mongodb://$MONGO_APP_USERNAME:$MONGO_APP_PASSWORD@127.0.0.1:27017/$MONGO_DATABASE?authSource=$MONGO_DATABASE" \
   --archive=/tmp/k12-agent.archive --gzip --drop
 ```
 
-MongoDB 轨迹不是业务真相。演示时间紧时可以不迁移，只保留旧备份。
+MongoDB 轨迹不是业务真相，当前默认已改为本地 JSONL。演示环境不需要迁移历史轨迹，只保留旧备份
+即可；只有确需在线查询历史MongoDB轨迹时才恢复该组件。
 
 #### MinIO
 
@@ -295,7 +338,7 @@ chmod +x scripts/*.sh
 
 - MySQL：`mysqldump --single-transaction`；
 - PostgreSQL：`pg_dump --format=custom`；
-- MongoDB：`mongodump --archive --gzip`；
+- MongoDB（启用旧后端时）：`mongodump --archive --gzip`；
 - MinIO：`mc mirror` 到另一块磁盘或对象存储；
 - Neo4j：定期 database dump，或确保能够从目录和绑定关系重建；
 - `.env`：加密保存，不放 Git。
