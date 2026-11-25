@@ -7,6 +7,7 @@ export function ExperiencePageHeader({
   title,
   description,
   imageKey = "courses",
+  note,
   children,
 }) {
   const primary = experience === EXPERIENCE.PRIMARY;
@@ -21,6 +22,7 @@ export function ExperiencePageHeader({
         {children}
       </div>
       <img className="experience-page-header-art" src={visuals[imageKey]} alt="" />
+      {note && <span className="experience-page-header-note">{note}</span>}
     </header>
   );
 }

@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     tts_max_text_chars: int = Field(default=1200, ge=1, le=4000)
     tts_max_audio_bytes: int = Field(default=5_242_880, ge=1024, le=20_971_520)
 
+    # 低年级语音输入使用百炼ASR。API Key留空时依次复用TTS Key和LLM Key。
+    asr_enabled: bool = False
+    asr_provider: str = "dashscope"
+    asr_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    asr_api_key: SecretStr | None = None
+    asr_model: str = "qwen3-asr-flash"
+    asr_timeout_seconds: float = Field(default=60.0, gt=0, le=180)
+    asr_max_audio_bytes: int = Field(default=5_242_880, ge=1024, le=20_971_520)
+
     # RAG支持百炼云端模型和本地BGE。云端Key留空时复用LLM API Key。
     rag_enabled: bool = False
     embedding_provider: str = "local_bge"

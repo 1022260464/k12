@@ -9,6 +9,8 @@ from k12_agent_runtime.core.logging import configure_logging
 from k12_agent_runtime.interfaces.api.errors import register_exception_handlers
 from k12_agent_runtime.interfaces.api.routes import (
     agents,
+    courseware,
+    quiz,
     health,
     knowledge,
     rag,
@@ -45,6 +47,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(knowledge.router, prefix="/internal/v1")
     application.include_router(storage.router, prefix="/internal/v1")
     application.include_router(speech.router, prefix="/internal/v1")
+    application.include_router(courseware.router, prefix="/internal/v1")
+    application.include_router(quiz.router, prefix="/internal/v1")
     return application
 
 

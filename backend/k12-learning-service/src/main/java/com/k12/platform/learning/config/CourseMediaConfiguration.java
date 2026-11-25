@@ -36,6 +36,9 @@ public class CourseMediaConfiguration {
         }
         MinioClient client = MinioClient.builder()
                 .endpoint(properties.resolvePublicEndpoint())
+                // 显式指定 region，跳过 getPresignedObjectUrl 内部的 GetBucketLocation
+                // 网络请求：公网域名在沙箱内无法 DNS 解析，会导致签名失败、封面图全部为空。
+                .region("us-east-1")
                 .credentials(properties.getAccessKey(), properties.getSecretKey())
                 .build();
         int expirySeconds = Math.toIntExact(properties.getUrlTtl().toSeconds());

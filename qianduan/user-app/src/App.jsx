@@ -55,14 +55,25 @@ const listPages = new Set([
   "coursewares",
   "diagnostic",
 ]);
-const alwaysAvailablePages = new Set(["cat-lesson", "find-cat-lesson", "diagnostic"]);
+const routeAliases = {
+  "challenge-park": "challenge",
+};
+// 通用页：不属于某一体验的导航，但两种体验下都允许直达/刷新（否则带档案用户一刷新就被弹回首页）。
+const universalPages = new Set(["cat-lesson", "find-cat-lesson", "diagnostic"]);
+function pagesAllowedFor(experience) {
+  return new Set([
+    ...(experienceNavigation[experience] || []).map(([id]) => id),
+    ...universalPages,
+  ]);
+}
 const VisualCodeLabPage = lazy(() => import("./pages/VisualCodeLabPage.jsx")
   .then((module) => ({ default: module.VisualCodeLabPage })));
 
 function parseRoute() {
   const raw = window.location.hash.replace(/^#\/?/, "") || "home";
   const parts = raw.split("/").filter(Boolean);
-  const root = parts[0] || "home";
+  const requestedRoot = parts[0] || "home";
+  const root = routeAliases[requestedRoot] || requestedRoot;
 
   if (root === "courses" && parts[1]) {
     const chapterId = parts[2] === "chapters" && parts[3] ? parts[3] : null;
@@ -90,6 +101,8 @@ function parseRoute() {
     return { page: "challenge", nav: "challenge", courseId: null, chapterId: null, homeworkId: null };
   }
   if (listPages.has(root)) {
+    // nav 即页面 id：学段闸门（pagesAllowedFor）负责把不允许的页面弹回首页
+    // （小学无编程实验、初高中无积木实验室）
     return { page: root, nav: root, courseId: null, chapterId: null, homeworkId: null };
   }
   return { page: "home", nav: "home", courseId: null, chapterId: null, homeworkId: null };
@@ -320,11 +333,7 @@ export function App() {
           const profileExperience = experienceForSchoolStage(learning.schoolStage);
           storeExperience(profileExperience);
           setExperience(profileExperience);
-          const allowedPages = new Set([
-            ...(experienceNavigation[profileExperience] || []).map(([id]) => id),
-            ...alwaysAvailablePages,
-          ]);
-          if (!allowedPages.has(route.nav)) navigate("home");
+          if (!pagesAllowedFor(profileExperience).has(route.nav)) navigate("home");
         }
       })
       .catch(() => {
@@ -339,12 +348,14 @@ export function App() {
     if (!Object.values(EXPERIENCE).includes(nextExperience)) return;
     storeExperience(nextExperience);
     setExperience(nextExperience);
-    const allowedPages = new Set([
-      ...(experienceNavigation[nextExperience] || []).map(([id]) => id),
-      ...alwaysAvailablePages,
-    ]);
-    if (!allowedPages.has(route.nav)) navigate("home");
+    if (!pagesAllowedFor(nextExperience).has(route.nav)) navigate("home");
   }
+
+  // 学段导航闸门：直链/刷新到本学段没有的页面时回首页
+  // （小学无「编程实验」，初高中无积木「图形编程」）
+  useEffect(() => {
+    if (!pagesAllowedFor(experience).has(route.nav)) navigate("home");
+  }, [experience, route.nav]);
 
   function navigate(nextPage) {
     window.location.hash = `#${nextPage}`;
@@ -395,6 +406,7 @@ export function App() {
         requireLogin={requireLogin}
         navigate={navigate}
         homeworkId={route.homeworkId}
+        experience={experience}
       />
     );
   } else {
@@ -432,6 +444,14 @@ export function App() {
           session={session}
           requireLogin={requireLogin}
           navigate={navigate}
+          onAskTopic={(topic) => {
+            setAssistantDraft({
+              prompt: `请带我学习「${topic?.title || "图像分类"}」，并给我一个适合当前学段的分步练习。`,
+              topicId: topicIdForKnowledgeCode(topic?.code),
+              preferDeterministic: false,
+            });
+            requireLogin(() => navigate("ai-studio"));
+          }}
           onContinue={(nextTopic) => {
             setAssistantDraft({
               prompt: `我刚完成了“AI 为什么能认出小猫”。请继续讲解「${nextTopic?.title || "图像中的物体"}」，先说明为什么推荐它，再给我一个适合小学低年级的小任务。`,
@@ -479,7 +499,15 @@ export function App() {
           learningProfile={learningProfile}
         />
       ),
-      courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} learningProfile={learningProfile} />,
+      courses: <CoursesPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} learningProfile={learningProfile}
+        onAskKnowledgePoint={(point) => {
+          setAssistantDraft({
+            prompt: `请讲解知识点「${point.title}」，用适合我学段的例子说明，并给我一道小练习。`,
+            topicCode: point.code,
+            preferDeterministic: true,
+          });
+          requireLogin(() => navigate("ai-studio"));
+        }} />,
       tasks: <TasksPage session={session} requireLogin={requireLogin} navigate={navigate} experience={experience} />,
       challenge: <ChallengeParkPage session={session} navigate={navigate} experience={experience} schoolStage={learningProfile?.schoolStage} />,
       "visual-code-lab": (
@@ -546,7 +574,7 @@ export function App() {
         learningProfile={learningProfile}
         onExperienceChange={changeExperience}
       />
-      {content}
+      <div className="route-view" key={`${experience}:${route.page}`}>{content}</div>
       <footer className="site-footer">
         <button className="brand brand-button" type="button" onClick={() => navigate("home")}>
           <span className="brand-mark"><img src={footerMascot} alt="" /></span><span>EduGraph AI</span>

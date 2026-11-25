@@ -15,5 +15,6 @@ public class AiKnowledgeMastery {
     private Long totalScore;
     private Long totalMaxScore;
     private Integer latestScorePercent;
+    private Integer evidenceCount;
     private Instant lastPracticedTime;
 }

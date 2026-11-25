@@ -161,6 +161,7 @@ export function CourseDetailPage({ session, requireLogin, navigate, courseId, ch
             courseId={course.id}
             chapters={detail?.chapters || []}
             chapter={activeChapter}
+            gradeLevel={course.gradeLevel}
             progressByChapter={Object.fromEntries(
               (detail?.progress?.chapters || []).map((item) => [item.chapterId, item.progressPercent]),
             )}

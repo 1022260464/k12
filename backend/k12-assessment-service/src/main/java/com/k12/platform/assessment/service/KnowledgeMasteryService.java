@@ -37,6 +37,11 @@ public class KnowledgeMasteryService {
                 row.getTotalScore() * 100 / row.getTotalMaxScore()));
         String action = percent < 60 ? "REVIEW" : percent < 80 ? "PRACTICE" : "APPLY";
         return new KnowledgeMasteryResponse(row.getKnowledgeCode(), row.getTopic(), row.getAttemptCount(),
-                percent, row.getLatestScorePercent(), action, row.getLastPracticedTime());
+                defaultInt(row.getEvidenceCount()), percent, row.getLatestScorePercent(), action,
+                row.getLastPracticedTime());
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
     }
 }

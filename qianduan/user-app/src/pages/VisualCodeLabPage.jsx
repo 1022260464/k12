@@ -2,30 +2,33 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Award,
-  Blocks,
   CheckCircle2,
   ChevronRight,
   CloudOff,
-  Code2,
   Lightbulb,
   ListChecks,
   LockKeyhole,
   Play,
   Star,
+  Wand2,
   Wifi,
 } from "lucide-react";
 import { BlocklyWorkspace } from "../components/blockly/BlocklyWorkspace.jsx";
 import { MissionHoverPreview } from "../components/blockly/MissionHoverPreview.jsx";
 import { MissionStage } from "../components/blockly/MissionStage.jsx";
 import {
+  BLOCKLY_STORAGE_VERSION,
   DEFAULT_BLOCKLY_MISSIONS,
+  demoProgramFor,
   evaluateBlocklyMission,
+  mergeEvaluationAdvice,
   normalizeMission,
 } from "../data/blocklyMissions.js";
 import { blocklyStorageKey, readBlocklyProgress } from "../data/blocklyProgress.js";
 import { visualProgrammingApi } from "../api/client.js";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { EXPERIENCE } from "../experience/experience.js";
-import { visualsFor } from "../experience/visualAssets.js";
+import ScratchStudio from "../components/scratch/ScratchStudio.jsx";
 
 const EMPTY_STAGE = {
   robotPosition: 8,
@@ -42,6 +45,7 @@ const EMPTY_STAGE = {
 };
 
 export function VisualCodeLabPage({ session, requireLogin, navigate, experience = EXPERIENCE.PRIMARY }) {
+  const identity = session?.userId || session?.username || session?.user?.username || "guest";
   const storageKey = blocklyStorageKey(session);
   const [missions, setMissions] = useState(DEFAULT_BLOCKLY_MISSIONS);
   const [missionSource, setMissionSource] = useState("builtin");
@@ -52,9 +56,13 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState("");
   const [showHint, setShowHint] = useState(false);
+  const [coachClosed, setCoachClosed] = useState({});
   const [hoverMissionId, setHoverMissionId] = useState(null);
   const [syncState, setSyncState] = useState("local");
+  /** 🎬 自由创作是默认页（Scratch 式）；AI 积木任务收进第二个标签。 */
+  const [tab, setTab] = useState("studio");
   const runRevisionRef = useRef(0);
+  const workspaceRef = useRef(null);
 
   const mission = useMemo(
     () => missions.find((item) => item.id === missionId) || missions[0] || DEFAULT_BLOCKLY_MISSIONS[0],
@@ -92,6 +100,7 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
     if (!requested || !missions.some((item) => item.id === requested || item.missionCode === requested)) return;
     const target = missions.find((item) => item.id === requested || item.missionCode === requested);
     setMissionId(target.id);
+    setTab("missions"); // 课程/任务深链直达 AI 任务标签
     sessionStorage.removeItem("k12-visual-mission");
   }, [missions]);
 
@@ -108,9 +117,13 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
       .then((projects) => {
         if (!active) return;
         const remote = Array.isArray(projects) ? projects : [];
-        const merged = mergeRemoteProjects(next, remote);
-        localStorage.setItem(storageKey, JSON.stringify(merged));
-        setLabState(merged);
+        // 必须并入“当前”状态：mine() 在飞行期间孩子可能已保存（拖积木/点示范程序），
+        // 若用挂载时的旧快照合并，返回时会把那些保存整份冲掉。
+        setLabState((current) => {
+          const merged = mergeRemoteProjects(current, remote);
+          localStorage.setItem(storageKey, JSON.stringify(merged));
+          return merged;
+        });
         setSyncState("synced");
       })
       .catch(() => {
@@ -144,6 +157,18 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
     }));
   }
 
+  /** 「示范程序」：一键把本关满分积木摆进工作区，小学生照着运行就能看懂。 */
+  function loadDemoProgram() {
+    const demo = demoProgramFor(mission);
+    if (!demo) {
+      setRunError("这一关暂时没有示范程序");
+      return;
+    }
+    setShowHint(false);
+    setRunError("");
+    workspaceRef.current?.loadDemo?.(demo);
+  }
+
   async function runCommands(commands, compileError, workspaceState) {
     if (compileError || !commands) {
       setRunError(compileError?.message || "积木暂时无法运行");
@@ -168,13 +193,23 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
       if (workspaceState && session) {
         try {
           const saved = await visualProgrammingApi.save(mission.missionCode || mission.id, workspaceState);
-          if (saved?.evaluation) evaluation = saved.evaluation;
+          if (saved?.evaluation) {
+            // 服务端评分权威（passed/stars）；失败建议用本地 trace 算的更具体文案
+            evaluation = mergeEvaluationAdvice(saved.evaluation, evaluation);
+          }
           setSyncState("synced");
         } catch {
           setSyncState("local");
         }
       }
       setResult(evaluation);
+      if (evaluation.passed && runRevisionRef.current === revision) {
+        // 通关高光：机器人欢呼跳 + 舞台撒花，像 Scratch 的绿旗收尾
+        runtime.pose = "cheer";
+        runtime.speech = "任务完成，撒花！";
+        runtime.emit("celebrate", { stars: evaluation.stars });
+        setStage(runtime.stage());
+      }
       if (evaluation.passed) {
         persist((current) => {
           const previous = current.completed[mission.id];
@@ -200,42 +235,68 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
   const completedCount = missions.filter((item) => labState.completed[item.id]).length;
   const earnedStars = missions.reduce((total, item) => total + Number(labState.completed[item.id]?.stars || 0), 0);
   const primary = experience === EXPERIENCE.PRIMARY;
-  const visuals = visualsFor(experience);
   const nextMission = missions.find((item) => item.order > mission.order && !labState.completed[item.id])
     || missions.find((item) => !labState.completed[item.id] && item.id !== mission.id);
 
   return (
     <div className="page inner-page visual-code-lab-page">
-      <section className="visual-lab-hero">
-        <div>
-          <p className="eyebrow"><Blocks size={15} /> {primary ? "小学高年级 · 图形化 AI 编程" : "AI 通识 · 可视化算法实验"}</p>
-          <h1>{primary ? "AI 积木实验室" : "可视化 AI 实验室"}</h1>
-          <p>{primary ? "拖动数据、判断和循环积木，帮助角色完成一关关 AI 任务。" : "通过可视化积木理解数据、判断与循环，再逐步过渡到真实代码。"}</p>
-          <div className="visual-lab-summary">
-            <span><CheckCircle2 size={15} />完成 {completedCount}/{missions.length} 关</span>
-            <span><Star size={15} />获得 {earnedStars}/{missions.length * 3} 颗星</span>
-            <span><CloudStateIcon state={syncState} />{syncLabel(syncState)}</span>
-            {missionSource === "builtin" && (
-              <span className="is-fallback"><CloudOff size={15} />使用内置课程</span>
-            )}
-          </div>
+      <ExperiencePageHeader
+        experience={experience}
+        eyebrow={primary ? "小学高年级 · 图形化编程" : "图形化创作 · 可视化算法"}
+        title={primary ? "积木创作工坊" : "积木创作工坊"}
+        description="像 Scratch 一样拖积木、点绿旗，让角色动起来、画出作品；再挑战一关关 AI 积木任务。"
+        imageKey="code"
+      >
+        <div className="visual-lab-summary">
+          <span><CheckCircle2 size={15} />完成 {completedCount}/{missions.length} 关</span>
+          <span><Star size={15} />获得 {earnedStars}/{missions.length * 3} 颗星</span>
+          <span><CloudStateIcon state={syncState} />{syncLabel(syncState)}</span>
+          {missionSource === "builtin" && (
+            <span className="is-fallback"><CloudOff size={15} />使用内置课程</span>
+          )}
         </div>
-        <div className="visual-lab-hero-art" aria-hidden="true">
-          <img src={visuals.code} alt="" />
-        </div>
-      </section>
+      </ExperiencePageHeader>
 
       {!session && (
         <section className="visual-lab-login">
           <LockKeyhole size={22} />
           <div>
             <strong>现在可以直接试玩</strong>
-            <p>游客进度保存在本机；登录后可同步积木和闯关记录。</p>
+            <p>游客进度保存在本机；登录后可同步作品和闯关记录。</p>
           </div>
           <button className="button primary" type="button" onClick={() => requireLogin()}>登录并同步</button>
         </section>
       )}
 
+      <div className="visual-lab-tabs" role="tablist" aria-label="积木工坊模式">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "studio"}
+          className={`visual-lab-tab ${tab === "studio" ? "active" : ""}`}
+          onClick={() => setTab("studio")}
+        >
+          🎬 自由创作
+          <small>像 Scratch 一样编程序</small>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "missions"}
+          className={`visual-lab-tab ${tab === "missions" ? "active" : ""}`}
+          onClick={() => setTab("missions")}
+        >
+          🧠 AI 积木任务
+          <small>{missions.length} 关闯关挑战</small>
+        </button>
+      </div>
+
+      {tab === "studio" && (
+        <ScratchStudio identity={identity} />
+      )}
+
+      {tab === "missions" && (
+        <>
       <section className="visual-mission-rail" aria-label="图形化编程关卡">
         {missions.map((item) => {
           const completed = labState.completed[item.id];
@@ -287,10 +348,23 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
           <strong><Play size={15} />过关目标</strong>
           <p>{mission.goal}</p>
           <div>{mission.concepts.map((concept) => <span key={concept}>{concept}</span>)}</div>
+          {mission.recipe?.length > 0 && (
+            <div className="visual-mission-recipe">
+              <strong>🧱 这一关要摆的积木</strong>
+              <ol>
+                {mission.recipe.map((step) => <li key={step}>{step}</li>)}
+              </ol>
+            </div>
+          )}
         </div>
-        <button className="visual-hint-button" type="button" onClick={() => setShowHint((value) => !value)}>
-          <Lightbulb size={16} />{showHint ? mission.hint : "需要提示"}
-        </button>
+        <div className="visual-mission-actions">
+          <button className="visual-hint-button" type="button" onClick={() => setShowHint((value) => !value)}>
+            <Lightbulb size={16} />{showHint ? mission.hint : "需要提示"}
+          </button>
+          <button className="visual-demo-button" type="button" onClick={loadDemoProgram}>
+            <Wand2 size={16} />示范程序
+          </button>
+        </div>
       </section>
 
       <section className="visual-learning-route" aria-label="本关学习步骤">
@@ -313,10 +387,17 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
       <div className="visual-lab-workspace">
         <BlocklyWorkspace
           key={mission.id}
+          ref={workspaceRef}
           mission={mission}
           savedState={labState.workspaces[mission.id]}
           onChange={saveWorkspace}
           onRun={runCommands}
+          coach={
+            !hasRealProgress(labState.workspaces[mission.id])
+            && !coachClosed[mission.id]
+            && !result
+          }
+          onCoachClose={() => setCoachClosed((current) => ({ ...current, [mission.id]: true }))}
         />
         <MissionStage mission={mission} stage={stage} result={result} running={running} error={runError} />
       </div>
@@ -335,19 +416,8 @@ export function VisualCodeLabPage({ session, requireLogin, navigate, experience 
           </button>
         </section>
       )}
-
-      <section className="visual-lab-next">
-        <div>
-          <Code2 size={21} />
-          <div>
-            <strong>准备学习文字编程？</strong>
-            <p>完成积木关卡后，可以进入 Python 实验查看相同逻辑的代码写法。</p>
-          </div>
-        </div>
-        <button className="button" type="button" onClick={() => navigate("code-lab")}>
-          打开 Python 实验 <ArrowRight size={16} />
-        </button>
-      </section>
+        </>
+      )}
     </div>
   );
 }
@@ -363,6 +433,21 @@ function initialStage(mission) {
     return { ...EMPTY_STAGE, datasetCount: 4, speech: "训练后试试神秘图片" };
   }
   return { ...EMPTY_STAGE, labels: [] };
+}
+
+const STAGE_IMAGE_NAMES = {
+  "cat-1": "猫图片 1",
+  "cat-2": "猫图片 2",
+  "dog-1": "狗图片 1",
+  "dog-2": "狗图片 2",
+  "mystery-cat": "神秘图片",
+  "mystery-dog": "校园小狗",
+};
+
+function stageCategoryName(value) {
+  if (value === "cat") return "猫";
+  if (value === "dog") return "狗";
+  return "未知";
 }
 
 function createRuntime(mission) {
@@ -387,11 +472,21 @@ function createRuntime(mission) {
     currentScene: null,
     robotPosition: 8,
     speech: labels.size ? "训练后试试神秘图片" : "连接积木后点击运行",
+    pose: "idle",
+    fx: null,
+    fxSeq: 0,
     trace: [],
+    /** 一次性舞台特效指令：MissionStage 以 fx.id 作 key 播放一段 CSS 动画（飞卡片/翻牌/撒花…）。 */
+    emit(kind, data = {}) {
+      this.fxSeq += 1;
+      this.fx = { id: this.fxSeq, kind, ...data };
+    },
     stage() {
       return {
         robotPosition: this.robotPosition,
         speech: this.speech,
+        pose: this.pose,
+        fx: this.fx,
         labels: [...this.labels.entries()].map(([imageId, category]) => ({ imageId, category })),
         datasetCount: this.labels.size,
         trained: this.trained,
@@ -405,20 +500,32 @@ function createRuntime(mission) {
     },
     label(imageId, category) {
       this.labels.set(imageId, category);
-      this.speech = `已标注 ${imageId}`;
+      this.pose = "happy";
+      this.speech = `${STAGE_IMAGE_NAMES[imageId] || imageId} 是 ${stageCategoryName(category)}`;
+      this.emit("label", { imageId, category });
       this.trace.push({ type: "LABEL", imageId, category });
     },
     train() {
       const success = this.labels.size >= 2 && new Set(this.labels.values()).size >= 2;
       this.trained = success;
-      this.speech = success ? "分类器训练完成" : "还需要更多不同类别的标签";
+      this.pose = "thinking";
+      this.speech = "AI 正在学习这些图片…";
+      this.emit("train", { success });
       this.trace.push({ type: "TRAIN", success, count: this.labels.size });
+    },
+    trainDone() {
+      // 只负责展示「学习完成」的表情和台词，trace 已由 train() 记录
+      this.pose = this.trained ? "happy" : "sad";
+      this.speech = this.trained ? "学会啦！我认识这些图片了" : "还要更多不同类别的图片哦";
+      this.emit("trainDone", { success: this.trained });
     },
     predict(imageId) {
       if (!this.trained) {
         this.prediction = "unknown";
         this.predictionConfidence = 0;
-        this.speech = "请先训练分类器";
+        this.pose = "sad";
+        this.speech = "先教我认识图片，我才能猜哦";
+        this.emit("predict", { imageId, prediction: "unknown", confidence: 0 });
         this.trace.push({ type: "PREDICT", imageId, prediction: "unknown", confidence: 0 });
         return;
       }
@@ -431,23 +538,37 @@ function createRuntime(mission) {
       const confidence = Number(config.simulatedConfidence || (prediction === "cat" ? 92 : prediction === "dog" ? 88 : 40));
       this.prediction = prediction;
       this.predictionConfidence = confidence;
-      this.speech = `预测：${prediction === "cat" ? "猫" : prediction === "dog" ? "狗" : "未知"}（${confidence}%）`;
+      this.pose = "thinking";
+      this.speech = `AI 猜：这是${stageCategoryName(prediction)}（把握 ${confidence}%）`;
+      this.emit("predict", { imageId, prediction, confidence });
       this.trace.push({ type: "PREDICT", imageId, prediction, confidence });
     },
     move(steps) {
       const value = Math.max(1, Number(steps) || 1);
       this.robotPosition = Math.min(86, this.robotPosition + value * 6);
-      this.speech = `前进 ${value} 步`;
+      this.pose = "walking";
+      this.speech = `走 ${value} 步！`;
+      this.emit("move", { steps: value });
       this.trace.push({ type: "MOVE", steps: value });
     },
     say(message) {
       this.speech = String(message || "");
+      this.pose = "happy";
+      this.emit("say", { message: this.speech });
       this.trace.push({ type: "SAY", message: this.speech });
     },
     condition(expected, matched) {
+      this.pose = matched ? "happy" : "sad";
+      this.speech = matched
+        ? `AI 猜对啦，是${stageCategoryName(expected)}！`
+        : `AI 猜的不是${stageCategoryName(expected)}，这一步先不执行`;
+      this.emit("condition", { expected, matched: Boolean(matched) });
       this.trace.push({ type: "CONDITION", expected, matched: Boolean(matched) });
     },
     confidenceCondition(threshold, matched) {
+      this.pose = matched ? "happy" : "sad";
+      this.speech = matched ? `把握达到 ${threshold}%，通过！` : `把握还不到 ${threshold}%，先不执行`;
+      this.emit("confidence", { threshold: Number(threshold) || 0, matched: Boolean(matched) });
       this.trace.push({ type: "CONFIDENCE_CONDITION", threshold: Number(threshold) || 0, matched: Boolean(matched) });
     },
     repeat(times) {
@@ -463,12 +584,16 @@ function createRuntime(mission) {
       const balanced = counts.every((count) => count >= minSamples)
         && Math.max(...counts) - Math.min(...counts) <= maxDifference;
       this.balanceStatus = balanced ? "数据均衡" : "数据仍不均衡";
+      this.pose = balanced ? "happy" : "sad";
       this.speech = balanced ? "两类数据一样多，更公平" : "再补充较少的那一类";
+      this.emit("balance", { balanced, counts });
       this.trace.push({ type: "BALANCE_CHECK", balanced, counts });
     },
     quizAnswer(questionId, answer) {
       this.quizAnswers.set(questionId, answer);
-      this.speech = `已记录${questionId.replace("q", "第 ")}题答案`;
+      const questionIndex = Number(String(questionId).replace("q", "")) || 1;
+      this.speech = `第 ${questionIndex} 题选了 ${String(answer || "").toUpperCase()}`;
+      this.emit("quiz", { questionId, answer });
       this.trace.push({ type: "QUIZ_ANSWER", questionId, answer });
     },
     quizSubmit() {
@@ -476,33 +601,59 @@ function createRuntime(mission) {
       this.quizScore = expected.reduce((total, answer, index) => (
         total + (this.quizAnswers.get(`q${index + 1}`) === answer ? 1 : 0)
       ), 0);
-      this.speech = `答对 ${this.quizScore} 题，继续加油！`;
+      this.pose = this.quizScore === 3 ? "cheer" : "sad";
+      this.speech = `答对 ${this.quizScore} 题！`;
+      this.emit("quizScore", { score: this.quizScore });
       this.trace.push({ type: "QUIZ_SUBMIT", score: this.quizScore });
     },
     switchScene(sceneId) {
       this.currentScene = sceneId;
       const labelsByScene = { classroom: "AI 教室", lab: "AI 实验室", future: "未来城市" };
       this.speech = `来到${labelsByScene[sceneId] || sceneId}`;
+      this.emit("scene", { sceneId });
       this.trace.push({ type: "SCENE", sceneId });
     },
     wait(seconds) {
       const value = Math.min(10, Math.max(1, Number(seconds) || 1));
-      this.speech = `画面停留 ${value} 秒`;
+      this.pose = "sleep";
+      this.speech = `安静地等 ${value} 秒…`;
+      this.emit("wait", { seconds: value });
       this.trace.push({ type: "WAIT", seconds: value });
     },
   };
   return runtime;
 }
 
+/** 每种积木在舞台上的「表演时长」：像 Scratch 一样一块一块看得见地执行，
+ * 而不是 220ms 一闪而过。WAIT 按孩子设的秒数真的停顿（上限 3 秒）。 */
+const COMMAND_DWELL_MS = {
+  LABEL: 700,
+  TRAIN: 1300,
+  PREDICT: 1000,
+  MOVE: 520,
+  SAY: 800,
+  BALANCE_CHECK: 1000,
+  QUIZ_ANSWER: 550,
+  QUIZ_SUBMIT: 900,
+  SCENE: 1100,
+  IF_PREDICTION: 600,
+  IF_CONFIDENCE: 600,
+  REPEAT: 300,
+};
+
 async function executeCommands(commands, runtime, onStage) {
   for (const command of commands) {
-    await sleep(220);
+    await sleep(120);
     switch (String(command.type || "").toUpperCase()) {
       case "LABEL":
         runtime.label(command.imageId, command.category);
         break;
       case "TRAIN":
+        // 两段式：先「学习中…」停一拍，再亮出学习结果
         runtime.train();
+        onStage(runtime.stage());
+        await sleep(COMMAND_DWELL_MS.TRAIN);
+        runtime.trainDone();
         break;
       case "PREDICT":
         runtime.predict(command.imageId);
@@ -557,7 +708,27 @@ async function executeCommands(commands, runtime, onStage) {
         break;
     }
     onStage(runtime.stage());
+    const commandType = String(command.type || "").toUpperCase();
+    const dwell = commandType === "WAIT"
+      ? Math.min(3000, 1000 * (Math.max(1, Number(command.seconds) || 1)))
+      : (COMMAND_DWELL_MS[commandType] ?? 220);
+    await sleep(dwell);
   }
+}
+
+/** 工作区是否真的有进度：只有孤零零的初始「开始任务」（或空）不算。
+ * v13 序列化的 blocks.blocks 只含顶层块，本实验室程序都连在帽子块下（长度恒为 1），
+ * 所以要判断「开始任务」有没有挂子块，首访引导卡据此保持可见。 */
+function hasRealProgress(state) {
+  if (!state || typeof state !== "object") return false;
+  const blocks = state.blocks?.blocks || [];
+  if (blocks.length === 0) return false;
+  if (blocks.length === 1 && blocks[0]?.type === "k12_when_start") {
+    const start = blocks[0];
+    if (start.next?.block) return true;
+    return Object.values(start.inputs || {}).some((input) => input?.block || input?.shadow);
+  }
+  return true;
 }
 
 function mergeRemoteProjects(local, remote) {

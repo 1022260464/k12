@@ -9,7 +9,9 @@ import com.k12.platform.assessment.dto.PracticeAttemptRequest;
 import com.k12.platform.assessment.dto.PracticeAttemptResponse;
 import com.k12.platform.assessment.mapper.AiPracticeAttemptMapper;
 import com.k12.platform.assessment.mapper.AiKnowledgeMasteryMapper;
+import com.k12.platform.assessment.mapper.LearningEvidenceMapper;
 import com.k12.platform.assessment.model.AiPracticeAttempt;
+import com.k12.platform.assessment.model.LearningEvidence;
 import com.k12.platform.common.api.ApiResponse;
 import com.k12.platform.common.security.K12Authorities;
 import com.k12.platform.common.security.K12SecurityContext;
@@ -45,16 +47,19 @@ public class AiPracticeAttemptService {
     private final AgentQuizRunClient agentClient;
     private final AiPracticeAttemptMapper mapper;
     private final AiKnowledgeMasteryMapper masteryMapper;
+    private final LearningEvidenceMapper evidenceMapper;
     private final ObjectMapper objectMapper;
     private final AssessmentLearningEventWriter eventWriter;
 
     public AiPracticeAttemptService(AgentQuizRunClient agentClient, AiPracticeAttemptMapper mapper,
                                     AiKnowledgeMasteryMapper masteryMapper,
+                                    LearningEvidenceMapper evidenceMapper,
                                     ObjectMapper objectMapper,
                                     AssessmentLearningEventWriter eventWriter) {
         this.agentClient = agentClient;
         this.mapper = mapper;
         this.masteryMapper = masteryMapper;
+        this.evidenceMapper = evidenceMapper;
         this.objectMapper = objectMapper;
         this.eventWriter = eventWriter;
     }
@@ -92,6 +97,7 @@ public class AiPracticeAttemptService {
             masteryMapper.recordAttempt(userId, attempt.getKnowledgeCode(), masteryTopic(attempt.getTopic()),
                     attempt.getScore(), attempt.getMaxScore(),
                     (int) ((long) attempt.getScore() * 100 / attempt.getMaxScore()), attempt.getCreatedTime());
+            evidenceMapper.insert(practiceEvidence(attempt));
         }
         int scorePercent = (int) ((long) attempt.getScore() * 100 / attempt.getMaxScore());
         eventWriter.record(userId, "PRACTICE_COMPLETED", "PRACTICE", String.valueOf(attempt.getId()),
@@ -214,8 +220,25 @@ public class AiPracticeAttemptService {
         return attempt;
     }
 
-    private String canonicalAnswers(List<PracticeAttemptRequest.Answer> answers) {
-        Map<String, String> values = new TreeMap<>();
+    /** 服务端判分的练习本身就是高可信证据；与 mastery 同事务写入，重试由唯一键去重。 */
+    private LearningEvidence practiceEvidence(AiPracticeAttempt attempt) {
+        int scorePercent = (int) ((long) attempt.getScore() * 100 / attempt.getMaxScore());
+        LearningEvidence evidence = new LearningEvidence();
+        evidence.setStudentUserId(attempt.getStudentUserId());
+        evidence.setKnowledgeCode(attempt.getKnowledgeCode());
+        evidence.setEvidenceType("PRACTICE_QUIZ");
+        evidence.setTitle(truncate(masteryTopic(attempt.getTopic()), 128));
+        evidence.setScorePercent(scorePercent);
+        evidence.setConfidence(90);
+        evidence.setReferenceId(attempt.getRunId());
+        evidence.setDetailJson("{\"attemptId\":" + attempt.getId()
+                + ",\"correctCount\":" + attempt.getCorrectCount()
+                + ",\"totalQuestions\":" + attempt.getTotalQuestions() + "}");
+        evidence.setCreatedTime(attempt.getCreatedTime());
+        return evidence;
+    }
+
+    private String canonicalAnswers(List<PracticeAttemptRequest.Answer> answers) {        Map<String, String> values = new TreeMap<>();
         for (PracticeAttemptRequest.Answer answer : answers) {
             if (answer == null || answer.questionId() == null || answer.optionId() == null
                     || answer.questionId().isBlank() || answer.optionId().isBlank()

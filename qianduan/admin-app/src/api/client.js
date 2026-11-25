@@ -32,7 +32,7 @@ export async function api(path, options = {}) {
     ...fetchOptions,
     headers: {
       ...(fetchOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...(!publicRequest && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...(!publicRequest && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}`, "X-K12-Token": session.accessToken } : {}),
       ...options.headers,
     },
   });
@@ -340,4 +340,11 @@ export const healthApi = {
   all: () => Promise.allSettled([
     ["Gateway", "/api/v1/gateway/health"], ["IAM", "/api/v1/iam/health"], ["Learning", "/api/v1/learning/health"], ["Agent", "/api/v1/agents/health"], ["Assessment", "/api/v1/assessments/health"],
   ].map(async ([name, path]) => ({ name, data: await api(path, { public: true }) }))),
+};
+
+export const coursewareApi = {
+  generate: (body) => api("/api/v1/agents/courseware/generate", { method: "POST", body: JSON.stringify(body) }),
+  list: () => api("/api/v1/agents/courseware"),
+  publish: (coursewareId) => api(`/api/v1/agents/courseware/${encodeURIComponent(coursewareId)}/publish`, { method: "POST" }),
+  unpublish: (coursewareId) => api(`/api/v1/agents/courseware/${encodeURIComponent(coursewareId)}/unpublish`, { method: "POST" }),
 };

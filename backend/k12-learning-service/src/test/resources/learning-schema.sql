@@ -53,3 +53,9 @@ CREATE TABLE learning_teaching_resource_binding (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, resource_id BIGINT NOT NULL, course_id BIGINT NOT NULL,
  chapter_id BIGINT, chapter_title VARCHAR(128), created_time TIMESTAMP
 );
+CREATE TABLE assessment_ai_knowledge_mastery (
+ student_user_id BIGINT NOT NULL, knowledge_code VARCHAR(64) NOT NULL, topic VARCHAR(128) NOT NULL,
+ attempt_count INT NOT NULL, total_score BIGINT NOT NULL, total_max_score BIGINT NOT NULL,
+ latest_score_percent INT NOT NULL, evidence_count INT DEFAULT 0, last_practiced_time TIMESTAMP NOT NULL,
+ PRIMARY KEY (student_user_id, knowledge_code)
+);

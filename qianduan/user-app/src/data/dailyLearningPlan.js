@@ -37,7 +37,15 @@ export function buildDailyLearningPlan({
   const nextTopic = nextTopics[0];
   if (weakest || nextTopic) {
     const focus = weakest || nextTopic;
-    const gapTitles = prerequisiteGaps.map((item) => item.title || item.code).filter(Boolean);
+    // 兜底：按知识点去重，避免图谱脏数据把卡片刷成重复标题墙（也会进对话上下文）。
+    const seenGapCodes = new Set();
+    const uniqueGaps = prerequisiteGaps.filter((item) => {
+      const key = item?.code || item?.title;
+      if (!key || seenGapCodes.has(key)) return false;
+      seenGapCodes.add(key);
+      return true;
+    });
+    const gapTitles = uniqueGaps.map((item) => item.title || item.code).slice(0, 3);
     const detail = gapTitles.length
       ? `先补齐「${gapTitles.join("」「")}」，再继续当前主题。`
       : weakest
@@ -52,7 +60,7 @@ export function buildDailyLearningPlan({
       actionLabel: "开始练习",
       knowledgeCode: focus.knowledgeCode || focus.code,
       topic: focus.topic || focus.title,
-      gaps: prerequisiteGaps,
+      gaps: uniqueGaps,
     });
   }
 

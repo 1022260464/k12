@@ -66,6 +66,15 @@ k12:
     token-state:
       remote-enabled: ${K12_TOKEN_STATE_VALIDATION_ENABLED:true}
       endpoint: ${K12_IAM_TOKEN_STATE_URL:http://127.0.0.1:8081/api/v1/iam/auth/token-state}
+    # 配置即整体替换默认放行列表：健康检查之外仅放行服务间证据写回（Service 内再校验共享密钥）。
+    permit-paths:
+      - /actuator/health
+      - /actuator/info
+      - /api/v1/assessments/health
+      - /api/v1/assessments/evidence/internal
     jwt:
       issuer: ${K12_JWT_ISSUER:k12-platform}
       secret: ${K12_JWT_SECRET:k12-platform-dev-secret-change-me-2026-very-long-key}
+  internal:
+    # 与 agent-service 共享的写回密钥；为空时证据写回通道整体关闭。
+    evidence-token: ${K12_INTERNAL_EVIDENCE_TOKEN:}

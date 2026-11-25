@@ -81,6 +81,8 @@ k12:
     iam-url: ${K12_IAM_SERVICE_URL:http://127.0.0.1:8081}
     learning-url: ${K12_LEARNING_SERVICE_URL:http://127.0.0.1:8082}
     assessment-url: ${K12_ASSESSMENT_SERVICE_URL:http://127.0.0.1:8084}
+    # 与 assessment 的 k12.internal.evidence-token 同值；为空时证据写回自动跳过。
+    assessment-internal-token: ${K12_ASSESSMENT_INTERNAL_TOKEN:}
   agent:
     code-quota:
       # 先执行 backend/sql/mysql/k12_business_code_execution_quota.sql，再启用。

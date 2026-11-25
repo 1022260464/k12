@@ -7,6 +7,7 @@ public record KnowledgeMasteryResponse(
         String knowledgeCode,
         String topic,
         int attemptCount,
+        int evidenceCount,
         int masteryPercent,
         int latestScorePercent,
         String action,

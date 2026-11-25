@@ -73,6 +73,8 @@ class AgentRunServiceTest {
     private AgentSessionSummaryService sessionSummaryService;
     @Mock
     private IamAccountBehaviorClient accountBehaviorClient;
+    @Mock
+    private AgentEvidenceWritebackService evidenceWritebackService;
 
     private AgentRunService runService;
     private AgentRabbitProperties rabbitProperties;
@@ -92,7 +94,8 @@ class AgentRunServiceTest {
                 learnerContextEnricher,
                 sessionService,
                 sessionSummaryService,
-                accountBehaviorClient
+                accountBehaviorClient,
+                evidenceWritebackService
         );
         lenient().when(learnerContextEnricher.enrich(any(), any(), any(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(2));

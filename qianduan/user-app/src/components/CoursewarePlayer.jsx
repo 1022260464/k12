@@ -11,18 +11,35 @@ import { speechApi } from "../api/client.js";
 import { COURSEWARE_MIME } from "../data/coursewareFallback.js";
 import { MarkdownContent } from "./MarkdownContent.jsx";
 
+export { COURSEWARE_MIME };
+
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"];
 
-export function CoursewarePlayer({ courseware }) {
-  const slides = courseware?.document?.slides || [];
+export function isCoursewareArtifact(artifact) {
+  return artifact?.kind === "COURSEWARE"
+    && artifact?.mimeType === COURSEWARE_MIME
+    && Array.isArray(artifact?.payload?.slides)
+    && artifact.payload.slides.length > 0;
+}
+
+/**
+ * 统一播放接口页和后端产物两种课件结构：
+ * - 接口页：{ title, document: { slides } }
+ * - Agent 产物：{ kind, mimeType, payload: { slides } }
+ */
+export function CoursewarePlayer({ courseware, artifact }) {
+  const slides = courseware?.document?.slides || artifact?.payload?.slides || [];
+  const title = courseware?.title || courseware?.document?.title
+    || artifact?.title || artifact?.payload?.title || "AI 课件";
+  const localDemo = Boolean(courseware?.localDemo);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [speaking, setSpeaking] = useState(false);
   const [preparingSpeech, setPreparingSpeech] = useState(false);
   const [speechError, setSpeechError] = useState(false);
+  const audioCacheRef = useRef(new Map());
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
-  const slide = slides[Math.min(index, slides.length - 1)];
 
   function stopSpeech() {
     audioRef.current?.pause();
@@ -42,23 +59,31 @@ export function CoursewarePlayer({ courseware }) {
 
   useEffect(() => () => stopSpeech(), []);
 
-  if (!courseware?.document?.slides?.length) return null;
+  if (!slides.length) return null;
+  const slide = slides[Math.min(index, slides.length - 1)];
+  const selectedAnswer = answers[index];
   const narration = slide.narration
     || slide.bullets?.join("。")
     || slide.points?.join("。")
     || [slide.title, slide.subtitle].filter(Boolean).join("，");
 
   async function speak(text) {
-    if (!text) return;
+    if (!text || preparingSpeech) return;
     if (speaking) {
       stopSpeech();
       return;
     }
     setPreparingSpeech(true);
     setSpeechError(false);
+    const speechText = String(text).slice(0, 800);
     try {
-      const audioResult = await speechApi.synthesize(String(text).slice(0, 800));
-      const url = URL.createObjectURL(audioResult.blob);
+      let blob = audioCacheRef.current.get(speechText);
+      if (!blob) {
+        const result = await speechApi.synthesize(speechText);
+        blob = result.blob;
+        audioCacheRef.current.set(speechText, blob);
+      }
+      const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
       audioUrlRef.current = url;
@@ -70,7 +95,7 @@ export function CoursewarePlayer({ courseware }) {
         setSpeechError(true);
         return;
       }
-      const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 800));
+      const utterance = new SpeechSynthesisUtterance(speechText);
       utterance.lang = "zh-CN";
       utterance.rate = 0.92;
       utterance.onend = stopSpeech;
@@ -82,29 +107,34 @@ export function CoursewarePlayer({ courseware }) {
     }
   }
 
-  const selectedAnswer = answers[index];
   return (
     <div className="courseware-player" data-testid="courseware-player">
       <header className="courseware-head">
         <span className="courseware-badge">AI 课件</span>
-        <strong>{courseware.title || courseware.document.title}</strong>
+        <strong>{title}</strong>
         <span className="courseware-page">{index + 1}/{slides.length}</span>
       </header>
-      {courseware.localDemo && <p className="courseware-demo-note">本机演示课件 · 服务端课件接口接通后会自动切换</p>}
+      {localDemo && <p className="courseware-demo-note">本机演示课件 · 服务端课件接口接通后会自动切换</p>}
 
       <div className={`courseware-slide slide-${slide.type}`}>
         {slide.type === "cover" && (
           <div className="courseware-cover">
             <h3>{slide.title}</h3>
             {slide.subtitle && <p>{slide.subtitle}</p>}
-            <button className="courseware-start" type="button" onClick={() => setIndex(1)}>开始学习</button>
+            {slides.length > 1 && (
+              <button className="courseware-start" type="button" onClick={() => setIndex(1)}>
+                开始学习
+              </button>
+            )}
           </div>
         )}
 
         {slide.type === "concept" && (
           <div>
             <h4>{slide.title}</h4>
-            <ul className="courseware-bullets">{(slide.bullets || []).map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul className="courseware-bullets">
+              {(slide.bullets || []).map((item, itemIndex) => <li key={`${item}-${itemIndex}`}>{item}</li>)}
+            </ul>
           </div>
         )}
 
@@ -128,7 +158,7 @@ export function CoursewarePlayer({ courseware }) {
                     className={`courseware-option${tone}`}
                     type="button"
                     disabled={selectedAnswer != null}
-                    key={option}
+                    key={`${option}-${optionIndex}`}
                     onClick={() => setAnswers((current) => ({ ...current, [index]: optionIndex }))}
                   >
                     <b>{OPTION_LABELS[optionIndex]}</b> {option}
@@ -147,23 +177,37 @@ export function CoursewarePlayer({ courseware }) {
         {slide.type === "summary" && (
           <div>
             {slide.title && <h4>{slide.title}</h4>}
-            <ul className="courseware-bullets">{(slide.points || []).map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul className="courseware-bullets">
+              {(slide.points || []).map((item, itemIndex) => <li key={`${item}-${itemIndex}`}>{item}</li>)}
+            </ul>
           </div>
         )}
 
         {slide.type !== "quiz" && narration && (
           <div className="courseware-speak-wrap">
-            <button className={`courseware-speak${speaking ? " speaking" : ""}`} type="button" disabled={preparingSpeech} onClick={() => speak(narration)}>
-              {preparingSpeech ? <LoaderCircle className="spin" size={13} /> : speaking ? <Square size={13} /> : <Volume2 size={14} />}
+            <button
+              className={`courseware-speak${speaking ? " speaking" : ""}`}
+              type="button"
+              disabled={preparingSpeech}
+              onClick={() => speak(narration)}
+            >
+              {preparingSpeech ? <LoaderCircle className="spin" size={13} />
+                : speaking ? <Square size={13} /> : <Volume2 size={14} />}
               {preparingSpeech ? "小智准备中…" : speaking ? "停止朗读" : "读给我听"}
             </button>
-            {speechError && <span className="courseware-speak-error"><Headphones size={13} />朗读暂时不可用，稍后再试</span>}
+            {speechError && (
+              <span className="courseware-speak-error">
+                <Headphones size={13} />朗读暂时不可用，稍后再试
+              </span>
+            )}
           </div>
         )}
       </div>
 
       <footer className="courseware-nav">
-        <button type="button" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))}><ArrowLeft size={14} /> 上一页</button>
+        <button type="button" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))}>
+          <ArrowLeft size={14} /> 上一页
+        </button>
         <span className="courseware-dots">
           {slides.map((item, slideIndex) => (
             <i
@@ -171,13 +215,19 @@ export function CoursewarePlayer({ courseware }) {
               role="button"
               tabIndex={0}
               title={`第 ${slideIndex + 1} 页`}
-              key={`${item.type}-${slideIndex}`}
+              key={`${item.type || "slide"}-${slideIndex}`}
               onClick={() => setIndex(slideIndex)}
               onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && setIndex(slideIndex)}
             />
           ))}
         </span>
-        <button type="button" disabled={index >= slides.length - 1} onClick={() => setIndex((value) => Math.min(slides.length - 1, value + 1))}>下一页 <ArrowRight size={14} /></button>
+        <button
+          type="button"
+          disabled={index >= slides.length - 1}
+          onClick={() => setIndex((value) => Math.min(slides.length - 1, value + 1))}
+        >
+          下一页 <ArrowRight size={14} />
+        </button>
       </footer>
     </div>
   );

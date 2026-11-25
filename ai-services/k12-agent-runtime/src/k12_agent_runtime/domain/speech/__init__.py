@@ -1,4 +1,4 @@
-from k12_agent_runtime.domain.speech.models import SynthesizedSpeech
-from k12_agent_runtime.domain.speech.ports import SpeechSynthesizer
+from k12_agent_runtime.domain.speech.models import RecognizedTranscript, SynthesizedSpeech
+from k12_agent_runtime.domain.speech.ports import SpeechRecognizer, SpeechSynthesizer
 
-__all__ = ["SpeechSynthesizer", "SynthesizedSpeech"]
+__all__ = ["SpeechRecognizer", "SpeechSynthesizer", "RecognizedTranscript", "SynthesizedSpeech"]

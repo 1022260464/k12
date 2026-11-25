@@ -51,6 +51,7 @@ class AgentRunMethodSecurityTest {
     @MockBean AgentSessionService sessionService;
     @MockBean AgentSessionSummaryService sessionSummaryService;
     @MockBean IamAccountBehaviorClient accountBehaviorClient;
+    @MockBean AgentEvidenceWritebackService evidenceWritebackService;
     @Autowired AgentRunService service;
 
     @AfterEach

@@ -12,6 +12,7 @@ class AgentArtifactKind(StrEnum):
     CHART = "CHART"
     ANIMATION = "ANIMATION"
     GAME = "GAME"
+    COURSEWARE = "COURSEWARE"
     CODE_RESULT = "CODE_RESULT"
     IMAGE = "IMAGE"
     TABLE = "TABLE"

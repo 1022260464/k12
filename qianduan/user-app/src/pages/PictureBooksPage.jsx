@@ -2,7 +2,7 @@ import { ArrowRight, BookOpen, Headphones, Images, Sparkles } from "lucide-react
 import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { pictureBooksApi } from "../api/client.js";
-import { fallbackPictureBooks, normalizePictureBook } from "../data/pictureBookFallback.js";
+import { extraFallbackBooks, fallbackPictureBooks, normalizePictureBook } from "../data/pictureBookFallback.js";
 import { EXPERIENCE } from "../experience/experience.js";
 
 const STAGE_GROUPS = [
@@ -27,7 +27,7 @@ export function PictureBooksPage({
   experience = EXPERIENCE.PRIMARY,
   learningProfile,
 }) {
-  const [books, setBooks] = useState(fallbackPictureBooks);
+  const [books, setBooks] = useState(() => [...fallbackPictureBooks, ...extraFallbackBooks]);
 
   useEffect(() => {
     let active = true;

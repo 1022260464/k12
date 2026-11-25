@@ -6,6 +6,8 @@ import com.k12.platform.assessment.dto.AgentQuizRunResponse;
 import com.k12.platform.assessment.dto.PracticeAttemptRequest;
 import com.k12.platform.assessment.mapper.AiPracticeAttemptMapper;
 import com.k12.platform.assessment.mapper.AiKnowledgeMasteryMapper;
+import com.k12.platform.assessment.mapper.LearningEvidenceMapper;
+import com.k12.platform.assessment.mapper.LearningEvidenceMapper;
 import com.k12.platform.assessment.model.AiPracticeAttempt;
 import com.k12.platform.common.api.ApiResponse;
 import com.k12.platform.common.security.K12Authorities;
@@ -40,12 +42,14 @@ class AiPracticeAttemptServiceTest {
     @Mock private AgentQuizRunClient agentClient;
     @Mock private AiPracticeAttemptMapper mapper;
     @Mock private AiKnowledgeMasteryMapper masteryMapper;
+    @Mock private LearningEvidenceMapper evidenceMapper;
     @Mock private AssessmentLearningEventWriter eventWriter;
     private AiPracticeAttemptService service;
 
     @BeforeEach
     void setup() {
-        service = new AiPracticeAttemptService(agentClient, mapper, masteryMapper, objectMapper, eventWriter);
+        service = new AiPracticeAttemptService(agentClient, mapper, masteryMapper, evidenceMapper,
+                objectMapper, eventWriter);
         Jwt jwt = Jwt.withTokenValue("test").header("alg", "none")
                 .subject("student").claim("userId", "42").build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(

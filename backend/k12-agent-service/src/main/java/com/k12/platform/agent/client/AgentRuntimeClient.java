@@ -1,10 +1,17 @@
 package com.k12.platform.agent.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.k12.platform.agent.client.dto.RuntimeAgentInvokeRequest;
 import com.k12.platform.agent.client.dto.RuntimeAgentRunResponse;
 import com.k12.platform.agent.client.dto.RuntimeCodeExecutionRequest;
 import com.k12.platform.agent.client.dto.RuntimeCodeExecutionResponse;
+import com.k12.platform.agent.client.dto.RuntimeCoursewareRequest;
+import com.k12.platform.agent.client.dto.RuntimeCoursewareRequest;
+import com.k12.platform.agent.client.dto.RuntimeQuizRequest;
 import com.k12.platform.agent.client.dto.RuntimeDownloadUrlResponse;
+import com.k12.platform.agent.client.dto.RuntimeSpeechRecognitionResponse;
+import com.k12.platform.agent.client.dto.RuntimeSpeechRecognitionResponse;
 import com.k12.platform.agent.client.dto.RuntimeSpeechRequest;
 import com.k12.platform.agent.config.AgentRuntimeFeignConfiguration;
 import com.k12.platform.common.api.ApiResponse;
@@ -51,4 +58,16 @@ public interface AgentRuntimeClient {
     /** 由 Java 鉴权后代理云语音，浏览器不会接触 Runtime 内部密钥。 */
     @PostMapping("/internal/v1/speech/synthesize")
     ResponseEntity<byte[]> synthesizeSpeech(@RequestBody RuntimeSpeechRequest request);
+
+    /** 由 Java 鉴权后代理语音识别，音频以原始字节转发给 Runtime。 */
+    @PostMapping("/internal/v1/speech/recognize")
+    ApiResponse<RuntimeSpeechRecognitionResponse> recognizeSpeech(@RequestBody byte[] audio);
+
+    /** 管理端课件生成：由 Runtime 调用大模型产出课件 JSON 文档。 */
+    @PostMapping("/internal/v1/courseware/generate")
+    ApiResponse<JsonNode> generateCourseware(@RequestBody RuntimeCoursewareRequest request);
+
+    /** 学生端 AI 组题：由 Runtime 调用大模型按主题/课文出一组选择题。 */
+    @PostMapping("/internal/v1/quiz/generate")
+    ApiResponse<JsonNode> generateQuiz(@RequestBody RuntimeQuizRequest request);
 }

@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "0x330", email = "1022260464@qq.com" }
 ]
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "aio-pika>=10.0.1",
     "asyncpg>=0.30.0,<1.0.0",

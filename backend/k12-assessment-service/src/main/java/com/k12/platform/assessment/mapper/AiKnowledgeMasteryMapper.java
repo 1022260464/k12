@@ -19,4 +19,10 @@ public interface AiKnowledgeMasteryMapper {
 
     List<AiKnowledgeMastery> findByStudent(@Param("studentUserId") Long studentUserId,
                                            @Param("limit") int limit);
+
+    /** 对话/诊断等非练习证据：只累计证据条数，不产生练习得分。 */
+    int recordEvidence(@Param("studentUserId") Long studentUserId,
+                       @Param("knowledgeCode") String knowledgeCode,
+                       @Param("topic") String topic,
+                       @Param("practicedTime") Instant practicedTime);
 }

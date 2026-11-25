@@ -115,6 +115,47 @@ def test_lower_primary_tutor_advances_short_guided_turns(
     assert all(choice["label"] for choice in guided["choices"])
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "你是谁？",
+        "你叫什么名字呀？",
+        "你是机器人吗？",
+        "你能做什么？",
+    ],
+)
+def test_lower_primary_identity_questions_get_self_intro_without_teaching_graph(
+    question: str,
+) -> None:
+    """「你是谁」这类元问题直接自我介绍，不套课程引导卡答非所问。"""
+    model = GroundedChatModel()
+    result = asyncio.run(
+        LowerPrimaryTutorAgent(model).invoke(  # type: ignore[arg-type]
+            AgentRunInput(
+                run_id="run-lower-primary-identity",
+                agent_code="lower-primary-tutor",
+                input_text=question,
+                user_id="student-1",
+                context={
+                    "stage": "lower_primary",
+                    "topicCode": "computer_vision.object_detection",
+                    "conversation": {"previousTurnCount": 1},
+                },
+            )
+        )
+    )
+
+    assert result.status is AgentRunStatus.SUCCEEDED
+    assert model.calls == 0
+    assert result.artifacts == ()
+    assert "我是小智" in result.output_text
+    assert "找到一个新线索" not in result.output_text
+    guided = result.metadata["guidedConversation"]
+    assert guided["mode"] == "SHORT_TURN"
+    assert guided["phase"] == "CHAT"
+    assert result.metadata["topic"] == "小智是谁"
+
+
 def test_object_detection_is_a_reviewed_follow_up_topic() -> None:
     result = run_topic(
         "请继续讲物体检测",
@@ -168,10 +209,11 @@ def test_new_topics_provide_stage_specific_lesson_and_recorded_practice(
     assert quiz.payload["maxScore"] == expected_count * 10
     assert len(quiz.payload["questions"]) == expected_count
     if expected_count == 3:
+        # 低年级小测图画化后第一题配图片卡（此前是 emoji 🐱）。
         assert quiz.payload["questions"][0]["visual"] == {
-            "kind": "emoji",
-            "value": "🐱",
-            "alt": "一只小猫",
+            "kind": "image",
+            "value": "/assets/experience/primary/quiz/quiz-cat-card.webp",
+            "alt": "一只橙色小猫的图片卡",
         }
         assert quiz.payload["questions"][2]["correctOptionId"] == "check"
         assert quiz.payload["questions"][0]["errorType"] == "LABEL_MISMATCH"

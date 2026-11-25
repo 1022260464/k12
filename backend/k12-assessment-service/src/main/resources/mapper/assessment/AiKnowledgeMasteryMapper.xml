@@ -5,15 +5,25 @@
     <insert id="recordAttempt">
         INSERT INTO assessment_ai_knowledge_mastery
         (student_user_id, knowledge_code, topic, attempt_count, total_score,
-         total_max_score, latest_score_percent, last_practiced_time)
+         total_max_score, latest_score_percent, evidence_count, last_practiced_time)
         VALUES (#{studentUserId}, #{knowledgeCode}, #{topic}, 1, #{score},
-                #{maxScore}, #{scorePercent}, #{practicedTime})
+                #{maxScore}, #{scorePercent}, 1, #{practicedTime})
         ON DUPLICATE KEY UPDATE
             topic = #{topic},
             attempt_count = attempt_count + 1,
             total_score = total_score + #{score},
             total_max_score = total_max_score + #{maxScore},
             latest_score_percent = #{scorePercent},
+            evidence_count = evidence_count + 1,
+            last_practiced_time = #{practicedTime}
+    </insert>
+    <insert id="recordEvidence">
+        INSERT INTO assessment_ai_knowledge_mastery
+        (student_user_id, knowledge_code, topic, attempt_count, total_score,
+         total_max_score, latest_score_percent, evidence_count, last_practiced_time)
+        VALUES (#{studentUserId}, #{knowledgeCode}, #{topic}, 0, 0, 0, 0, 1, #{practicedTime})
+        ON DUPLICATE KEY UPDATE
+            evidence_count = evidence_count + 1,
             last_practiced_time = #{practicedTime}
     </insert>
     <select id="findByStudent" resultType="com.k12.platform.assessment.model.AiKnowledgeMastery">

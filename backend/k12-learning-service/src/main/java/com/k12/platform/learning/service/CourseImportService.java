@@ -52,15 +52,18 @@ public class CourseImportService {
         } catch (IOException error) {
             throw new IllegalArgumentException("无法读取课程文件", error);
         }
+        int totalSections = document.courses() == null ? 0 : document.courses().stream()
+                .filter(course -> course != null && course.chapters() != null)
+                .flatMap(course -> course.chapters().stream())
+                .filter(chapter -> chapter != null && chapter.sections() != null)
+                .mapToInt(chapter -> chapter.sections().size()).sum();
+        if (totalSections > 500) {
+            throw new IllegalArgumentException("单次最多导入 500 个小节");
+        }
         var violations = validator.validate(document);
         if (!violations.isEmpty()) {
             var first = violations.iterator().next();
             throw new IllegalArgumentException(first.getPropertyPath() + ": " + first.getMessage());
-        }
-        int totalSections = document.courses().stream().flatMap(course -> course.chapters().stream())
-                .mapToInt(chapter -> chapter.sections() == null ? 0 : chapter.sections().size()).sum();
-        if (totalSections > 500) {
-            throw new IllegalArgumentException("单次最多导入 500 个小节");
         }
         List<CourseResponse> result = new ArrayList<>();
         for (var entry : document.courses()) {

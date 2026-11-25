@@ -2,19 +2,46 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.k12.platform.learning.mapper.LearningLeaderboardMapper">
     <!--
-        MySQL是积分真相源：每个有效选课章节的最高进度累加为学习积分。
+        MySQL是积分真相源：学习积分 = 课程章节进度积分 + 知识闯关积分。
+        章节积分：每个有效选课章节的最高进度累加（口径不变）。
+        闯关积分：各知识点 ROUND(掌握度) + 通关奖励（最新得分≥90 +15 / ≥60 +10 / >0 +5），
+        与学生端「知识闯关」页展示口径一致；掌握度按整除截断与 Java 端一致。
         LIMIT使用绑定参数，调用方同时限制最大值，不能由前端传入SQL片段。
     -->
     <select id="selectTopScores" resultType="com.k12.platform.learning.model.LearningScoreSummary">
-        SELECT enrollment.user_id,
-               SUM(progress.progress_percent) AS learning_points
-        FROM learning_course_enrollment enrollment
-        INNER JOIN learning_chapter_progress progress
-                ON progress.enrollment_id = enrollment.id
-        WHERE enrollment.status = 'ACTIVE'
-        GROUP BY enrollment.user_id
-        HAVING SUM(progress.progress_percent) &gt; 0
-        ORDER BY learning_points DESC, enrollment.user_id ASC
+        SELECT ids.user_id,
+               (COALESCE(chapter.chapter_points, 0) + COALESCE(quiz.challenge_points, 0)) AS learning_points
+        FROM (
+            SELECT enrollment.user_id
+            FROM learning_course_enrollment enrollment
+            WHERE enrollment.status = 'ACTIVE'
+            UNION
+            SELECT mastery.student_user_id
+            FROM assessment_ai_knowledge_mastery mastery
+            WHERE mastery.total_score &gt; 0
+        ) ids
+        LEFT JOIN (
+            SELECT enrollment.user_id, SUM(progress.progress_percent) AS chapter_points
+            FROM learning_course_enrollment enrollment
+            INNER JOIN learning_chapter_progress progress
+                    ON progress.enrollment_id = enrollment.id
+            WHERE enrollment.status = 'ACTIVE'
+            GROUP BY enrollment.user_id
+        ) chapter ON chapter.user_id = ids.user_id
+        LEFT JOIN (
+            SELECT mastery.student_user_id,
+                   SUM(FLOOR(100 * mastery.total_score / mastery.total_max_score)
+                       + CASE
+                           WHEN mastery.latest_score_percent &gt;= 90 THEN 15
+                           WHEN mastery.latest_score_percent &gt;= 60 THEN 10
+                           WHEN mastery.latest_score_percent &gt; 0 THEN 5
+                           ELSE 0
+                         END) AS challenge_points
+            FROM assessment_ai_knowledge_mastery mastery
+            GROUP BY mastery.student_user_id
+        ) quiz ON quiz.student_user_id = ids.user_id
+        WHERE (COALESCE(chapter.chapter_points, 0) + COALESCE(quiz.challenge_points, 0)) &gt; 0
+        ORDER BY learning_points DESC, ids.user_id ASC
         LIMIT #{limit}
     </select>
 </mapper>

@@ -1,7 +1,9 @@
 import { Clap, Crown, Trophy } from "duma-icons-react";
-import { LoaderCircle, RefreshCw, UserRound } from "lucide-react";
+import { Flame, LoaderCircle, RefreshCw, ShieldCheck, Target, UserRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { leaderboardApi } from "../api/client.js";
+import { AuthGateShowcase } from "../components/AuthGateShowcase.jsx";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { EXPERIENCE } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
 
@@ -40,24 +42,27 @@ export function LeaderboardPage({ session, requireLogin, experience = EXPERIENCE
     return (
       <div className="page inner-page leaderboard-page">
         <LeaderboardHero experience={experience} />
-        <section className="empty-state">
-          <img className="leaderboard-empty-mascot" src={pageVisual} alt="" />
-          <h2>登录后查看排行榜</h2>
-          <p>排行榜根据课程章节学习进度生成，只展示匿名编号和积分。</p>
-          <button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button>
-        </section>
+        <AuthGateShowcase
+          title="登录后查看排行榜"
+          description="排行榜积分 = 课程章节进度 + 知识闯关积分，只展示匿名编号和积分。"
+          features={[
+            { icon: Target, title: "章节进度换积分", text: "报名课程的章节最高进度决定课程积分。" },
+            { icon: Flame, title: "闯关再拿一笔", text: "去知识闯关答题，成绩直接换算成挑战积分。" },
+            { icon: ShieldCheck, title: "匿名编号展示", text: "不公开昵称和头像，保护个人隐私。" },
+          ]}
+          onLogin={() => requireLogin()}
+        />
       </div>
     );
   }
 
   return (
     <div className="page inner-page leaderboard-page">
-      <header className="page-title page-title-row leaderboard-title-row">
-        <LeaderboardHero experience={experience} />
+      <LeaderboardHero experience={experience}>
         <button className="button secondary" type="button" onClick={loadLeaderboard} disabled={loading}>
           <RefreshCw size={16} />刷新
         </button>
-      </header>
+      </LeaderboardHero>
 
       {error && <p className="page-error" role="alert">{error}</p>}
       {loading && <div className="loading-state"><LoaderCircle size={22} />正在读取排行榜</div>}
@@ -66,7 +71,7 @@ export function LeaderboardPage({ session, requireLogin, experience = EXPERIENCE
         <section className="empty-state">
           <img className="leaderboard-empty-mascot" src={pageVisual} alt="" />
           <h2>排行榜还没有数据</h2>
-          <p>报名课程并完成章节后，学习积分会出现在这里。</p>
+          <p>报名课程、完成章节或去知识闯关答题，积分会出现在这里。</p>
         </section>
       )}
 
@@ -92,7 +97,7 @@ export function LeaderboardPage({ session, requireLogin, experience = EXPERIENCE
               </article>
             ))}
           </section>
-          <p className="leaderboard-note">排行榜大约每隔几分钟更新一次。</p>
+          <p className="leaderboard-note">积分 = 课程章节进度 + 知识闯关积分；排行榜大约每隔几分钟更新一次，闯关后稍等片刻就会上榜。</p>
         </>
       )}
     </div>
@@ -106,18 +111,17 @@ function rankVisual(rank) {
   return <span>{rank}</span>;
 }
 
-function LeaderboardHero({ experience }) {
+function LeaderboardHero({ experience, children }) {
   const primary = experience === EXPERIENCE.PRIMARY;
   return (
-    <div className="leaderboard-hero">
-      <div className="leaderboard-mascot" aria-hidden="true">
-        <img src={visualsFor(experience).progress} alt="" />
-      </div>
-      <div className="leaderboard-hero-copy">
-        <p className="eyebrow">{primary ? "成长排行" : "学习排行"}</p>
-        <h1>{primary ? "每一次坚持都值得一颗星" : "用持续学习积累进步"}</h1>
-        <p>{primary ? "完成课程和挑战可以积累成长积分，和昨天的自己比一比。" : "积分来自已报名课程的章节最高进度，不代表考试成绩。"}</p>
-      </div>
-    </div>
+    <ExperiencePageHeader
+      experience={experience}
+      eyebrow={primary ? "成长排行" : "学习排行"}
+      title={primary ? "每一次坚持都值得一颗星" : "用持续学习积累进步"}
+      description={primary ? "完成课程和闯关挑战都能积累成长积分，和昨天的自己比一比。" : "积分 = 已报名课程的章节进度 + 知识闯关积分，不代表考试成绩。"}
+      imageKey="progress"
+    >
+      {children && <div className="leaderboard-hero-actions">{children}</div>}
+    </ExperiencePageHeader>
   );
 }

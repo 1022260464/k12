@@ -13,3 +13,8 @@ class SpeechCapabilitiesResponse(ApiModel):
     model: str
     voice: str
     max_text_chars: int
+
+
+class SpeechRecognitionResponse(ApiModel):
+    text: str
+    model: str

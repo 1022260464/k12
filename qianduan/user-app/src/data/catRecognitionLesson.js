@@ -42,11 +42,74 @@ export const catPictureBook = {
 
 export function lessonProgress(step, pageIndex = 0) {
   if (step === "reward") return 100;
-  if (step === "game") return 75;
+  if (step === "game") return 85;
+  if (step === "code") return 68;
   if (step === "explain") return 55;
   if (step === "book") return 10 + Math.round(((pageIndex + 1) / catPictureBook.pages.length) * 35);
   return 0;
 }
+
+/** 课堂内编程小任务：把「教 AI 认猫」的步骤排成程序。 */
+export const catCommandGame = {
+  eyebrow: "编程小任务 · 教电脑做事",
+  title: "把「教 AI 认小猫」的步骤排排队",
+  intro: "电脑照着程序，一步一步地做事情。你能把小智认猫的四个步骤排成正确的顺序吗？",
+  successText: "排对啦！这一串步骤就是一个小程序——电脑就是这样一步步认出小猫的。",
+  hint: "小提示：小智得先看到图片，才能开始找线索哦。",
+  steps: [
+    { id: "look", emoji: "👀", label: "仔细看图片" },
+    { id: "clue", emoji: "🔍", label: "找出线索：耳朵、胡须、花纹" },
+    { id: "match", emoji: "🧠", label: "用学过的规律比对线索" },
+    { id: "answer", emoji: "📣", label: "说出答案：它是小猫！" },
+  ],
+};
+
+/** 小智讲解失败时的离线讲解词。 */
+export const fallbackExplainText = `小猫有**尖尖的耳朵、圆圆的眼睛和长长的胡须**，这些就是 AI 要找的**线索**。
+
+AI 先看很多很多带名字的图片（比如"这是小猫""这是小狗"），记住每一类动物最常出现的线索。再来一张新图片时，它就把新线索和记住的规律比一比，猜出最合适的标签。
+
+不过 AI 也会猜错：照片太暗、太模糊，或者只见过白色小猫却遇到黑色小猫，都可能出错。所以我们要像小侦探一样**核对它的答案**。`;
+
+/** Agent 生成失败时的内置离线题目：本地判分，保证课堂不中断。 */
+export const fallbackPictureQuiz = {
+  local: true,
+  instructions: "看图选一选：它属于哪个标签盒？",
+  questions: [
+    {
+      id: "q1",
+      prompt: "这位新朋友是谁？",
+      visual: { kind: "text", value: "🐱" },
+      options: [{ id: "a", text: "小猫" }, { id: "b", text: "小狗" }],
+      answer: "a",
+      hint: "尖尖的耳朵和长长的胡须，是小猫的招牌线索。",
+    },
+    {
+      id: "q2",
+      prompt: "这一位呢？",
+      visual: { kind: "text", value: "🐶" },
+      options: [{ id: "a", text: "小猫" }, { id: "b", text: "小狗" }],
+      answer: "b",
+      hint: "它会汪汪叫，还喜欢摇尾巴。",
+    },
+    {
+      id: "q3",
+      prompt: "看花纹和个头，它是谁？",
+      visual: { kind: "text", value: "🐯" },
+      options: [{ id: "a", text: "老虎" }, { id: "b", text: "小猫" }],
+      answer: "a",
+      hint: "身上有大条纹、个头很大，不是家里的小猫。",
+    },
+    {
+      id: "q4",
+      prompt: "最后一关！它是？",
+      visual: { kind: "text", value: "🐰" },
+      options: [{ id: "a", text: "小兔" }, { id: "b", text: "小猫" }],
+      answer: "a",
+      hint: "长长的耳朵和三瓣嘴，是小兔才有的。",
+    },
+  ],
+};
 
 export function fallbackRecommendation(masteryPercent) {
   if (masteryPercent < 60) {

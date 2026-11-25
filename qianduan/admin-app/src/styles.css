@@ -2826,3 +2826,37 @@ tbody tr:hover { background:#fbfcfc; }
   .mastery-list article { grid-template-columns:1fr 48px; }
   .mastery-meter { grid-column:1 / -1; grid-row:2; }
 }
+
+/* AI 课件生成与管理 */
+.courseware-form { margin-bottom: 18px; }
+.courseware-form .table-toolbar { justify-content: space-between; }
+.courseware-form-hint { color: var(--muted); font-size: 11px; }
+.courseware-form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr; gap: 14px; padding: 4px 0 12px; }
+.courseware-form-grid label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: #42514e; }
+.courseware-form-grid input, .courseware-form-grid select { padding: 9px 11px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px; }
+.courseware-form-actions { display: flex; justify-content: flex-end; }
+.table-sub { display: block; color: var(--muted); font-size: 10px; }
+.table-actions { display: flex; gap: 8px; white-space: nowrap; }
+.courseware-preview-modal { width: min(720px, 100%); }
+.courseware-preview-actions { display: flex; align-items: center; gap: 10px; }
+.courseware-preview { border-top: 1px solid var(--line); }
+.courseware-preview-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 26px; background: #f2fcff; border-bottom: 1px solid var(--line); font-size: 13px; }
+.courseware-preview-head span { color: var(--muted); font-size: 11px; }
+.courseware-preview-body { min-height: 300px; padding: 20px 26px; font-size: 13px; line-height: 1.7; }
+.courseware-preview-body h3 { margin: 0 0 10px; font-size: 16px; }
+.courseware-preview-body ul { margin: 0 0 10px; padding-left: 18px; }
+.preview-cover { display: grid; place-content: center; min-height: 260px; text-align: center; border-radius: 12px; background: linear-gradient(135deg, #e3f6fb, #f7fdff); }
+.preview-cover h2 { margin: 0 0 8px; font-size: 24px; }
+.preview-cover p { margin: 0; color: var(--muted); }
+.preview-quiz { display: grid; gap: 8px; margin-top: 6px; }
+.preview-quiz button { padding: 9px 13px; text-align: left; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.preview-quiz button.right { border-color: #2fa36c; background: #e9f8f0; }
+.preview-quiz button.wrong { border-color: var(--danger, #c0392b); background: #fdeeee; }
+.preview-answer { margin: 4px 0 0; font-size: 12px; color: #42514e; }
+.courseware-preview-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 26px; border-top: 1px solid var(--line); }
+.courseware-preview-nav button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 14px; border: 0; border-radius: 999px; background: #1398b1; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
+.courseware-preview-nav button:disabled { opacity: .4; cursor: not-allowed; }
+.courseware-preview-nav span { display: flex; gap: 5px; }
+.courseware-preview-nav i { width: 7px; height: 7px; border-radius: 50%; background: #b7dde7; }
+.courseware-preview-nav i.on { background: #0f7d96; }
+@media (max-width: 860px) { .courseware-form-grid { grid-template-columns: 1fr; } }

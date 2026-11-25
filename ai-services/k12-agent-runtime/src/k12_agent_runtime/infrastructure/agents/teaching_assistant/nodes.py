@@ -858,12 +858,16 @@ def _build_knowledge_grounding(
             "disabled": "DISABLED",
             "unavailable": "UNAVAILABLE",
             "not_configured": "NOT_CONFIGURED",
+            "catalog_preset": "CATALOG_PRESET",
         }
         notice_by_reason = {
             "no_match": "暂未匹配到相关课程资料，本次回答未引用知识库。",
             "disabled": "知识库检索当前未启用，本次回答未引用课程资料。",
             "unavailable": "知识库服务暂时不可用，本次回答已自动降级。",
             "not_configured": "知识库尚未配置，本次回答未引用课程资料。",
+            # 审定主题预设是设计内路径（不查库），不能落到「知识库不可用」的兜底文案。
+            # 文案含「模板」，前端 friendlyGroundingNotice 会转成课堂讲解提示。
+            "catalog_preset": "本课使用内置讲解模板回答，未引用知识库资料。",
         }
         status = status_by_reason.get(fallback_reason, "UNAVAILABLE")
         notice = notice_by_reason.get(

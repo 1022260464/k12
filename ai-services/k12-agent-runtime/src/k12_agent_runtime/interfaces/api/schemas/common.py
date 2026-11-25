@@ -1,4 +1,8 @@
+from typing import Generic, TypeVar
+
 from pydantic import BaseModel, ConfigDict
+
+T = TypeVar("T")
 
 
 def to_camel(value: str) -> str:
@@ -14,7 +18,7 @@ class ApiModel(BaseModel):
     )
 
 
-class ApiResponse[T](ApiModel):
+class ApiResponse(ApiModel, Generic[T]):
     code: int
     message: str
     data: T | None = None

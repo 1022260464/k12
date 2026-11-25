@@ -1,6 +1,8 @@
 import {
+  ArrowRight,
   BarChart3,
   CheckCircle2,
+  Eye,
   Heart,
   LoaderCircle,
   RotateCcw,
@@ -104,7 +106,7 @@ const LOCAL_PAPER = [
   },
 ];
 
-export function DiagnosticPage({ session, requireLogin, navigate, experience = EXPERIENCE.TEEN, schoolStage }) {
+export function DiagnosticPage({ session, requireLogin, navigate, experience = EXPERIENCE.TEEN, schoolStage, onProfileRefresh }) {
   const primary = experience === EXPERIENCE.PRIMARY;
   const [stage, setStage] = useState(STAGE_BY_PROFILE[schoolStage] || (primary ? "lower_primary" : "middle_school"));
   const [mode, setMode] = useState("intro");
@@ -176,6 +178,7 @@ export function DiagnosticPage({ session, requireLogin, navigate, experience = E
       setResult(value);
       setLatest(value);
       setMode("result");
+      onProfileRefresh?.();
     } catch (requestError) {
       setResult(buildLocalResult(questions, answers, stage, interests));
       setLocalDemo(true);
@@ -208,7 +211,7 @@ export function DiagnosticPage({ session, requireLogin, navigate, experience = E
         title={primary ? "做个小诊断，让小智更懂你" : "首次学情诊断，生成专属画像"}
         description={primary
           ? "回答 6 道小题，告诉小智你喜欢什么。小智会知道从哪里开始陪你学最合适。"
-          : "6 道分层题目覆盖核心知识类别，完成后生成优势、薄弱点与推荐起点。"}
+          : "6 道分层题目覆盖核心知识类别，完成后生成初始画像：优势、薄弱点与推荐起点，都会写进学习档案与证据链。"}
         imageKey="science"
         note={primary ? "没有分数压力，凭感觉选就好" : "形成性引导，不计入正式成绩"}
       />
@@ -265,7 +268,12 @@ export function DiagnosticPage({ session, requireLogin, navigate, experience = E
       ) : (
         <section className="diagnostic-intro-card">
           {latest && (
-            <p className="diagnostic-existing"><CheckCircle2 size={15} />你已完成过一次诊断（{latest.scorePercent ?? 0} 分 · {formatTime(latest.createdTime)}），可以重新做来更新画像。</p>
+            <>
+              <p className="diagnostic-existing"><CheckCircle2 size={15} />你已完成过一次诊断（{latest.scorePercent ?? 0} 分 · {formatTime(latest.createdTime)}），可以查看或重新诊断。</p>
+              <button className="text-button diagnostic-review" type="button" onClick={() => { setResult(latest); setLocalDemo(false); setMode("result"); }}>
+                <Eye size={14} />查看上次画像
+              </button>
+            </>
           )}
           <h2>{primary ? "先选一选你在哪个学段" : "选择当前学段"}</h2>
           <div className="diagnostic-stage-row">
@@ -296,7 +304,7 @@ function DiagnosticResult({ result, primary, localDemo, navigate, onRetry }) {
         <div>
           <small>我的学习画像 · {STAGES.find(([key]) => key === result.stage)?.[1] || result.stage}</small>
           <h2>{primary ? `答对了 ${result.correctCount}/${result.totalQuestions} 题，小智认识你啦！` : `总体掌握 ${result.scorePercent}%（答对 ${result.correctCount}/${result.totalQuestions}）`}</h2>
-          <p>{localDemo ? "本次只用于预览诊断体验，不会更新推荐。" : "画像由服务端生成，会随练习与对话持续更新。"}</p>
+          <p>{localDemo ? "本次只用于预览诊断体验，不会更新推荐。" : "画像由服务端判分生成并写入学习证据，会随练习与对话持续更新。"}</p>
         </div>
       </div>
       <div className="diagnostic-result-grid">
@@ -305,7 +313,10 @@ function DiagnosticResult({ result, primary, localDemo, navigate, onRetry }) {
           {categories.map((category) => (
             <article key={category.categoryCode}>
               <header><strong>{category.categoryTitle}</strong><span>{category.correct}/{category.total} · {category.percent}%</span></header>
-              <div className="progress-track"><span style={{ width: `${Math.min(100, Math.max(0, category.percent))}%` }} /></div>
+              <div className="progress-track" role="progressbar" aria-label={`${category.categoryTitle}掌握参考`}
+                aria-valuemin="0" aria-valuemax="100" aria-valuenow={category.percent}>
+                <span style={{ width: `${Math.min(100, Math.max(0, category.percent))}%` }} />
+              </div>
             </article>
           ))}
         </section>
@@ -326,11 +337,15 @@ function DiagnosticResult({ result, primary, localDemo, navigate, onRetry }) {
             <h3><Sparkles size={15} />推荐起点</h3>
             <p>{result.recommendedStart?.knowledgeCode || "完成更多练习后生成"}</p>
             <button className="button primary" type="button" onClick={() => navigate("ai-studio")}>{primary ? "让小智带我学" : "去 AI 学习台开始"}</button>
+            <button className="button primary" type="button" onClick={() => navigate("ai-studio")}>
+              {primary ? "让小智带我学" : "去 AI 学习台开始"}<ArrowRight size={15} />
+            </button>
             <button className="text-button" type="button" onClick={() => navigate("progress")}>查看学习报告</button>
           </section>
         </aside>
       </div>
       <button className="text-button diagnostic-redo" type="button" onClick={onRetry}><RotateCcw size={14} />重新诊断</button>
+      <button className="text-button diagnostic-redo" type="button" onClick={onRetry}><RotateCcw size={14} />重新诊断（以最新一次为准）</button>
     </section>
   );
 }

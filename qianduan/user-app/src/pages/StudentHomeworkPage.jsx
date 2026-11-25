@@ -1,6 +1,8 @@
 import { ArrowLeft, Download, LoaderCircle, RotateCcw, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { homeworksApi } from "../api/client.js";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
+import { EXPERIENCE } from "../experience/experience.js";
 
 export function StudentHomeworkPage({
   session,
@@ -8,6 +10,7 @@ export function StudentHomeworkPage({
   navigate,
   homeworkId,
   onStatusChange,
+  experience = EXPERIENCE.TEEN,
 }) {
   const [homework, setHomework] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -143,11 +146,13 @@ export function StudentHomeworkPage({
         </section>
       ) : (
         <section className="detail-workspace homework-workspace">
-          <header className="detail-page-head">
-            <p className="eyebrow">{headerStatus(homework, submission)}</p>
-            <h1>{homework.title}</h1>
-            <p>{homework.description || "暂无作业说明。"}</p>
-          </header>
+          <ExperiencePageHeader
+            experience={experience}
+            eyebrow={headerStatus(homework, submission)}
+            title={homework.title}
+            description={homework.description || "暂无作业说明。"}
+            imageKey="tasks"
+          />
 
           {submission && (
             <p className={`homework-submitted status-${submission.status?.toLowerCase()}`}>

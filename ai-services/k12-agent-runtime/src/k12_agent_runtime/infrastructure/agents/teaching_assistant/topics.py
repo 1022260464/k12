@@ -1319,7 +1319,7 @@ def _lower_primary_image_classification_questions(topic_code: str) -> list[dict[
         {
             "id": f"{topic_code}.cat-card",
             "prompt": "看看图片卡，它应该贴上哪个标签？",
-            "visual": {"kind": "emoji", "value": "🐱", "alt": "一只小猫"},
+            "visual": {"kind": "image", "value": "/assets/experience/primary/quiz/quiz-cat-card.webp", "alt": "一只橙色小猫的图片卡"},
             "options": [
                 {"id": "cat", "text": "小猫"},
                 {"id": "dog", "text": "小狗"},
@@ -1334,7 +1334,7 @@ def _lower_primary_image_classification_questions(topic_code: str) -> list[dict[
         {
             "id": f"{topic_code}.dog-card",
             "prompt": "再看一张图片卡，这次选哪个标签？",
-            "visual": {"kind": "emoji", "value": "🐶", "alt": "一只小狗"},
+            "visual": {"kind": "image", "value": "/assets/experience/primary/quiz/quiz-dog-card.webp", "alt": "一只棕色小狗的图片卡"},
             "options": [
                 {"id": "cat", "text": "小猫"},
                 {"id": "dog", "text": "小狗"},
@@ -1349,7 +1349,7 @@ def _lower_primary_image_classification_questions(topic_code: str) -> list[dict[
         {
             "id": f"{topic_code}.blur-card",
             "prompt": "图片太模糊，AI 和你都看不清时，怎样做更合适？",
-            "visual": {"kind": "emoji", "value": "🌫️❓", "alt": "一张模糊的未知动物图片"},
+            "visual": {"kind": "image", "value": "/assets/experience/primary/quiz/quiz-mystery-card.webp", "alt": "一张雾蒙蒙的神秘动物图片卡"},
             "options": [
                 {"id": "guess", "text": "随便猜一个"},
                 {"id": "check", "text": "先标成看不清，再请老师核对"},

@@ -18,7 +18,7 @@ export async function api(path, options = {}) {
     ...requestOptions,
     headers: {
       ...(requestOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...(!publicRequest && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...(!publicRequest && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}`, "X-K12-Token": session.accessToken } : {}),
       ...headers,
     },
   });
@@ -38,7 +38,7 @@ async function apiBlob(path, options = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}`, "X-K12-Token": session.accessToken } : {}),
       ...(options.headers || {}),
     },
   });
@@ -173,6 +173,12 @@ export const practiceApi = {
   mastery: () => api("/api/v1/assessments/practice-attempts/me/mastery"),
 };
 
+/** 学习证据：练习、诊断、教学对话等服务端确认的学习活动流水。 */
+export const evidenceApi = {
+  mine: (limit = 30) => api(`/api/v1/assessments/evidence/me?${query({ limit })}`),
+};
+
+/** 首次学情诊断：服务端题库与判分，生成初始学习画像。 */
 export const diagnosticsApi = {
   paper: (stage) => api(`/api/v1/assessments/diagnostics/paper?${query({ stage })}`),
   submit: (body) => api("/api/v1/assessments/diagnostics", { method: "POST", body: JSON.stringify(body) }),
@@ -225,6 +231,23 @@ export const speechApi = {
     method: "POST",
     body: JSON.stringify({ text }),
   }),
+  recognize: (audioBase64, contentType = "audio/wav") => api("/api/v1/agents/speech/recognize", {
+    method: "POST",
+    body: JSON.stringify({ audioBase64, contentType }),
+  }),
+};
+
+/** AI 组题：按主题/课文即时出选择题，无需教师发布。 */
+export const quizApi = {
+  generate: ({ topic, stage = "lower_primary", count = 5, sourceText } = {}) => api("/api/v1/agents/quiz/generate", {
+    method: "POST",
+    body: JSON.stringify({ topic, stage, count, sourceText: sourceText || undefined }),
+  }),
+};
+
+export const coursewareApi = {
+  listPublished: () => api("/api/v1/agents/courseware/published"),
+  getPublished: (coursewareId) => api(`/api/v1/agents/courseware/published/${encodeURIComponent(coursewareId)}`),
 };
 
 export { AUTH_STORAGE_KEY };

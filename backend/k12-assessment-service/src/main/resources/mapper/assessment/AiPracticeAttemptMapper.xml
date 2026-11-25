@@ -23,7 +23,7 @@
                 SELECT 1 FROM assessment_homework_recipient r
                 JOIN assessment_homework h ON h.id = r.homework_id
                 WHERE r.student_user_id = #{studentUserId}
-                  AND h.created_by = #{viewerUserId}
+                  AND h.teacher_user_id = #{viewerUserId}
             ) OR EXISTS (
                 SELECT 1 FROM learning_course_enrollment e
                 JOIN learning_course c ON c.id = e.course_id

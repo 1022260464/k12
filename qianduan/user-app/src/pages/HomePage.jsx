@@ -12,48 +12,92 @@ import {
   MessageCircle,
   Send,
   Sparkles,
+  Target,
   Trophy,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { coursesApi, diagnosticsApi } from "../api/client.js";
 import { DailyLearningPlan } from "../components/DailyLearningPlan.jsx";
+import { HomeMainline } from "../components/HomeMainline.jsx";
 import { LearningRhythm } from "../components/LearningRhythm.jsx";
 import { ParticleField } from "../components/ParticleField.jsx";
-import { courses as fallbackCourses } from "../data/learningData.js";
-import { courseMatchesLearningScope, EXPERIENCE } from "../experience/experience.js";
+import { courses as fallbackCourses, realShowcaseCourses } from "../data/learningData.js";
+import { courseMatchesLearningScope, experienceForSchoolStage, EXPERIENCE } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
 
 const fallbackImageFor = (course, index) => fallbackCourses.find((item) => item.subject === course.subject)?.image
   || fallbackCourses[index % fallbackCourses.length].image;
 
-const asCourseCard = (course, index) => ({
+const toShowcaseCard = (course, index) => ({
   id: course.id,
   title: course.title,
   subject: course.subject,
   grade: course.gradeLevel || course.grade,
-  next: course.description?.trim()?.slice(0, 28) || "打开课程查看章节",
-  image: course.coverUrl || fallbackImageFor(course, index),
+  next: course.description?.trim()?.slice(0, 28) || course.next || "打开课程查看章节",
+  image: course.coverUrl || course.image || fallbackImageFor(course, index),
 });
 
-export function HomePage({ session, displayName, navigate, requireLogin, onAskTopic, experience = EXPERIENCE.TEEN, schoolStage }) {
-  const railRef = useRef(null);
-  const [recommended, setRecommended] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(Boolean(session));
-  const [needsDiagnostic, setNeedsDiagnostic] = useState(false);
-  const primary = experience === EXPERIENCE.PRIMARY;
-  const visuals = visualsFor(experience);
+// 学段→年级文案的粗判（真实课程 gradeLevel 就是「初中/高中」等文案，正则做兼容）。
+const courseStageOf = (grade) => {
+  const value = String(grade || "");
+  if (/初中|JUNIOR|MIDDLE/i.test(value)) return "初中";
+  if (/高中|SENIOR/i.test(value)) return "高中";
+  return null;
+};
 
-  const scrollCourses = (direction) => railRef.current?.scrollBy({
-    left: direction * 380,
-    behavior: "smooth",
-  });
+// 初中/高中按培养定位分组展示：初中=Python 编程基础与简单算法；高中=机器学习、神经网络进阶。
+const TEEN_STAGE_GROUPS = [
+  { key: "junior", stage: "JUNIOR_HIGH", grade: "初中", eyebrow: "初中阶段", title: "Python 编程基础与简单算法", note: "从数据处理入门，理解分类、训练等机器学习核心概念。" },
+  { key: "senior", stage: "SENIOR_HIGH", grade: "高中", eyebrow: "高中阶段", title: "机器学习与神经网络进阶", note: "围绕真实问题完成数据准备、模型训练、评价与项目报告。" },
+];
+
+/** 推荐课程区（带自己的横向滚动条）：首页小学单条 + 中学端按学段分组复用。 */
+function CourseShowcaseSection({ eyebrow, title, note, loading, items, primary, onOpen }) {
+  const railRef = useRef(null);
+  const scrollCourses = (direction) => railRef.current?.scrollBy({ left: direction * 380, behavior: "smooth" });
+  return (
+    <section className="home-section course-showcase">
+      <header className="section-heading"><div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2><p>{note}</p></div><div className="carousel-actions"><button className="icon-button" type="button" title="上一组课程" onClick={() => scrollCourses(-1)}><ChevronLeft size={18} /></button><button className="icon-button" type="button" title="下一组课程" onClick={() => scrollCourses(1)}><ChevronRight size={18} /></button></div></header>
+      {loading ? (
+        <div className="empty-state" style={{ minHeight: 180 }}><LoaderCircle className="spin" size={22} /><p>正在加载推荐课程</p></div>
+      ) : !items.length ? (
+        <div className="empty-state" style={{ minHeight: 180 }}><BookOpen size={22} /><p>{primary ? "这个学段的课程正在整理中，先去问问小智吧。" : "该学段课程整理中，可先使用 AI 学习台。"}</p></div>
+      ) : (
+        <div className="visual-course-rail" ref={railRef}>{items.map((course) => (
+          <article className="visual-course-card" key={course.id || course.title}>
+            <img src={course.image} alt={`${course.title}课程插画`} loading="lazy" />
+            <div>
+              <span>{course.subject} · {course.grade}</span>
+              <h3>{course.title}</h3>
+              {primary ? (
+                <button className="text-button visual-course-play" type="button" onClick={() => onOpen(course)}>
+                  <Play size={15} />点开就能学
+                </button>
+              ) : (
+                <>
+                  <p>下一节：{course.next}</p>
+                  <button type="button" onClick={() => onOpen(course)}>
+                    进入课程<ArrowRight size={15} />
+                  </button>
+                </>
+              )}
+            </div>
+          </article>
+        ))}</div>
+      )}
+    </section>
+  );
+}
+
+export function HomePage({ session, displayName, navigate, requireLogin, onAskTopic, experience = EXPERIENCE.TEEN, schoolStage }) {
+  const [recommended, setRecommended] = useState([]);
+  const [historyItems, setHistoryItems] = useState([]);
+  const [loading, setLoading] = useState(Boolean(session));
 
   useEffect(() => {
     if (!session) {
       setRecommended([]);
-      setHistory([]);
-      setNeedsDiagnostic(false);
+      setHistoryItems([]);
       setLoading(false);
       return undefined;
     }
@@ -62,40 +106,51 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
     Promise.allSettled([
       coursesApi.recommended(8),
       coursesApi.history(10),
-      diagnosticsApi.latest(),
-    ]).then(([recommendationResult, historyResult, diagnosticResult]) => {
+    ]).then(([recommendationResult, historyResult]) => {
       if (!active) return;
       setRecommended(recommendationResult.status === "fulfilled" && Array.isArray(recommendationResult.value)
         ? recommendationResult.value
         : []);
       const historyValue = historyResult.status === "fulfilled" ? historyResult.value : null;
-      setHistory(historyValue?.items || historyValue || []);
-      setNeedsDiagnostic(diagnosticResult.status === "fulfilled" && !diagnosticResult.value);
+      setHistoryItems(historyValue?.items || historyValue || []);
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
   }, [session]);
 
-  const activeCourse = useMemo(() => history.find((course) => {
+  const activeCourse = useMemo(() => historyItems.find((course) => {
     const progress = Number(course.progressPercent || 0);
     return progress > 0 && progress < 100;
-  }) || null, [history]);
+  }) || null, [historyItems]);
 
-  const showcase = useMemo(() => {
-    const scopedRecommendations = recommended.filter((course) => (
-      courseMatchesLearningScope(course.gradeLevel, schoolStage, experience)
-    ));
-    const scopedFallbacks = fallbackCourses.filter((course) => (
-      courseMatchesLearningScope(course.grade, schoolStage, experience)
-    ));
-    return (scopedRecommendations.length ? scopedRecommendations : scopedFallbacks)
-      .map(asCourseCard);
-  }, [experience, recommended, schoolStage]);
+  const scopedRecommendations = recommended.filter((course) => (
+    courseMatchesLearningScope(course.gradeLevel, schoolStage, experience)
+  ));
+  const scopedShowcase = realShowcaseCourses.filter((course) => (
+    courseMatchesLearningScope(course.grade, schoolStage, experience)
+  ));
+  const usingShowcaseFallback = !scopedRecommendations.length;
+  const showcase = (usingShowcaseFallback ? scopedShowcase : scopedRecommendations).map(toShowcaseCard);
+  const profileExperience = schoolStage ? experienceForSchoolStage(schoolStage) : null;
+  const teenStageGroups = TEEN_STAGE_GROUPS
+    .filter((group) => !schoolStage || profileExperience !== EXPERIENCE.TEEN || schoolStage === group.stage)
+    .map((group) => {
+      const recs = scopedRecommendations.filter((course) => courseStageOf(course.gradeLevel) === group.grade);
+      const stageShowcase = scopedShowcase.filter((course) => course.grade === group.grade);
+      const picks = [...recs, ...stageShowcase.filter((course) => !recs.some((rec) => rec.id === course.id))];
+      return { ...group, usingFallback: !picks.length, items: picks.map(toShowcaseCard) };
+    })
+    .filter((group) => group.items.length);
+  const openShowcaseCourse = (course) => requireLogin(() => navigate(course.id ? `courses/${course.id}` : "courses"));
+  const primary = experience === EXPERIENCE.PRIMARY;
+  const visuals = visualsFor(experience);
 
   function startPrimaryMission() {
-    if (activeCourse?.courseId) navigate(`courses/${activeCourse.courseId}`);
-    else requireLogin(() => navigate("cat-lesson"));
+    requireLogin(() => {
+      if (activeCourse?.courseId) navigate(`courses/${activeCourse.courseId}`);
+      else navigate("cat-lesson");
+    });
   }
 
   function startTeenResearch() {
@@ -133,7 +188,6 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
           <span className="primary-stage-cloud primary-stage-cloud-b" aria-hidden="true" />
           <span className="primary-stage-cloud primary-stage-cloud-c" aria-hidden="true" />
           <span className="primary-stage-warmth" aria-hidden="true" />
-
           <section className="primary-space-hero" aria-label="AI 星球学院">
             <div className="primary-space-copy">
               <p className="primary-brand">AI 星球学院</p>
@@ -147,7 +201,6 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
               <img className="primary-cast-explorer" src={visuals.heroStudent} alt="" aria-hidden="true" loading="lazy" />
             </div>
           </section>
-
           <section className="primary-quest" aria-label="和小智聊聊 · 今日冒险">
             <span className="primary-stage-badge" aria-hidden="true">第 1 站</span>
             <article className="primary-chat-card">
@@ -226,59 +279,56 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
         </section>
       )}
 
+      <HomeMainline session={session} navigate={navigate} onAskTopic={onAskTopic} experience={experience} historyItems={historyItems} />
+      <DiagnosticNudge session={session} navigate={navigate} primary={primary} />
       <DailyLearningPlan session={session} navigate={navigate} onAskTopic={onAskTopic} experience={experience} />
       {session && <LearningRhythm session={session} navigate={navigate} experience={experience} className="home-learning-rhythm" />}
 
-      {session && needsDiagnostic && (
-        <section className="diagnostic-nudge" aria-label="首次学情诊断">
-          <span className="diagnostic-nudge-icon"><Sparkles size={20} /></span>
-          <div>
-            <strong>{primary ? "让小智先认识你一下" : "还没有学习画像"}</strong>
-            <p>{primary ? "花 2 分钟做个小诊断，小智就能帮你挑最合适的课程和题目。" : "完成首次学情诊断，生成优势、薄弱点与推荐起点。"}</p>
-          </div>
-          <button className="button primary" type="button" onClick={() => navigate("diagnostic")}>
-            开始诊断<ArrowRight size={15} />
-          </button>
-        </section>
+      {primary ? (
+        <CourseShowcaseSection
+          eyebrow={usingShowcaseFallback ? "平台真实课程" : "为你准备"}
+          title={usingShowcaseFallback ? "这些都是能直接点开的真课" : "选择一场新的探索"}
+          note={usingShowcaseFallback
+            ? (session
+              ? "这个学段还没有为你生成的推荐，以下课程按学段挑选自平台已发布课程，点开即是正式课程内容。"
+              : "登录后会按你的学段和学习记录推荐；以下课程均为平台真实发布的课程。")
+            : "从故事、实验和图形化编程中认识人工智能。"}
+          loading={session && loading}
+          items={showcase}
+          primary
+          onOpen={openShowcaseCourse}
+        />
+      ) : teenStageGroups.length ? (
+        teenStageGroups.map((group) => (
+          <CourseShowcaseSection
+            key={group.key}
+            eyebrow={group.usingFallback ? `${group.eyebrow} · 真实课程` : group.eyebrow}
+            title={group.title}
+            note={group.usingFallback
+              ? (session
+                ? "这个学段还没有为你生成的推荐，以下课程按学段挑选自平台已发布课程，点开即是正式课程内容。"
+                : "登录后按学段推荐；以下均为平台真实发布的课程。")
+              : group.note}
+            loading={false}
+            items={group.items}
+            primary={false}
+            onOpen={openShowcaseCourse}
+          />
+        ))
+      ) : (
+        <CourseShowcaseSection
+          eyebrow="真实课程"
+          title="平台正在开放的真实课程"
+          note="该学段课程整理中，可先使用 AI 学习台或探索其他学段课程。"
+          loading={false}
+          items={[]}
+          primary={false}
+          onOpen={openShowcaseCourse}
+        />
       )}
 
-      <section className="home-section course-showcase">
-        <header className="section-heading">
-          <div>
-            <p className="eyebrow">{primary ? (session ? "平台真实课程" : "为你准备") : "推荐课程"}</p>
-            <h2>{primary ? "选择一场新的探索" : "从感兴趣的课程开始"}</h2>
-            <p>{session
-              ? (primary ? "从绘本、实验和图形化编程中认识人工智能。" : "覆盖学科基础、科学探究和编程创造，按当前学段筛选。")
-              : "登录后可查看平台已发布课程推荐。"}</p>
-          </div>
-          <div className="carousel-actions">
-            <button className="icon-button" type="button" title="上一组课程" onClick={() => scrollCourses(-1)}><ChevronLeft size={18} /></button>
-            <button className="icon-button" type="button" title="下一组课程" onClick={() => scrollCourses(1)}><ChevronRight size={18} /></button>
-          </div>
-        </header>
-        {session && loading ? (
-          <div className="empty-state" style={{ minHeight: 180 }}><LoaderCircle className="spin" size={22} /><p>正在加载推荐课程</p></div>
-        ) : (
-          <div className="visual-course-rail" ref={railRef}>
-            {showcase.map((course) => (
-              <article className="visual-course-card" key={course.id || course.title}>
-                <img src={course.image} alt={`${course.title}课程插画`} loading="lazy" />
-                <div>
-                  <span>{course.subject} · {course.grade}</span>
-                  <h3>{course.title}</h3>
-                  <p>下一节：{course.next}</p>
-                  <button type="button" onClick={() => (course.id ? requireLogin(() => navigate(`courses/${course.id}`)) : requireLogin())}>
-                    进入课程<ArrowRight size={15} />
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
       {primary ? (
-        <section className="home-section home-shortcuts" aria-label="小学端快捷入口">
+        <section className="home-section home-shortcuts">
           <button type="button" onClick={() => requireLogin(() => navigate("ai-studio"))}><img src={visuals.ai} alt="" /><div><strong>问问小智</strong><p>有问题随时问，也可以听故事</p></div><ArrowRight size={18} /></button>
           <button type="button" onClick={() => navigate("courses")}><img src={visuals.courses} alt="" /><div><strong>继续探索</strong><p>回到上次学习的有趣知识</p></div><ArrowRight size={18} /></button>
           <button type="button" onClick={() => navigate("tasks")}><img src={visuals.tasks} alt="" /><div><strong>今日挑战</strong><p>完成老师布置的小任务</p></div><ArrowRight size={18} /></button>
@@ -306,5 +356,35 @@ export function HomePage({ session, displayName, navigate, requireLogin, onAskTo
         </>
       )}
     </div>
+  );
+}
+
+/** 未做首次诊断时首页温和提醒；接口异常时视为已完成，避免打扰。 */
+function DiagnosticNudge({ session, navigate, primary }) {
+  const [done, setDone] = useState(null);
+
+  useEffect(() => {
+    if (!session) return undefined;
+    let active = true;
+    diagnosticsApi.latest()
+      .then((value) => { if (active) setDone(Boolean(value)); })
+      .catch(() => { if (active) setDone(true); });
+    return () => { active = false; };
+  }, [session]);
+
+  if (!session || done !== false) return null;
+  return (
+    <section className="diagnostic-nudge">
+      <span className="diagnostic-nudge-icon"><Target size={20} /></span>
+      <div>
+        <strong>{primary ? "让小智先认识你一下" : "还没有学习画像"}</strong>
+        <p>{primary
+          ? "花 2 分钟做个小诊断，小智就能帮你挑最合适的课程和题目。"
+          : "完成首次学情诊断，生成专属画像：优势、薄弱点与推荐起点。"}</p>
+      </div>
+      <button className="button primary" type="button" onClick={() => navigate("diagnostic")}>
+        开始诊断<ArrowRight size={15} />
+      </button>
+    </section>
   );
 }

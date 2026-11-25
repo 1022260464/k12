@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
 
-from k12_agent_runtime.application.speech import SpeechSynthesisDisabledError
+from k12_agent_runtime.application.speech import (
+    SpeechRecognitionDisabledError,
+    SpeechSynthesisDisabledError,
+)
 from k12_agent_runtime.infrastructure.speech import SpeechProviderError
 from k12_agent_runtime.interfaces.api.dependencies import get_container, verify_internal_api_key
 from k12_agent_runtime.interfaces.api.schemas.common import ApiResponse
 from k12_agent_runtime.interfaces.api.schemas.speech import (
     SpeechCapabilitiesResponse,
+    SpeechRecognitionResponse,
     SpeechSynthesisRequest,
 )
 
@@ -49,6 +53,23 @@ async def synthesize(request: Request, command: SpeechSynthesisRequest) -> Respo
             "X-Speech-Model": result.model,
             "X-Speech-Voice": result.voice,
         },
+    )
+
+
+@router.post("/recognize")
+async def recognize(request: Request) -> JSONResponse:
+    # Java网关转发原始音频字节（application/octet-stream），格式由文件头嗅探。
+    audio = await request.body()
+    try:
+        result = await get_container(request).recognize_speech.execute(audio)
+    except ValueError as error:
+        return _error(422, str(error))
+    except SpeechRecognitionDisabledError as error:
+        return _error(503, str(error))
+    except SpeechProviderError:
+        return _error(502, "语音识别服务暂时不可用")
+    return ApiResponse[SpeechRecognitionResponse].ok(
+        SpeechRecognitionResponse(text=result.text, model=result.model)
     )
 
 

@@ -117,6 +117,7 @@ export function PythonCodeEditor({
   diagnostics = [],
   readOnly = false,
   maxLength = 100000,
+  theme = "vs",
 }) {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -146,10 +147,34 @@ export function PythonCodeEditor({
     <div className="python-monaco-host">
       <Editor
         language="python"
-        theme="vs"
+        theme={theme}
         value={value}
         path="main.py"
         loading={<div className="python-monaco-loading">正在加载编辑器…</div>}
+        beforeMount={(monacoInstance) => {
+          // 中学端「未来实验室」深色主题：深海军蓝底 + 科技青/电光紫高亮
+          monacoInstance.editor.defineTheme("k12-lab-dark", {
+            base: "vs-dark",
+            inherit: true,
+            rules: [
+              { token: "comment", foreground: "5B7A99", fontStyle: "italic" },
+              { token: "keyword", foreground: "15D8FF" },
+              { token: "string", foreground: "FFB45E" },
+              { token: "number", foreground: "B18CFF" },
+              { token: "type", foreground: "7CD6FF" },
+              { token: "function", foreground: "7CD6FF" },
+            ],
+            colors: {
+              "editor.background": "#0B1B31",
+              "editor.foreground": "#D7E7F7",
+              "editorLineNumber.foreground": "#4F6B8A",
+              "editorLineNumber.activeForeground": "#15D8FF",
+              "editor.selectionBackground": "#15D8FF44",
+              "editor.lineHighlightBackground": "#10264088",
+              "editorCursor.foreground": "#15D8FF",
+            },
+          });
+        }}
         options={{
           readOnly,
           fontSize: 14,

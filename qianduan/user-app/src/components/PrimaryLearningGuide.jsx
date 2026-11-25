@@ -1,10 +1,21 @@
 import { ArrowRight, BookOpen, LoaderCircle, Sparkles, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, practiceApi } from "../api/client.js";
+import { courseMatchesLearningScope, EXPERIENCE } from "../experience/experience.js";
 
-export function PrimaryLearningGuide({ session, navigate, onAskTopic }) {
+// 小学端只认这些知识点：猫咪侦探课、互动绘本和图形编程真正教过的内容。
+// 其余练习记录（中学的排序、回归等）不进入学习向导，避免给小学生排中学任务。
+const PRIMARY_KNOWLEDGE_CODES = new Set([
+  "machine_learning.image_classification",
+  "machine_learning.features_labels",
+  "computer_vision.object_detection",
+  "computing.algorithm_basics",
+  "computing.loop_basics",
+  "computing.step_by_step_thinking",
+]);
+
+export function PrimaryLearningGuide({ session, navigate, onAskTopic, schoolStage, requireLogin }) {
   const [courses, setCourses] = useState([]);
-  const [insights, setInsights] = useState([]);
   const [mastery, setMastery] = useState([]);
   const [loading, setLoading] = useState(Boolean(session));
 
@@ -12,44 +23,41 @@ export function PrimaryLearningGuide({ session, navigate, onAskTopic }) {
     let active = true;
     if (!session) {
       setCourses([]);
-      setInsights([]);
       setMastery([]);
       setLoading(false);
       return () => { active = false; };
     }
 
     setLoading(true);
-    Promise.allSettled([
-      practiceApi.insights(),
-      practiceApi.mastery(),
-    ]).then(async ([insightResult, masteryResult]) => {
-      if (!active) return;
-      const masteryItems = masteryResult.status === "fulfilled" && Array.isArray(masteryResult.value)
-        ? masteryResult.value
-        : [];
-      setInsights(insightResult.status === "fulfilled" && Array.isArray(insightResult.value)
-        ? insightResult.value
-        : []);
-      setMastery(masteryItems);
-      try {
-        const recommendations = await coursesApi.personalized(
-          masteryItems.map((item) => ({
-            knowledgeCode: item.knowledgeCode,
-            masteryPercent: Number(item.masteryPercent) || 0,
-          })),
-          4,
-        );
-        if (active) setCourses(Array.isArray(recommendations) ? recommendations : []);
-      } catch {
-        const fallback = await coursesApi.recommended(4).catch(() => []);
-        if (active) setCourses((Array.isArray(fallback) ? fallback : []).map((course) => ({ course })));
-      }
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
+    practiceApi.mastery()
+      .then(async (masteryItems) => {
+        if (!active) return;
+        const scopedMastery = (Array.isArray(masteryItems) ? masteryItems : [])
+          .filter((item) => PRIMARY_KNOWLEDGE_CODES.has(item.knowledgeCode));
+        setMastery(scopedMastery);
+        const masteryHints = scopedMastery.map((item) => ({
+          knowledgeCode: item.knowledgeCode,
+          masteryPercent: Number(item.masteryPercent) || 0,
+        }));
+        try {
+          const recommendations = await coursesApi.personalized(masteryHints, 6);
+          const scoped = inPrimaryScope(recommendations, schoolStage);
+          if (!scoped.length) throw new Error("no in-scope recommendation");
+          if (active) setCourses(scoped);
+        } catch {
+          const fallback = await coursesApi.recommended(6).catch(() => []);
+          if (active) setCourses(inPrimaryScope(fallback, schoolStage).map((course) => ({ course })));
+        }
+      })
+      .catch(() => {
+        if (active) setMastery([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
     return () => { active = false; };
-  }, [session]);
+  }, [session, schoolStage]);
 
   const weakPoints = useMemo(
     () => mastery
@@ -58,7 +66,7 @@ export function PrimaryLearningGuide({ session, navigate, onAskTopic }) {
       .slice(0, 3),
     [mastery],
   );
-  const nextTopic = weakPoints[0]?.topic || insights[0]?.topic || null;
+  const nextTopic = weakPoints[0]?.topic || null;
 
   return (
     <aside className="primary-learning-guide" aria-label="我的学习向导">
@@ -68,7 +76,27 @@ export function PrimaryLearningGuide({ session, navigate, onAskTopic }) {
       </div>
 
       {!session ? (
-        <p className="primary-guide-empty">登录后，小智会根据课程和练习记录安排下一步。</p>
+        <>
+          <section className="primary-next-step is-locked">
+            <small>下一步学什么</small>
+            <strong>从互动绘本认识图像分类</strong>
+            <p>登录后，小智会按你的学段安排最合适的下一步。</p>
+            <button className="button primary compact" type="button" onClick={() => requireLogin?.()}>
+              登录解锁<ArrowRight size={14} />
+            </button>
+          </section>
+          <section className="primary-guide-section">
+            <header><Target size={15} /><strong>需要再练一练</strong></header>
+            <p>完成小测后，需要巩固的知识点会在这里排好队。</p>
+          </section>
+          <section className="primary-guide-section">
+            <header><BookOpen size={15} /><strong>为你推荐的课程</strong></header>
+            <p>按学段挑选的猫咪侦探课和绘本课会出现在这里。</p>
+          </section>
+          <button className="primary-picture-book-link" type="button" onClick={() => navigate("picture-books")}>
+            <BookOpen size={17} /><span><strong>互动绘本专题</strong><small>先去听一个故事</small></span><ArrowRight size={15} />
+          </button>
+        </>
       ) : loading ? (
         <div className="primary-guide-loading"><LoaderCircle className="spin" size={17} />正在准备学习建议</div>
       ) : (
@@ -76,7 +104,7 @@ export function PrimaryLearningGuide({ session, navigate, onAskTopic }) {
           <section className="primary-next-step">
             <small>下一步学什么</small>
             <strong>{nextTopic || "从互动绘本认识图像分类"}</strong>
-            <p>{insights[0]?.suggestion || "先看故事，再完成一个小挑战。"}</p>
+            <p>{nextTopic ? "和小智一起复习它，再做一道小练习。" : "先听故事，再完成一个小挑战。"}</p>
             <button
               className="button primary compact"
               type="button"
@@ -123,4 +151,11 @@ export function PrimaryLearningGuide({ session, navigate, onAskTopic }) {
       )}
     </aside>
   );
+}
+
+function inPrimaryScope(recommendations, schoolStage) {
+  return (Array.isArray(recommendations) ? recommendations : []).filter((item) => {
+    const course = item?.course || item;
+    return courseMatchesLearningScope(course?.gradeLevel, schoolStage, EXPERIENCE.PRIMARY);
+  });
 }

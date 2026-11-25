@@ -1,6 +1,7 @@
 import { ArrowRight, BookOpenText, CalendarCheck2, CheckCircle2, Clock3, FileText, LoaderCircle, RotateCcw, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { coursesApi, homeworksApi } from "../api/client.js";
+import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
 import { LearningCalendar } from "../components/LearningCalendar.jsx";
 import { EXPERIENCE } from "../experience/experience.js";
 import { visualsFor } from "../experience/visualAssets.js";
@@ -78,7 +79,6 @@ export function TasksPage({ session, requireLogin, navigate, experience = EXPERI
     done: items.filter((item) => submissionsByHomework[item.id]?.status === "GRADED").length,
   };
   const primary = experience === EXPERIENCE.PRIMARY;
-  const visuals = visualsFor(experience);
   const pendingItems = items.filter((item) => {
     const submission = submissionsByHomework[item.id];
     return item.status === "PUBLISHED" && (!submission || submission.status === "RETURNED");
@@ -104,25 +104,23 @@ export function TasksPage({ session, requireLogin, navigate, experience = EXPERI
 
   return (
     <div className={`page inner-page tasks-page ${primary ? "primary-mode" : "teen-mode"}`}>
-      <header className="tasks-hero">
-        <div className="tasks-hero-copy">
-          <p className="eyebrow"><Sparkles size={14} />{primary ? "今日成长挑战" : "LEARNING TASK CENTER"}</p>
-          <h1>{primary ? "完成小任务，收集今天的成长星" : "把作业、进度和学习节奏放在一起"}</h1>
-          <p>{primary
-            ? "先完成老师布置的小挑战，再看看课程有没有新的进步。每次认真提交，都会留下成长记录。"
-            : "统一查看待办、提交状态与课程进度。日历记录作业动态，帮助你安排下一段学习时间。"}</p>
-          <div className="tasks-hero-actions">
-            <button className="button primary" type="button" onClick={() => nextTask ? openHomework(nextTask) : navigate("courses")}>
-              {nextTask ? (primary ? "开始今日挑战" : "处理下一项作业") : "继续学习课程"}<ArrowRight size={16} />
-            </button>
-            <span><CalendarCheck2 size={16} />{counts.todo ? `${counts.todo} 项等待完成` : "今天没有未完成作业"}</span>
-          </div>
+      <ExperiencePageHeader
+        experience={experience}
+        eyebrow={<><Sparkles size={14} />{primary ? "今日成长挑战" : "LEARNING TASK CENTER"}</>}
+        title={primary ? "完成小任务，收集今天的成长星" : "把作业、进度和学习节奏放在一起"}
+        description={primary
+          ? "先完成老师布置的小挑战，再看看课程有没有新的进步。每次认真提交，都会留下成长记录。"
+          : "统一查看待办、提交状态与课程进度。日历记录作业动态，帮助你安排下一段学习时间。"}
+        imageKey="tasks"
+        note={primary ? "一步一步来，你正在变得更厉害" : "保持节奏，比临时突击更有效"}
+      >
+        <div className="experience-page-header-actions">
+          <button className="button primary" type="button" onClick={() => nextTask ? openHomework(nextTask) : navigate("courses")}>
+            {nextTask ? (primary ? "开始今日挑战" : "处理下一项作业") : "继续学习课程"}<ArrowRight size={16} />
+          </button>
+          <span><CalendarCheck2 size={16} />{counts.todo ? `${counts.todo} 项等待完成` : "今天没有未完成作业"}</span>
         </div>
-        <div className="tasks-hero-art" aria-hidden="true">
-          <span>{primary ? "一步一步来，你正在变得更厉害" : "保持节奏，比临时突击更有效"}</span>
-          <img src={visuals.tasks} alt="" />
-        </div>
-      </header>
+      </ExperiencePageHeader>
 
       <section className="task-summary">
         <article className="tone-todo"><Clock3 /><div><strong>{counts.todo}</strong><span>待完成</span></div></article>
@@ -300,6 +298,11 @@ function EmptyTasks({ title, detail, onLogin }) {
       <h2>{title}</h2>
       <p>{detail}</p>
       {onLogin && <button className="button primary" type="button" onClick={onLogin}>立即登录</button>}
+      <div className="tasks-empty-features">
+        <article><CalendarCheck2 size={16} /><strong>状态跟踪</strong><span>待完成、已提交、已批改一目了然</span></article>
+        <article><CalendarCheck2 size={16} /><strong>学习日历</strong><span>作业动态自动记录到日历</span></article>
+        <article><Sparkles size={16} /><strong>AI 组题练习</strong><span>不用等老师发布，选主题就能练</span></article>
+      </div>
     </section>
   );
 }

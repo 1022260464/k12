@@ -4,6 +4,7 @@ import { coursesApi } from "../api/client.js";
 import { CourseAttachmentList } from "./CourseAttachmentList.jsx";
 import { CourseActivityList } from "./CourseActivityList.jsx";
 import { HtmlContent } from "./HtmlContent.jsx";
+import { QuizRunner } from "./QuizRunner.jsx";
 
 /**
  * 左右分栏阅读：左侧手风琴目录（章 → 节），右侧正文。
@@ -12,6 +13,7 @@ export function CourseReader({
   courseId,
   chapters = [],
   chapter,
+  gradeLevel,
   progressByChapter = {},
   onBack,
   onCompleted,
@@ -242,6 +244,16 @@ export function CourseReader({
             ) : (
               !loadingToc && <p className="inline-empty">本章尚未添加教学内容，请联系教师。</p>
             )}
+            {body?.content && (
+              <QuizRunner
+                topic={[activeChapter?.title, body.title].filter(Boolean).join(" · ")}
+                stage={stageFromGradeLevel(gradeLevel)}
+                sourceText={body.content}
+                title={`${body.title} · 随堂练习`}
+                subtitle="小智根据这篇课文现场出题，做完马上批改。"
+                cta="做一做"
+              />
+            )}
             {active?.type === "section" ? (
               <CourseActivityList activities={activities} onLaunch={onLaunchActivity} />
             ) : null}
@@ -269,4 +281,14 @@ export function CourseReader({
       </div>
     </div>
   );
+}
+
+// 课程学段 → AI 出题口吻（gradeLevel 是中文标签）
+function stageFromGradeLevel(gradeLevel) {
+  return ({
+    小学低年级: "lower_primary",
+    小学高年级: "upper_primary",
+    初中: "middle_school",
+    高中: "high_school",
+  })[gradeLevel] || "lower_primary";
 }

@@ -7,3 +7,9 @@ class SynthesizedSpeech:
     content_type: str
     model: str
     voice: str
+
+
+@dataclass(frozen=True, slots=True)
+class RecognizedTranscript:
+    text: str
+    model: str

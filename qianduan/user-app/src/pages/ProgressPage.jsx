@@ -1,9 +1,11 @@
-import { BarChart3, BookOpen, CheckCircle2, ClipboardCheck, LoaderCircle, MessageSquareText, TrendingUp } from "lucide-react";
+import { BarChart3, BookOpen, CheckCircle2, ClipboardCheck, FileText, LoaderCircle, MessageSquareText, Sparkles, Target, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { coursesApi, homeworksApi, practiceApi, profileApi } from "../api/client.js";
+import { coursesApi, diagnosticsApi, homeworksApi, knowledgeGraphApi, practiceApi, profileApi } from "../api/client.js";
 import { ExperiencePageHeader } from "../components/ExperiencePageHeader.jsx";
+import { AuthGateShowcase } from "../components/AuthGateShowcase.jsx";
 import { LearnerKnowledgeNetwork } from "../components/LearnerKnowledgeNetwork.jsx";
 import { LearningRhythm } from "../components/LearningRhythm.jsx";
+import { PersonalizationLoop } from "../components/PersonalizationLoop.jsx";
 import { courseMatchesLearningScope, EXPERIENCE, learningProfileLabel } from "../experience/experience.js";
 
 const stages = [["PRIMARY_LOWER", "小学低年级"], ["PRIMARY_UPPER", "小学高年级"], ["JUNIOR_HIGH", "初中"], ["SENIOR_HIGH", "高中"]];
@@ -28,6 +30,8 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
   const [results, setResults] = useState([]);
   const [practiceInsights, setPracticeInsights] = useState([]);
   const [knowledgeMastery, setKnowledgeMastery] = useState([]);
+  const [diagnostic, setDiagnostic] = useState(null);
+  const [graph, setGraph] = useState(null);
   const [loading, setLoading] = useState(Boolean(session));
   const [error, setError] = useState("");
 
@@ -39,6 +43,7 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
       setResults([]);
       setPracticeInsights([]);
       setKnowledgeMastery([]);
+      setDiagnostic(null);
       setLoading(false);
       return () => { active = false; };
     }
@@ -51,8 +56,9 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
       homeworksApi.learningResults(1, 10),
       practiceApi.insights(),
       practiceApi.mastery(),
+      diagnosticsApi.latest(),
     ])
-      .then(([profileResult, historyResult, homeworkResult, practiceResult, masteryResult]) => {
+      .then(([profileResult, historyResult, homeworkResult, practiceResult, masteryResult, diagnosticResult]) => {
         if (!active) return;
         const failedSources = [];
         const profileValue = profileResult.status === "fulfilled" ? profileResult.value : activeLearningProfile;
@@ -97,11 +103,55 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
           failedSources.push("知识点掌握情况");
         }
 
+        if (diagnosticResult.status === "fulfilled") {
+          setDiagnostic(diagnosticResult.value || null);
+        } else {
+          setDiagnostic(null);
+        }
+
         if (failedSources.length) setError(`${failedSources.join("、")}暂时无法读取，已展示其余可用数据。`);
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [session, practiceRevision, experience, activeLearningProfile]);
+
+  // 知识图谱（带本地缓存）：用于给「接下来学什么」补一条可解释的推荐依据（前置/后继关系）。
+  useEffect(() => {
+    if (!session) return undefined;
+    let active = true;
+    knowledgeGraphApi.overview()
+      .then((data) => { if (active) setGraph(data); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [session]);
+
+  // 推荐依据（P1-7）：掌握度 + 知识图谱前置/后继 + 学习画像，全部来自真实接口，缺哪环就少说哪环。
+  const insightWhy = useMemo(() => {
+    const titleByCode = new Map((graph?.points || []).map((point) => [point.code, point.title]));
+    const codeByTitle = new Map();
+    (graph?.points || []).forEach((point) => {
+      if (!codeByTitle.has(point.title)) codeByTitle.set(point.title, point.code);
+    });
+    const prereqEdges = (graph?.edges || []).filter((edge) => edge.relation === "PREREQUISITE_OF");
+    const masteryByCode = new Map(knowledgeMastery.map((item) => [item.knowledgeCode, item]));
+    return (insight) => {
+      const parts = [];
+      const row = knowledgeMastery.find((item) => item.topic === insight.topic);
+      if (row) parts.push(`掌握度 ${row.masteryPercent}%${Number(row.masteryPercent) < 80 ? "（低于 80% 巩固线，优先安排）" : "（已达标，可进阶）"}`);
+      const code = codeByTitle.get(insight.topic);
+      if (code) {
+        const weakPre = prereqEdges
+          .filter((edge) => edge.toCode === code)
+          .map((edge) => masteryByCode.get(edge.fromCode))
+          .find((m) => !m || Number(m.masteryPercent) < 60);
+        if (weakPre) parts.push(`知识图谱显示先补前置「${weakPre.topic || titleByCode.get(weakPre.knowledgeCode) || "前置知识点"}」`);
+        const unlocked = prereqEdges.find((edge) => edge.fromCode === code);
+        if (unlocked) parts.push(`学好它才能继续学「${titleByCode.get(unlocked.toCode) || unlocked.toCode}」`);
+      }
+      if (profile) parts.push(`按学段画像（${learningProfileLabel(profile)}）安排`);
+      return parts.join("；");
+    };
+  }, [graph, knowledgeMastery, profile]);
 
   const metrics = useMemo(() => {
     const graded = results.filter((item) => item.status === "GRADED" && item.score != null);
@@ -121,7 +171,23 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
     [results],
   );
 
-  if (!session) return <div className="page inner-page report-page"><ProgressHeader experience={experience} /><section className="empty-state"><BarChart3 size={28} /><h2>{experience === EXPERIENCE.PRIMARY ? "登录后查看成长记录" : "登录后查看学习报告"}</h2><p>学习档案和作业结果属于个人数据，需要登录后读取。</p><button className="button primary" type="button" onClick={() => requireLogin()}>立即登录</button></section></div>;
+  if (!session) return (
+    <div className="page inner-page report-page">
+      <ProgressHeader experience={experience} />
+      <AuthGateShowcase
+        icon={BarChart3}
+        title={experience === EXPERIENCE.PRIMARY ? "登录后查看成长记录" : "登录后查看学习报告"}
+        description="学习档案和作业结果属于个人数据，需要登录后读取。"
+        features={[
+          { icon: TrendingUp, title: "课程进度总览", text: "每门课学到哪一章、平均进度多少，一眼看清。" },
+          { icon: ClipboardCheck, title: "作业与批改动态", text: "提交状态、得分和老师评语同步展示。" },
+          { icon: BookOpen, title: "AI 课堂小测记录", text: "组题练习的每次成绩自动归档成趋势。" },
+        ]}
+        footnote="学习数据仅自己可见，不会公开展示。"
+        onLogin={() => requireLogin()}
+      />
+    </div>
+  );
   if (loading) return <div className="page inner-page report-page"><div className="loading-state"><LoaderCircle size={22} />正在生成学习报告</div></div>;
 
   return (
@@ -141,6 +207,17 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
         </div>
         <button className="button secondary" type="button" onClick={() => navigate("courses")}><BookOpen size={16} />查看阶段课程</button>
       </section>
+
+      <PersonalizationLoop
+        profile={profile}
+        knowledgeMastery={knowledgeMastery}
+        practiceInsights={practiceInsights}
+        history={history}
+        experience={experience}
+        onOpenProfile={onOpenProfile}
+        onPractice={onPractice}
+        navigate={navigate}
+      />
 
       <LearningRhythm session={session} navigate={navigate} experience={experience} history={history} results={results} className="report-learning-rhythm" />
 
@@ -165,6 +242,31 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
           </div>
         </section>
         <aside className="report-side">
+          {diagnostic ? (
+            <section className="profile-card diagnostic-summary-card">
+              <Target />
+              <div>
+                <small>学情画像 · {formatDate(diagnostic.createdTime)}诊断</small>
+                <h2>总体掌握 {diagnostic.scorePercent}%</h2>
+                <p>{diagnosticSummary(diagnostic)}</p>
+                <div className="diagnostic-summary-actions">
+                  <button className="text-button" type="button" onClick={() => navigate("diagnostic")}>查看完整画像 / 重新诊断</button>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <section className="profile-card diagnostic-summary-card diagnostic-summary-empty">
+              <Target />
+              <div>
+                <small>学情画像</small>
+                <h2>还没有诊断记录</h2>
+                <p>花 2 分钟完成首次诊断，生成优势、薄弱点与推荐起点。</p>
+                <div className="diagnostic-summary-actions">
+                  <button className="text-button" type="button" onClick={() => navigate("diagnostic")}>去诊断</button>
+                </div>
+              </div>
+            </section>
+          )}
           <section className="profile-card">
             <BookOpen />
             <div>
@@ -187,9 +289,10 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
                 const mastery = knowledgeMastery.find((item) => item.topic === insight.topic);
                 return <article key={insight.topic}>
                   <strong>{insight.topic}</strong>
-                  <span>最近 {insight.sampleCount} 次 · 平均 {insight.averageScorePercent}%{mastery ? ` · 累计 ${mastery.attemptCount} 次 / ${mastery.masteryPercent}%` : ""}</span>
+                  <span>最近 {insight.sampleCount} 次 · 平均 {insight.averageScorePercent}%{mastery ? ` · 累计 ${mastery.attemptCount} 次 / ${mastery.masteryPercent}%${mastery.evidenceCount ? ` · 证据 ${mastery.evidenceCount} 条` : ""}` : ""}</span>
                   {mastery && <div className="progress-track" role="progressbar" aria-label={`${insight.topic}练习掌握参考`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={mastery.masteryPercent}><span style={{ width: `${Math.min(100, Math.max(0, mastery.masteryPercent))}%` }} /></div>}
                   <p>{insight.suggestion}</p>
+                  {insightWhy(insight) && <p className="insight-why"><Sparkles size={12} />{insightWhy(insight)}</p>}
                   <button className="button secondary" type="button" onClick={() => onPractice(insight.topic)}><MessageSquareText size={14} />继续练习</button>
                 </article>;
               }) : <p>完成 AI 助教小测后，这里会根据近期练习给出建议。</p>}
@@ -198,17 +301,21 @@ export function ProgressPage({ session, requireLogin, navigate, onOpenProfile, o
           </section>
           <section><BarChart3 /><div><small>最近批改</small><h2>{latestGraded ? `${latestGraded.score} 分` : "暂无已批改作业"}</h2><p>{latestGraded?.feedback || "完成并提交作业后，成绩和教师反馈会显示在这里。"}</p></div></section>
           <section className="result-list">
-            <div><small>提交记录</small><h2>最近作业结果</h2></div>
-            {results.slice(0, 5).map((item) => {
-              const tone = submissionTone(item.status);
-              return (
-                <p key={item.id}>
-                  <span>{item.homeworkTitle || "最近一次作业"}</span>
-                  <strong className={`task-status-badge tone-${tone}`}>{formatSubmissionStatus(item)}</strong>
-                </p>
-              );
-            })}
-            {!results.length && <p className="inline-empty">暂无作业提交记录。</p>}
+            <FileText />
+            <div>
+              <small>提交记录</small>
+              <h2>最近作业结果</h2>
+              {results.slice(0, 5).map((item) => {
+                const tone = submissionTone(item.status);
+                return (
+                  <p className="result-row" key={item.id}>
+                    <span>{item.homeworkTitle || "最近一次作业"}</span>
+                    <strong className={`task-status-badge tone-${tone}`}>{formatSubmissionStatus(item)}</strong>
+                  </p>
+                );
+              })}
+              {!results.length && <p className="inline-empty">暂无作业提交记录。</p>}
+            </div>
           </section>
         </aside>
       </div>
@@ -221,6 +328,14 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "时间未知";
   return new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" }).format(date);
+}
+
+function diagnosticSummary(diagnostic) {
+  const strengths = diagnostic.strengths?.length ? `优势：${diagnostic.strengths.join("、")}` : "";
+  const weaknesses = diagnostic.weaknesses?.length
+    ? `建议加强：${diagnostic.weaknesses.map((item) => item.categoryTitle).join("、")}`
+    : "各类别掌握良好";
+  return [strengths, weaknesses].filter(Boolean).join("；");
 }
 
 function formatSubmissionStatus(item) {
